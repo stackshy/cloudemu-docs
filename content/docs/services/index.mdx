@@ -9,24 +9,28 @@ cloudemu provides **16 service categories**, each implemented for all three clou
 
 ## Service Mapping
 
-| Category | AWS | Azure | GCP |
-|----------|-----|-------|-----|
-| [Compute](/docs/services/compute) | EC2 | VirtualMachines | GCE |
-| [Storage](/docs/services/storage) | S3 | BlobStorage | GCS |
-| [Database](/docs/services/database) | DynamoDB | CosmosDB | Firestore |
-| [Serverless](/docs/services/serverless) | Lambda | Functions | CloudFunctions |
-| [Networking](/docs/services/networking) | VPC | VNet | VPC |
-| [Monitoring](/docs/services/monitoring) | CloudWatch | Monitor | CloudMonitoring |
-| [IAM](/docs/services/iam) | IAM | IAM | IAM |
-| [DNS](/docs/services/dns) | Route53 | DNS | CloudDNS |
-| [Load Balancer](/docs/services/loadbalancer) | ELB | LB | LB |
-| [Message Queue](/docs/services/messagequeue) | SQS | ServiceBus | PubSub |
-| [Notification](/docs/services/notification) | SNS | NotificationHubs | FCM |
-| [Event Bus](/docs/services/eventbus) | EventBridge | EventGrid | Eventarc |
-| [Container Registry](/docs/services/containerregistry) | ECR | ACR | ArtifactRegistry |
-| [Cache](/docs/services/cache) | ElastiCache | Cache | Memorystore |
-| [Secrets](/docs/services/secrets) | SecretsManager | KeyVault | SecretManager |
-| [Logging](/docs/services/logging) | CloudWatchLogs | LogAnalytics | CloudLogging |
+The **SDK-compat** column shows whether each service has an HTTP wire-format handler that real cloud SDKs (`aws-sdk-go-v2`, `azure-sdk-for-go`, `cloud.google.com/go`) can talk to with only an endpoint change. See the [SDK-Compatible Server](/docs/sdk-compat) page for full details.
+
+| Category | AWS | Azure | GCP | SDK-compat |
+|----------|-----|-------|-----|:----------:|
+| [Compute](/docs/services/compute) | EC2 | VirtualMachines | GCE | ✓ |
+| [Storage](/docs/services/storage) | S3 | BlobStorage | GCS | ✓ |
+| [Database](/docs/services/database) | DynamoDB | CosmosDB | Firestore | ✓ |
+| [Serverless](/docs/services/serverless) | Lambda | Functions | CloudFunctions | ✓ |
+| [Networking](/docs/services/networking) | VPC | VNet | VPC | ✓ |
+| [Monitoring](/docs/services/monitoring) | CloudWatch | Monitor | CloudMonitoring | ✓ |
+| [Message Queue](/docs/services/messagequeue) | SQS | ServiceBus | PubSub | ✓ |
+| [IAM](/docs/services/iam) | IAM | IAM | IAM | – |
+| [DNS](/docs/services/dns) | Route53 | DNS | CloudDNS | – |
+| [Load Balancer](/docs/services/loadbalancer) | ELB | LB | LB | – |
+| [Notification](/docs/services/notification) | SNS | NotificationHubs | FCM | – |
+| [Event Bus](/docs/services/eventbus) | EventBridge | EventGrid | Eventarc | – |
+| [Container Registry](/docs/services/containerregistry) | ECR | ACR | ArtifactRegistry | – |
+| [Cache](/docs/services/cache) | ElastiCache | Cache | Memorystore | – |
+| [Secrets](/docs/services/secrets) | SecretsManager | KeyVault | SecretManager | – |
+| [Logging](/docs/services/logging) | CloudWatchLogs | LogAnalytics | CloudLogging | – |
+
+Services without SDK-compat handlers are still fully usable through the [Portable API](/docs/portable-api) — the table only reflects HTTP wire-format coverage. SDK-compat handlers are added in lockstep across all 3 providers as each domain ships.
 
 ## Accessing Services
 
