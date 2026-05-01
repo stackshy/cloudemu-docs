@@ -78,9 +78,9 @@ export function CodeExample() {
 
   return (
     <section className="w-full max-w-4xl mx-auto px-6 py-16">
-      <h2 className="text-3xl font-bold text-center mb-2">Same API, Every Provider</h2>
+      <h2 className="text-3xl font-bold text-center mb-2">Or use the Portable Go API</h2>
       <p className="text-fd-muted-foreground text-center mb-10">
-        Switch providers by changing one line — your test code stays the same
+        Same shape across AWS, Azure, and GCP — switch providers by changing one line
       </p>
       <div className="rounded-xl border border-fd-border bg-fd-card overflow-hidden shadow-lg">
         <div className="flex border-b border-fd-border">
