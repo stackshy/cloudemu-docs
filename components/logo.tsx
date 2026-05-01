@@ -78,7 +78,11 @@ export function LogoMark({
 
   return (
     <span className={`inline-flex items-center gap-2.5 ${className ?? ''}`}>
-      <Logo width={iconPx} height={iconPx} />
+      <Logo
+        width={iconPx}
+        height={iconPx}
+        style={{ width: iconPx, height: iconPx, flexShrink: 0 }}
+      />
       <span className={`font-bold ${textCls} tracking-tight`}>
         <span className="bg-gradient-to-r from-sky-400 to-violet-500 bg-clip-text text-transparent">
           cloud
