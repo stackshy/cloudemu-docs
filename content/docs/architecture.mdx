@@ -1,17 +1,27 @@
 ---
 title: Architecture
-description: Three-layer design inspired by Go CDK
+description: How cloudemu serves real cloud SDKs from an in-memory backend
 ---
 
 # Architecture
 
-cloudemu follows a three-layer architecture inspired by [Go CDK](https://gocloud.dev/):
+cloudemu's primary surface is the **SDK-compatible HTTP server** — a layer that speaks each cloud's real wire protocol so unmodified SDK clients can drive the in-memory backend. Underneath sits a small, deliberately boring three-layer core.
 
 ```
-Portable API     →  recording, metrics, rate limiting, error injection
-Driver Interface →  minimal Go interfaces per service
-Provider Mocks   →  in-memory backends (AWS/Azure/GCP) using generic memstore
+SDK-Compat HTTP Server   ←  the primary surface (real aws-sdk-go-v2 / azure-sdk-for-go / cloud.google.com/go)
+   │
+   ▼  speaks AWS query, JSON-RPC, ARM, REST, Smithy CBOR
+   │
+Portable Go API          ←  alternative entrypoint for in-process tests + supplementary domains
+   │
+   ▼
+Driver Interface         ←  minimal Go interfaces per service
+   │
+   ▼
+Provider Mocks           ←  in-memory backends (AWS/Azure/GCP) using generic memstore
 ```
+
+The driver layer is the load-bearing contract. The HTTP server, Portable API, Chaos engine, and Topology engine all wrap or consume drivers — so a new feature lights up across every consumer at once.
 
 ## Layer 1: Provider Mocks
 
@@ -20,22 +30,21 @@ The bottom layer contains the actual in-memory implementations for each cloud pr
 ```go
 // providers/aws/aws.go
 type Provider struct {
-    S3             *s3.Mock
-    EC2            *ec2.Mock
-    DynamoDB       *dynamodb.Mock
-    Lambda         *lambda.Mock
-    CloudWatch     *cloudwatch.Mock
+    S3         *s3.Mock
+    EC2        *ec2.Mock
+    DynamoDB   *dynamodb.Mock
+    Lambda     *lambda.Mock
+    SQS        *sqs.Mock
+    CloudWatch *cloudwatch.Mock
     // ... 16 services total
 }
 ```
 
-All mocks are backed by a generic, thread-safe `memstore.Store[V]` — a simple in-memory key-value store with `Get`, `Set`, `Delete`, `Filter`, and more.
-
-Services are wired together at initialization. For example, EC2 is connected to CloudWatch so that launching instances automatically emits CPU, Network, and Disk metrics.
+All mocks are backed by a generic, thread-safe `memstore.Store[V]` — an in-memory key-value store. Services are wired together at initialization (e.g. EC2 emits metrics into CloudWatch automatically).
 
 ## Layer 2: Driver Interfaces
 
-Each service category defines a minimal Go interface that all providers must implement:
+Each service category defines a minimal Go interface that all providers implement:
 
 ```go
 // compute/driver/driver.go
@@ -43,49 +52,68 @@ type Compute interface {
     RunInstances(ctx context.Context, config InstanceConfig, count int) ([]Instance, error)
     StopInstances(ctx context.Context, instanceIDs []string) error
     TerminateInstances(ctx context.Context, instanceIDs []string) error
-    DescribeInstances(ctx context.Context, ids []string, filters []DescribeFilter) ([]Instance, error)
     // ...
 }
 ```
 
-The driver layer ensures that AWS S3, Azure Blob Storage, and GCP GCS all satisfy the same `driver.Bucket` interface. Your code can work with any of them interchangeably.
+The driver is the contract — every consumer above this line sees the same interface, regardless of which provider is underneath.
 
-## Layer 3: Portable API
+## Layer 3: SDK-Compat HTTP Server (the primary surface)
 
-The top layer wraps driver implementations with cross-cutting concerns:
+The `server/` package wraps drivers with handlers that speak each cloud's real wire protocol. Pointing a real SDK client at a local `httptest.NewServer` is the recommended way to use cloudemu:
+
+```go
+cloud := cloudemu.NewAWS()
+ts := httptest.NewServer(awsserver.New(awsserver.Drivers{
+    S3: cloud.S3, DynamoDB: cloud.DynamoDB, Lambda: cloud.Lambda, SQS: cloud.SQS,
+    EC2: cloud.EC2, VPC: cloud.VPC, CloudWatch: cloud.CloudWatch,
+}))
+
+client := s3.NewFromConfig(cfg, func(o *s3.Options) {
+    o.BaseEndpoint = aws.String(ts.URL)
+})
+client.PutObject(ctx, &s3.PutObjectInput{ /* real production code */ })
+```
+
+Each handler is a self-contained package (`server/aws/s3`, `server/azure/cosmos`, `server/gcp/pubsub`, …). Adding a new service is one new package + one `Register` call — the core never changes. See [SDK-Compatible Server](/docs/sdk-compat) for the full coverage matrix and quick starts.
+
+## Alternative: Portable Go API
+
+For in-process tests, code that doesn't go through an SDK, or domains where SDK-compat isn't shipped yet (IAM, DNS, Load Balancer, Notification, Event Bus, Container Registry, Cache, Secrets, Logging), call the driver directly through the [Portable Go API](/docs/portable-api):
 
 ```go
 bucket := storage.NewBucket(aws.S3,
-    storage.WithRecorder(rec),              // record every API call
-    storage.WithMetrics(mc),                // track call counts and durations
-    storage.WithErrorInjection(inj),        // simulate cloud failures
-    storage.WithRateLimiter(limiter),       // simulate API throttling
-    storage.WithLatency(5*time.Millisecond),// simulate network delay
+    storage.WithRecorder(rec),
+    storage.WithMetrics(mc),
+    storage.WithErrorInjection(inj),
 )
+bucket.PutObject(ctx, "my-bucket", "key", data, "text/plain", nil)
 ```
 
-The portable API intercepts every call and applies the configured concerns in order:
-1. **Error injection** — check if this call should fail
-2. **Rate limiting** — check if rate limit is exceeded
-3. **Latency** — sleep for configured duration
-4. **Execute** — call the underlying driver
-5. **Metrics** — record call count, duration, errors
-6. **Recording** — log the call details
+The Portable API also adds cross-cutting concerns (recording, metrics, rate limiting, error injection, latency) on top of the same drivers.
 
-## Key Design Decisions
+## Pluggable consumers
 
-### Generic memstore
+Beyond the SDK-compat server and Portable API, two more packages consume the driver interface:
 
-All providers share the same `memstore.Store[V]` for storage. This ensures consistent thread-safety and behavior across providers.
+- **`chaos/`** — drop-in driver wrappers that inject failures, latency, and throttling in time-bounded windows. Works under both the Portable API _and_ the SDK-compat server. See [Chaos Engineering](/docs/chaos).
+- **`topology/`** — cross-service network reachability engine. Consumes compute, networking, and DNS drivers to evaluate `CanConnect`, `TraceRoute`, `Resolve`. See the networking service page for an example.
 
-### Monitoring auto-wiring
+All consumers are optional — importing cloudemu and only using the SDK-compat server (or only the Portable API) pulls none of the others.
 
-When a provider is created, services that produce metrics (like EC2) are automatically connected to the monitoring service (like CloudWatch). You can query these metrics the same way you would in production.
+## Key design decisions
 
-### State machines
+### Driver-as-contract
 
-Services with lifecycle states (compute, serverless) use formal state machines that enforce valid transitions. Invalid transitions return `FailedPrecondition` errors.
+The driver layer is the only point of stability that all consumers share. Every realistic behavior (state machines, auto-metrics, FIFO dedup, alarm evaluation) lives in the provider mocks behind the driver, so SDK-compat handlers and Portable API code see them automatically.
 
-### Zero dependencies
+### Realistic behaviors, not just CRUD
 
-cloudemu has no external dependencies beyond the Go standard library. The only test dependency is `testify`.
+- **State machines** enforce valid VM lifecycle transitions (`pending → running → stopped → terminated`). Invalid transitions return `FailedPrecondition`.
+- **Auto-metrics** push CPU/Network/Disk values to monitoring on RunInstances and emit lifecycle values on Start/Stop/Terminate.
+- **Alarm auto-evaluation** transitions alarms between `OK` and `ALARM` on every `PutMetricData`.
+- **FIFO dedup** windows, **DLQ redrive**, **TTL expiry**, **stream/change feed** records, **numeric-aware filters** — all in the driver layer, both surfaces inherit them.
+
+### Zero runtime dependencies
+
+cloudemu's runtime has no external dependencies beyond the Go standard library. SDK-compat _test_ code uses the official cloud SDKs to verify round-trip compatibility, but those are scoped to `_test.go` files — production users importing cloudemu pull none of them in.
