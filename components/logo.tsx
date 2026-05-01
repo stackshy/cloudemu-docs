@@ -10,7 +10,7 @@ import type { SVGProps } from 'react';
 export function Logo(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
-      viewBox="0 0 32 32"
+      viewBox="2 2 29 22"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       aria-label="cloudemu"
@@ -20,10 +20,10 @@ export function Logo(props: SVGProps<SVGSVGElement>) {
       <defs>
         <linearGradient
           id="cloudemu-logo-gradient"
-          x1="0"
-          y1="0"
-          x2="32"
-          y2="32"
+          x1="2"
+          y1="2"
+          x2="31"
+          y2="24"
           gradientUnits="userSpaceOnUse"
         >
           <stop stopColor="#38bdf8" />
