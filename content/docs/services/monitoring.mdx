@@ -1,90 +1,73 @@
 ---
 title: Monitoring
-description: Metrics, alarms, and metric queries
+description: Metrics, alarms, time series — drive with the real CloudWatch / Azure Monitor / Cloud Monitoring SDK
 ---
 
 # Monitoring
 
-Emulates monitoring services: **CloudWatch** (AWS), **Monitor** (Azure), **CloudMonitoring** (GCP).
+Emulates metric ingest + alarm evaluation: **CloudWatch** (AWS), **Azure Monitor** (Azure), **Cloud Monitoring** (GCP).
 
-## Provider Mapping
+| Provider | Service | SDK-compat | Driver |
+|----------|---------|:----------:|--------|
+| AWS | CloudWatch (Smithy `rpc-v2-cbor`) | ✓ Live | `aws.CloudWatch` |
+| Azure | Azure Monitor | ✓ Live | `azure.Monitor` |
+| GCP | Cloud Monitoring | ✓ Live | `gcp.CloudMonitoring` |
 
-| Provider | Service | Access |
-|----------|---------|--------|
-| AWS | CloudWatch | `aws.CloudWatch` |
-| Azure | Monitor | `azure.Monitor` |
-| GCP | Cloud Monitoring | `gcp.CloudMonitoring` |
+## Use the real SDK (recommended)
 
-## Key Operations
+```go
+import (
+    "github.com/aws/aws-sdk-go-v2/service/cloudwatch"
+    "github.com/aws/aws-sdk-go-v2/service/cloudwatch/types"
+    awsserver "github.com/stackshy/cloudemu/server/aws"
+)
 
-### Push Metrics
+cloud := cloudemu.NewAWS()
+ts := httptest.NewServer(awsserver.New(awsserver.Drivers{CloudWatch: cloud.CloudWatch}))
+
+client := cloudwatch.NewFromConfig(cfg, func(o *cloudwatch.Options) {
+    o.BaseEndpoint = aws.String(ts.URL)
+})
+
+client.PutMetricData(ctx, &cloudwatch.PutMetricDataInput{
+    Namespace: aws.String("App"),
+    MetricData: []types.MetricDatum{
+        {MetricName: aws.String("CPU"), Value: aws.Float64(45.2)},
+    },
+})
+
+client.PutMetricAlarm(ctx, &cloudwatch.PutMetricAlarmInput{
+    AlarmName:          aws.String("HighCPU"),
+    MetricName:         aws.String("CPU"),
+    Namespace:          aws.String("App"),
+    Threshold:          aws.Float64(80.0),
+    ComparisonOperator: types.ComparisonOperatorGreaterThanThreshold,
+    EvaluationPeriods:  aws.Int32(1),
+    Period:             aws.Int32(60),
+    Statistic:          types.StatisticAverage,
+})
+```
+
+### Operations supported via SDK-compat
+
+**CloudWatch:** PutMetricData, GetMetricStatistics, ListMetrics, PutMetricAlarm, DescribeAlarms, DeleteAlarms.
+
+**Azure Monitor:** `microsoft.insights/metricAlerts` CRUD, metric ingest/read.
+
+**Cloud Monitoring:** Time-series ingest/read at `/v3/projects/.../`, alert policies.
+
+## Realistic behaviors
+
+- **Auto-metrics from compute**: `RunInstances` automatically pushes 5 metrics (CPU, NetworkIn, NetworkOut, DiskReadOps, DiskWriteOps) with 5 backfill datapoints at 1-minute intervals.
+- **Alarm auto-evaluation**: `PutMetricData` triggers `evaluateAlarms()` for each affected namespace+metric. Alarms transition between `OK` and `ALARM` based on threshold comparison.
+- **Alarm history**: `GetAlarmHistory()` returns transition events with timestamps.
+
+## Alternative: Portable Go API
 
 ```go
 import mondriver "github.com/stackshy/cloudemu/monitoring/driver"
 
 aws.CloudWatch.PutMetricData(ctx, []mondriver.MetricDatum{
-    {
-        Namespace:  "App/Web",
-        MetricName: "CPUUtilization",
-        Value:      72.8,
-        Timestamp:  time.Now(),
-        Dimensions: map[string]string{"InstanceId": "i-00000001"},
-    },
-    {
-        Namespace:  "App/Web",
-        MetricName: "RequestCount",
-        Value:      15230,
-        Timestamp:  time.Now(),
-    },
+    {Namespace: "App", MetricName: "CPU", Value: 45.2, Unit: "Percent"},
 })
 ```
-
-### Query Metrics
-
-```go
-result, _ := aws.CloudWatch.GetMetricData(ctx, mondriver.GetMetricInput{
-    Namespace:  "App/Web",
-    MetricName: "CPUUtilization",
-    Dimensions: map[string]string{"InstanceId": "i-00000001"},
-    StartTime:  time.Now().Add(-5 * time.Minute),
-    EndTime:    time.Now(),
-    Period:     60,
-    Stat:       "Average", // also: "Sum", "Minimum", "Maximum", "SampleCount"
-})
-
-fmt.Printf("CPU: %.1f%%\n", result.Values[0])
-```
-
-### List Metrics
-
-```go
-metrics, _ := aws.CloudWatch.ListMetrics(ctx, "App/Web")
-// ["CPUUtilization", "RequestCount"]
-```
-
-### Alarms
-
-```go
-// Create an alarm
-aws.CloudWatch.CreateAlarm(ctx, mondriver.AlarmConfig{
-    Name:               "high-cpu",
-    Namespace:          "App/Web",
-    MetricName:         "CPUUtilization",
-    ComparisonOperator: "GreaterThanThreshold",
-    Threshold:          80,
-    Period:             300,
-    EvaluationPeriods:  2,
-    Stat:               "Average",
-})
-
-// List alarms
-alarms, _ := aws.CloudWatch.DescribeAlarms(ctx, nil)
-```
-
-## Auto-Metrics
-
-Services like EC2 automatically push metrics to the monitoring service when instances are launched, stopped, or terminated. You can query these exactly as you would in production.
-
-## Alarm Evaluation
-
-Alarms automatically evaluate when new metric data is pushed. They transition between `OK` and `ALARM` states based on threshold comparison.
