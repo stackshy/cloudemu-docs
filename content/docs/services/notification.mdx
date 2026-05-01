@@ -5,6 +5,8 @@ description: Topics, subscriptions, and push notifications
 
 # Notification
 
+> **SDK-compat status:** _Portable Go API only._ Real `aws-sdk-go-v2/service/sns`, Notification Hubs ARM, and FCM REST clients can't talk to cloudemu yet — notification SDK-compat handlers will ship in lockstep across all 3 providers in a future phase. Topics, subscriptions, fan-out, and message-attribute filtering are already available through the Portable Go API below.
+
 Emulates notification services: **SNS** (AWS), **NotificationHubs** (Azure), **FCM** (GCP).
 
 ## Provider Mapping
