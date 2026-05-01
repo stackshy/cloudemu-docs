@@ -1,151 +1,165 @@
 ---
 title: Quick Start
-description: Build a complete cloud simulation in 5 minutes
+description: Drop cloudemu in front of the real cloud SDK in 5 minutes
 ---
 
 # Quick Start
 
-Let's build a realistic cloud infrastructure simulation — VPC, compute instances, storage, DNS, and monitoring — all in memory.
+The fastest path to using cloudemu: spin up the **SDK-compat HTTP server**, point a real `aws-sdk-go-v2` (or Azure / GCP equivalent) client at it, and call your existing production code unchanged.
 
-## Create an AWS Provider
+No mocks. No Docker. No cloud accounts. Just `go get` and an `httptest.NewServer`.
+
+## 1. Install
+
+```bash
+go get github.com/stackshy/cloudemu
+go get github.com/aws/aws-sdk-go-v2/service/s3
+```
+
+## 2. Stand up cloudemu over HTTP
 
 ```go
 package main
 
 import (
+    "bytes"
     "context"
     "fmt"
+    "net/http/httptest"
+
+    "github.com/aws/aws-sdk-go-v2/aws"
+    awsconfig "github.com/aws/aws-sdk-go-v2/config"
+    "github.com/aws/aws-sdk-go-v2/credentials"
+    "github.com/aws/aws-sdk-go-v2/service/s3"
 
     "github.com/stackshy/cloudemu"
-    computedriver "github.com/stackshy/cloudemu/compute/driver"
-    netdriver "github.com/stackshy/cloudemu/networking/driver"
-    storagedriver "github.com/stackshy/cloudemu/storage/driver"
+    awsserver "github.com/stackshy/cloudemu/server/aws"
 )
 
 func main() {
     ctx := context.Background()
-    aws := cloudemu.NewAWS()
+
+    // Create the in-memory cloud + the SDK-compat HTTP server in front of it.
+    cloud := cloudemu.NewAWS()
+    ts := httptest.NewServer(awsserver.New(awsserver.Drivers{
+        S3:         cloud.S3,
+        DynamoDB:   cloud.DynamoDB,
+        EC2:        cloud.EC2,
+        VPC:        cloud.VPC,
+        Lambda:     cloud.Lambda,
+        SQS:        cloud.SQS,
+        CloudWatch: cloud.CloudWatch,
+    }))
+    defer ts.Close()
 ```
 
-## Set Up Networking
+## 3. Use the real `aws-sdk-go-v2` client
 
-Create a VPC, subnet, and security group:
-
-```go
-    // Create a VPC
-    vpc, _ := aws.VPC.CreateVPC(ctx, netdriver.VPCConfig{
-        CIDRBlock: "10.0.0.0/16",
-        Tags:      map[string]string{"env": "production"},
-    })
-
-    // Add a subnet
-    subnet, _ := aws.VPC.CreateSubnet(ctx, netdriver.SubnetConfig{
-        VPCID:            vpc.ID,
-        CIDRBlock:        "10.0.1.0/24",
-        AvailabilityZone: "us-east-1a",
-    })
-
-    // Create a security group with HTTPS access
-    sg, _ := aws.VPC.CreateSecurityGroup(ctx, netdriver.SecurityGroupConfig{
-        Name: "web-sg", Description: "Web traffic", VPCID: vpc.ID,
-    })
-    aws.VPC.AddIngressRule(ctx, sg.ID, netdriver.SecurityRule{
-        Protocol: "tcp", FromPort: 443, ToPort: 443, CIDR: "0.0.0.0/0",
-    })
-```
-
-## Launch Compute Instances
+The only thing that changes vs. real AWS is `BaseEndpoint`. Every other line of your production code stays identical.
 
 ```go
-    // Launch 3 instances — they start in "pending" and transition to "running"
-    instances, _ := aws.EC2.RunInstances(ctx, computedriver.InstanceConfig{
-        ImageID:        "ami-0abcdef1234",
-        InstanceType:   "t3.large",
-        SubnetID:       subnet.ID,
-        SecurityGroups: []string{sg.ID},
-        Tags:           map[string]string{"app": "web-server"},
-    }, 3)
+    cfg, _ := awsconfig.LoadDefaultConfig(ctx,
+        awsconfig.WithRegion("us-east-1"),
+        awsconfig.WithCredentialsProvider(
+            credentials.NewStaticCredentialsProvider("test", "test", ""),
+        ),
+    )
 
-    for _, inst := range instances {
-        fmt.Printf("Instance %s: state=%s ip=%s\n",
-            inst.ID, inst.State, inst.PrivateIP)
-    }
-    // Instance i-00000001: state=running ip=10.0.0.1
-    // Instance i-00000002: state=running ip=10.0.0.2
-    // Instance i-00000003: state=running ip=10.0.0.3
-```
-
-## Store Objects
-
-```go
-    // Create a bucket and upload files
-    aws.S3.CreateBucket(ctx, "app-deployments")
-    aws.S3.PutObject(ctx, "app-deployments", "v1.0/app.jar",
-        []byte("binary-data"), "application/java-archive", nil)
-    aws.S3.PutObject(ctx, "app-deployments", "v1.0/config.yaml",
-        []byte("db: rds-prod\nport: 8080"), "text/yaml", nil)
-
-    // List objects by prefix
-    result, _ := aws.S3.ListObjects(ctx, "app-deployments",
-        storagedriver.ListOptions{Prefix: "v1.0/"})
-    fmt.Printf("Objects in v1.0/: %d\n", len(result.Objects))
-
-    // Retrieve an object
-    obj, _ := aws.S3.GetObject(ctx, "app-deployments", "v1.0/config.yaml")
-    fmt.Printf("Config: %s\n", string(obj.Data))
-```
-
-## Instance Lifecycle
-
-```go
-    // Stop an instance — state machine enforces valid transitions
-    aws.EC2.StopInstances(ctx, []string{instances[0].ID})
-
-    // Modify while stopped (resize)
-    aws.EC2.ModifyInstance(ctx, instances[0].ID, computedriver.ModifyInstanceInput{
-        InstanceType: "t3.xlarge",
+    client := s3.NewFromConfig(cfg, func(o *s3.Options) {
+        o.BaseEndpoint = aws.String(ts.URL)
+        o.UsePathStyle = true
     })
 
-    // Start it back
-    aws.EC2.StartInstances(ctx, []string{instances[0].ID})
+    // ↓ This is your real production code, unchanged. ↓
 
-    // Terminate all
-    for _, inst := range instances {
-        aws.EC2.TerminateInstances(ctx, []string{inst.ID})
-    }
+    client.CreateBucket(ctx, &s3.CreateBucketInput{
+        Bucket: aws.String("app-deployments"),
+    })
 
-    // Trying to stop a terminated instance returns an error
-    err := aws.EC2.StopInstances(ctx, []string{instances[0].ID})
-    fmt.Println(err) // "cannot stop instance: invalid transition"
+    client.PutObject(ctx, &s3.PutObjectInput{
+        Bucket: aws.String("app-deployments"),
+        Key:    aws.String("v1.0/config.yaml"),
+        Body:   bytes.NewReader([]byte("db: rds-prod\nport: 8080")),
+    })
+
+    out, _ := client.GetObject(ctx, &s3.GetObjectInput{
+        Bucket: aws.String("app-deployments"),
+        Key:    aws.String("v1.0/config.yaml"),
+    })
+    defer out.Body.Close()
+    fmt.Println("Object retrieved.")
 }
 ```
-
-## Run It
 
 ```bash
 go run main.go
 ```
 
-Everything runs in memory. No cloud account needed. No Docker. Zero cost.
+Done. Real SDK, in-memory backend, ~10ms per call.
 
-## Try Other Providers
+## What just happened
 
-The same code works with Azure and GCP — just change the provider:
-
-```go
-// Azure
-azure := cloudemu.NewAzure()
-azure.VirtualMachines.RunInstances(ctx, config, 3)
-azure.BlobStorage.CreateBucket(ctx, "my-bucket")
-
-// GCP
-gcp := cloudemu.NewGCP()
-gcp.GCE.RunInstances(ctx, config, 3)
-gcp.GCS.CreateBucket(ctx, "my-bucket")
+```
+your test code
+   │
+   ▼
+real aws-sdk-go-v2 client  ──HTTP──▶  awsserver.New (httptest)
+                                          │
+                                          ▼
+                            cloudemu in-memory backend
 ```
 
-## Next Steps
+The server speaks the actual AWS wire protocol (S3 REST + XML, DynamoDB JSON-RPC, EC2 query, SQS `AwsJson1_0`, CloudWatch Smithy CBOR, Lambda REST). The SDK can't tell the difference between this and `s3.amazonaws.com`.
 
-- [Configuration](/docs/configuration) — customize regions, clocks, and more
-- [Services](/docs/services) — explore all 16 service categories
-- [Cross-Cutting Features](/docs/features) — add recording, metrics, and error injection
+## Same pattern, every provider
+
+The Azure and GCP servers are drop-in replacements:
+
+```go
+// Azure — TLS required, the SDK rejects bearer tokens over plain HTTP.
+import azureserver "github.com/stackshy/cloudemu/server/azure"
+
+cp := cloudemu.NewAzure()
+ts := httptest.NewTLSServer(azureserver.New(azureserver.Drivers{
+    VirtualMachines: cp.VirtualMachines, BlobStorage: cp.BlobStorage,
+    CosmosDB: cp.CosmosDB, Network: cp.VNet, Monitor: cp.Monitor,
+    Functions: cp.Functions, ServiceBus: cp.ServiceBus,
+}))
+// armcompute.NewVirtualMachinesClient with ts.URL → done.
+```
+
+```go
+// GCP — REST endpoint via google.golang.org/api or the cloud.google.com/go SDKs.
+import gcpserver "github.com/stackshy/cloudemu/server/gcp"
+
+cp := cloudemu.NewGCP()
+ts := httptest.NewServer(gcpserver.New(gcpserver.Drivers{
+    Compute: cp.GCE, Storage: cp.GCS, Firestore: cp.Firestore,
+    Networking: cp.VPC, Monitoring: cp.CloudMonitoring,
+    CloudFunctions: cp.CloudFunctions, PubSub: cp.PubSub,
+}))
+// option.WithEndpoint(ts.URL) on any cloud.google.com/go client → done.
+```
+
+## Currently SDK-compat-shipped
+
+7 service domains have HTTP wire-format handlers across all 3 providers:
+
+| Domain | AWS | Azure | GCP |
+|--------|-----|-------|-----|
+| Storage | S3 | Blob | GCS |
+| Compute | EC2 + full VPC stack | Virtual Machines + Disks/Snapshots/Images | Compute Engine + Disks/Snapshots/Images |
+| Database | DynamoDB | Cosmos DB | Firestore |
+| Networking | (in EC2) | VNet | VPC + Firewalls |
+| Monitoring | CloudWatch | Azure Monitor | Cloud Monitoring |
+| Serverless | Lambda | Functions | Cloud Functions |
+| Message Queue | SQS | Service Bus | Pub/Sub |
+
+The remaining 9 domains (IAM, DNS, Load Balancer, Notification, Event Bus, Container Registry, Cache, Secrets, Logging) are **available today via the [Portable Go API](/docs/portable-api)**; SDK-compat handlers ship in lockstep across all 3 providers as each domain lands.
+
+## Next steps
+
+- [SDK-Compatible Server](/docs/sdk-compat) — full coverage tables, protocol detection, registration ordering
+- [Architecture](/docs/architecture) — how SDK-compat wraps the driver layer
+- [Chaos Engineering](/docs/chaos) — inject failures while real SDKs are talking to cloudemu
+- [Portable Go API](/docs/portable-api) — the alternative path when you want to skip HTTP entirely
