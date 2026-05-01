@@ -5,8 +5,7 @@ import type { SVGProps } from 'react';
  * cloud providers (AWS, Azure, GCP) emulated inside cloudemu. Uses an inline
  * gradient by default (sky-400 → violet-500) but accepts any styling via props.
  *
- * Square 32x32 viewBox with a naturally-proportioned cloud — 3 humps on top,
- * short flat base — so the silhouette is recognizable at every size.
+ * Renders crisply from 16px (favicon) up to display sizes.
  */
 export function Logo(props: SVGProps<SVGSVGElement>) {
   return (
@@ -32,24 +31,24 @@ export function Logo(props: SVGProps<SVGSVGElement>) {
         </linearGradient>
       </defs>
 
-      {/* Cloud silhouette — naturally proportioned, recognizable at any size */}
+      {/* Cloud silhouette — built from overlapping circles + a rounded base */}
       <g>
-        <circle cx="10" cy="16" r="7" fill="url(#cloudemu-logo-gradient)" />
-        <circle cx="17" cy="12" r="9" fill="url(#cloudemu-logo-gradient)" />
-        <circle cx="24" cy="16" r="6" fill="url(#cloudemu-logo-gradient)" />
+        <circle cx="9" cy="15" r="7" fill="url(#cloudemu-logo-gradient)" />
+        <circle cx="18" cy="11" r="9" fill="url(#cloudemu-logo-gradient)" />
+        <circle cx="25" cy="15" r="6" fill="url(#cloudemu-logo-gradient)" />
         <rect
-          x="3"
-          y="15"
-          width="26"
-          height="11"
-          rx="5.5"
+          x="6"
+          y="14"
+          width="22"
+          height="10"
+          rx="5"
           fill="url(#cloudemu-logo-gradient)"
         />
       </g>
 
       {/* Three connected service nodes inside — AWS / Azure / GCP, abstracted */}
       <path
-        d="M11 20L17 22.5L24 20"
+        d="M11 19L18 22L25 19"
         stroke="white"
         strokeOpacity="0.85"
         strokeWidth="1.2"
@@ -57,9 +56,9 @@ export function Logo(props: SVGProps<SVGSVGElement>) {
         strokeLinejoin="round"
         fill="none"
       />
-      <circle cx="11" cy="20" r="1.6" fill="white" />
-      <circle cx="17" cy="22.5" r="1.6" fill="white" />
-      <circle cx="24" cy="20" r="1.6" fill="white" />
+      <circle cx="11" cy="19" r="1.6" fill="white" />
+      <circle cx="18" cy="22" r="1.6" fill="white" />
+      <circle cx="25" cy="19" r="1.6" fill="white" />
     </svg>
   );
 }
