@@ -1,4 +1,6 @@
 import {
+  ServerCog,
+  Zap,
   Workflow,
   Activity,
   AlertTriangle,
@@ -8,6 +10,20 @@ import {
 } from 'lucide-react';
 
 const features = [
+  {
+    title: 'Real Cloud SDKs',
+    description:
+      'aws-sdk-go-v2, azure-sdk-for-go, and cloud.google.com/go work unchanged — point them at a local httptest.NewServer and your production code just runs.',
+    icon: ServerCog,
+    accent: true,
+  },
+  {
+    title: 'Chaos Engineering',
+    description:
+      'Inject service outages, latency spikes, probabilistic failures, and throttling in time-bounded windows. Retry and timeout paths get exercised every test run.',
+    icon: Zap,
+    accent: true,
+  },
   {
     title: 'State Machines',
     description:
@@ -57,9 +73,17 @@ export function FeatureCards() {
         {features.map((feature) => (
           <div
             key={feature.title}
-            className="group rounded-xl border border-fd-border bg-fd-card p-6 hover:shadow-lg hover:border-fd-primary/50 transition-all duration-200"
+            className={`group rounded-xl border p-6 transition-all duration-200 ${
+              feature.accent
+                ? 'border-fd-primary/40 bg-fd-primary/5 hover:shadow-lg hover:border-fd-primary'
+                : 'border-fd-border bg-fd-card hover:shadow-lg hover:border-fd-primary/50'
+            }`}
           >
-            <div className="mb-4 inline-flex items-center justify-center w-10 h-10 rounded-lg bg-fd-primary/10 text-fd-primary">
+            <div
+              className={`mb-4 inline-flex items-center justify-center w-10 h-10 rounded-lg ${
+                feature.accent ? 'bg-fd-primary text-fd-primary-foreground' : 'bg-fd-primary/10 text-fd-primary'
+              }`}
+            >
               <feature.icon className="w-5 h-5" />
             </div>
             <h3 className="text-lg font-semibold mb-2">{feature.title}</h3>
