@@ -13,6 +13,8 @@
     "---",
     "...features",
     "---",
-    "portable-api"
+    "portable-api",
+    "sdk-compat",
+    "chaos"
   ]
 }

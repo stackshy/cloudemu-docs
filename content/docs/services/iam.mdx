@@ -5,6 +5,8 @@ description: Identity, roles, and policy evaluation with wildcard matching
 
 # IAM
 
+> **SDK-compat status:** _Portable Go API only._ Real `aws-sdk-go-v2/service/iam`, Azure RBAC, and GCP IAM clients can't talk to cloudemu yet — IAM SDK-compat handlers will ship in lockstep across all 3 providers in a future phase. The full driver semantics (JSON policy evaluation, wildcards, explicit-deny override, instance profiles) are already available through the Portable Go API below.
+
 Emulates identity and access management across all three providers.
 
 ## Provider Mapping

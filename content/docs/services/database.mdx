@@ -1,116 +1,80 @@
 ---
 title: Database
-description: NoSQL database with queries, TTL, and change streams
+description: NoSQL — DynamoDB, Cosmos DB, Firestore — drive it with the real cloud SDK
 ---
 
 # Database
 
-Emulates NoSQL databases: **DynamoDB** (AWS), **CosmosDB** (Azure), **Firestore** (GCP).
+Emulates NoSQL databases: **DynamoDB** (AWS), **Cosmos DB** (Azure), **Firestore** (GCP).
 
-## Provider Mapping
+| Provider | Service | SDK-compat | Driver |
+|----------|---------|:----------:|--------|
+| AWS | DynamoDB | ✓ Live | `aws.DynamoDB` |
+| Azure | Cosmos DB | ✓ Live | `azure.CosmosDB` |
+| GCP | Firestore | ✓ Live | `gcp.Firestore` |
 
-| Provider | Service | Access |
-|----------|---------|--------|
-| AWS | DynamoDB | `aws.DynamoDB` |
-| Azure | CosmosDB | `azure.CosmosDB` |
-| GCP | Firestore | `gcp.Firestore` |
-
-## Key Operations
-
-### Table Management
+## Use the real SDK (recommended)
 
 ```go
-aws.DynamoDB.CreateTable(ctx, driver.TableConfig{
-    Name:         "users",
-    PartitionKey: "userId",
-    SortKey:      "email",
-})
-
-tables, _ := aws.DynamoDB.ListTables(ctx)
-```
-
-### Item Operations
-
-```go
-// Put
-aws.DynamoDB.PutItem(ctx, "users", map[string]any{
-    "userId": "u-001", "email": "alice@example.com", "name": "Alice", "age": 30,
-})
-
-// Get
-item, _ := aws.DynamoDB.GetItem(ctx, "users", map[string]any{
-    "userId": "u-001", "email": "alice@example.com",
-})
-
-// Delete
-aws.DynamoDB.DeleteItem(ctx, "users", map[string]any{
-    "userId": "u-001", "email": "alice@example.com",
-})
-
-// Batch operations
-aws.DynamoDB.BatchPutItems(ctx, "users", []map[string]any{item1, item2, item3})
-items, _ := aws.DynamoDB.BatchGetItems(ctx, "users", []map[string]any{key1, key2})
-```
-
-### Query and Scan
-
-```go
-// Query by key condition
-result, _ := aws.DynamoDB.Query(ctx, driver.QueryInput{
-    Table: "users",
-    KeyCondition: driver.KeyCondition{
-        PartitionKey: "userId", PartitionVal: "u-001",
-        SortOp: "BEGINS_WITH", SortVal: "a",
-    },
-    Limit: 10,
-})
-
-// Scan with filters
-result, _ = aws.DynamoDB.Scan(ctx, driver.ScanInput{
-    Table: "users",
-    Filters: []driver.ScanFilter{
-        {Field: "age", Op: ">", Value: 25},
-    },
-})
-```
-
-### TTL
-
-```go
-aws.DynamoDB.UpdateTTL(ctx, "sessions", driver.TTLConfig{
-    Enabled:       true,
-    AttributeName: "expiresAt",
-})
-```
-
-Items with an `expiresAt` timestamp in the past are automatically cleaned up on read.
-
-### Streams / Change Feed
-
-```go
-aws.DynamoDB.UpdateStreamConfig(ctx, "users", driver.StreamConfig{
-    Enabled:  true,
-    ViewType: "NEW_AND_OLD_IMAGES",
-})
-
-// After mutations, read the stream
-iter, _ := aws.DynamoDB.GetStreamRecords(ctx, "users", 100, "")
-for _, record := range iter.Records {
-    fmt.Println(record.EventType) // "INSERT", "MODIFY", or "REMOVE"
-}
-```
-
-### Transactions
-
-```go
-aws.DynamoDB.TransactWriteItems(ctx, "users",
-    []map[string]any{newItem1, newItem2}, // puts
-    []map[string]any{deleteKey1},         // deletes
+import (
+    "github.com/aws/aws-sdk-go-v2/service/dynamodb"
+    "github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
+    "github.com/stackshy/cloudemu"
+    awsserver "github.com/stackshy/cloudemu/server/aws"
 )
+
+cloud := cloudemu.NewAWS()
+ts := httptest.NewServer(awsserver.New(awsserver.Drivers{DynamoDB: cloud.DynamoDB}))
+
+client := dynamodb.NewFromConfig(cfg, func(o *dynamodb.Options) {
+    o.BaseEndpoint = aws.String(ts.URL)
+})
+
+client.CreateTable(ctx, &dynamodb.CreateTableInput{
+    TableName: aws.String("Users"),
+    AttributeDefinitions: []types.AttributeDefinition{
+        {AttributeName: aws.String("id"), AttributeType: types.ScalarAttributeTypeS},
+    },
+    KeySchema: []types.KeySchemaElement{
+        {AttributeName: aws.String("id"), KeyType: types.KeyTypeHash},
+    },
+    BillingMode: types.BillingModePayPerRequest,
+})
+
+client.PutItem(ctx, &dynamodb.PutItemInput{
+    TableName: aws.String("Users"),
+    Item: map[string]types.AttributeValue{
+        "id":   &types.AttributeValueMemberS{Value: "u1"},
+        "name": &types.AttributeValueMemberS{Value: "Alice"},
+    },
+})
 ```
 
-## Realistic Behaviors
+Same shape with `azcosmos` (Azure) and `cloud.google.com/go/firestore` (GCP). See the [SDK-Compat Server page](/docs/sdk-compat) for the full quick starts.
 
-- **Numeric-aware comparisons**: filters compare `"10" > "9"` correctly
-- **TTL lazy cleanup**: expired items are removed on read, not in the background
-- **Stream records**: every mutation (INSERT/MODIFY/REMOVE) produces a stream record with old and new images
+### Operations supported via SDK-compat
+
+**DynamoDB:** CreateTable, DeleteTable, DescribeTable, ListTables, PutItem, GetItem, DeleteItem, UpdateItem (SET/REMOVE), Query, Scan (with FilterExpression), BatchWriteItem, BatchGetItem, TransactWriteItems.
+
+**Cosmos DB:** Databases, Containers, Documents — full CRUD with `x-ms-documentdb-*` headers + query.
+
+**Firestore:** `:commit`, `:batchGet`, `:runQuery`, document CRUD via the REST data plane.
+
+## Realistic behaviors
+
+- **TTL expiry**: items with TTL attributes expire on read.
+- **Numeric-aware comparisons**: filters compare `"10" > "9"` correctly using numeric ordering, not string ordering.
+- **Stream / change feed**: `PutItem` / `UpdateItem` / `DeleteItem` produce stream records (INSERT / MODIFY / REMOVE) when streams are enabled.
+- **Global Secondary Indexes**: `CreateIndex`, `DescribeIndex`, `DeleteIndex`; queries can target a GSI via `QueryInput.IndexName`.
+
+## Alternative: Portable Go API
+
+```go
+import dbdriver "github.com/stackshy/cloudemu/database/driver"
+
+aws.DynamoDB.CreateTable(ctx, dbdriver.TableConfig{
+    Name: "Users", PartitionKey: "id",
+})
+aws.DynamoDB.PutItem(ctx, "Users", map[string]any{"id": "u1", "name": "Alice"})
+item, _ := aws.DynamoDB.GetItem(ctx, "Users", map[string]any{"id": "u1"})
+```

@@ -5,6 +5,8 @@ description: Container image storage, lifecycle policies, and scanning
 
 # Container Registry
 
+> **SDK-compat status:** _Portable Go API only._ Real `aws-sdk-go-v2/service/ecr`, `armcontainerregistry`, and Artifact Registry clients can't talk to cloudemu yet — registry SDK-compat handlers will ship in lockstep across all 3 providers in a future phase. Repositories, images, tags, and lifecycle policies are already available through the Portable Go API below.
+
 Emulates container registries: **ECR** (AWS), **ACR** (Azure), **ArtifactRegistry** (GCP).
 
 ## Provider Mapping

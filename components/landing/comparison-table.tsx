@@ -66,6 +66,12 @@ export function ComparisonTable() {
               emulator={false}
               cloudemu={true}
             />
+            <Row
+              feature="Use real SDKs unchanged"
+              real={true}
+              emulator={true}
+              cloudemu={true}
+            />
           </tbody>
         </table>
       </div>

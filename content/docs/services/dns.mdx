@@ -5,6 +5,8 @@ description: DNS zones and records with weighted routing
 
 # DNS
 
+> **SDK-compat status:** _Portable Go API only._ Real `aws-sdk-go-v2/service/route53`, `armdns`, and Cloud DNS REST clients can't talk to cloudemu yet — DNS SDK-compat handlers will ship in lockstep across all 3 providers in a future phase. The full driver semantics (zones, records, weighted routing, hostname resolution) are already available through the Portable Go API below.
+
 Emulates DNS services: **Route53** (AWS), **DNS** (Azure), **CloudDNS** (GCP).
 
 ## Provider Mapping

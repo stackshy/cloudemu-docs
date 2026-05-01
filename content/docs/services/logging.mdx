@@ -5,6 +5,8 @@ description: Log groups and log streams
 
 # Logging
 
+> **SDK-compat status:** _Portable Go API only._ Real `aws-sdk-go-v2/service/cloudwatchlogs`, Log Analytics REST, and Cloud Logging REST clients can't talk to cloudemu yet — logging SDK-compat handlers will ship in lockstep across all 3 providers in a future phase. Log groups, streams, and filter expressions are already available through the Portable Go API below.
+
 Emulates logging services: **CloudWatch Logs** (AWS), **Log Analytics** (Azure), **Cloud Logging** (GCP).
 
 ## Provider Mapping

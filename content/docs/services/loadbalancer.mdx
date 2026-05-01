@@ -5,6 +5,8 @@ description: Load balancers, target groups, listeners, and health checks
 
 # Load Balancer
 
+> **SDK-compat status:** _Portable Go API only._ Real `elbv2`, `armnetwork.LoadBalancers`, and GCP LB clients can't talk to cloudemu yet — load balancer SDK-compat handlers will ship in lockstep across all 3 providers in a future phase. Targets, listeners, and health checks are already available through the Portable Go API below.
+
 Emulates load balancing: **ELB** (AWS), **LB** (Azure), **LB** (GCP).
 
 ## Provider Mapping

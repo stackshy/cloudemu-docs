@@ -1,0 +1,125 @@
+---
+title: Chaos Engineering
+description: Inject controlled failures, latency spikes, and throttling so your retry, timeout, and graceful-degradation paths get exercised in tests
+---
+
+# Chaos Engineering
+
+cloudemu can deliberately fail or slow down services in controlled, time-bounded windows. Retry logic, timeouts, circuit breakers, and graceful-degradation paths in your code stay dead until something exercises them — chaos lets you exercise them deterministically in unit tests, no real cloud needed.
+
+```go
+import (
+    "github.com/stackshy/cloudemu"
+    "github.com/stackshy/cloudemu/chaos"
+    "github.com/stackshy/cloudemu/config"
+)
+
+cloud := cloudemu.NewAWS()
+engine := chaos.New(config.RealClock{})
+
+// Wrap any driver — same wrapper works for the Portable API or the
+// SDK-compat HTTP server.
+chaosS3 := chaos.WrapBucket(cloud.S3, engine)
+
+// Run your app against chaosS3...
+engine.Apply(chaos.ServiceOutage("storage", 5*time.Second))
+// ...calls fail with the chaos-configured error for 5 seconds, then
+// recover automatically.
+```
+
+## How it works
+
+The chaos engine is an in-memory bus that tracks active scenarios. A wrapper sits in front of a driver and consults the engine on every call:
+
+1. The call arrives at the wrapper.
+2. The wrapper asks the engine "is anything affecting this service / operation right now?"
+3. If yes, the chaos behavior runs — return an error, sleep, throttle.
+4. Otherwise, the call passes through to the underlying driver.
+
+Scenarios are time-bounded. Once their window elapses, the engine drops them and the service recovers automatically. No teardown step required.
+
+## Available scenarios
+
+| Scenario | Effect |
+|----------|--------|
+| `ServiceOutage(svc, duration)` | Every call to `svc` returns `Unavailable` for `duration`. |
+| `LatencySpike(svc, extra, duration)` | Every call to `svc` sleeps for an extra `extra` time for `duration`. |
+| `ProbabilisticFailure(svc, op, err, p, duration)` | Each call to `svc.op` fails with `err` with probability `p` for `duration`. |
+| `Throttle(svc, op, qps, duration)` | `svc.op` is rate-limited to `qps` for `duration`; excess calls return `Throttled`. |
+| `Composite(scenarios...)` | Apply multiple scenarios at once — useful for "outage + latency on dependent service" patterns. |
+
+```go
+// Outage on storage for 5s.
+engine.Apply(chaos.ServiceOutage("storage", 5*time.Second))
+
+// 50% failure rate on PutObject for 10s.
+engine.Apply(chaos.ProbabilisticFailure(
+    "storage", "PutObject",
+    cerrors.New(cerrors.Unavailable, "simulated"),
+    0.5,
+    10*time.Second,
+))
+
+// Add 200ms latency to every database call for 30s.
+engine.Apply(chaos.LatencySpike("database", 200*time.Millisecond, 30*time.Second))
+
+// Throttle messagequeue.SendMessage to 10 QPS for 1 minute.
+engine.Apply(chaos.Throttle("messagequeue", "SendMessage", 10, time.Minute))
+```
+
+## Wrapping every service
+
+Each service category has a `Wrap*` helper that returns a driver-typed value, so the wrapper is a drop-in replacement for the underlying driver:
+
+```go
+cloud := cloudemu.NewAWS()
+engine := chaos.New(config.RealClock{})
+
+s3      := chaos.WrapBucket(cloud.S3, engine)
+ec2     := chaos.WrapCompute(cloud.EC2, engine)
+ddb     := chaos.WrapDatabase(cloud.DynamoDB, engine)
+fns     := chaos.WrapServerless(cloud.Lambda, engine)
+sqs     := chaos.WrapMessageQueue(cloud.SQS, engine)
+mon     := chaos.WrapMonitoring(cloud.CloudWatch, engine)
+iam     := chaos.WrapIAM(cloud.IAM, engine)
+dns     := chaos.WrapDNS(cloud.Route53, engine)
+lb      := chaos.WrapLoadBalancer(cloud.ELB, engine)
+sec     := chaos.WrapSecrets(cloud.SecretsManager, engine)
+log     := chaos.WrapLogging(cloud.CloudWatchLogs, engine)
+notif   := chaos.WrapNotification(cloud.SNS, engine)
+ebus    := chaos.WrapEventBus(cloud.EventBridge, engine)
+acr     := chaos.WrapContainerRegistry(cloud.ECR, engine)
+cache   := chaos.WrapCache(cloud.ElastiCache, engine)
+network := chaos.WrapNetworking(cloud.VPC, engine)
+```
+
+The wrappers preserve the underlying driver interface, so existing code (or the [Portable API](/docs/portable-api), or the [SDK-Compat Server](/docs/sdk-compat)) sees no API change — only the runtime behavior changes when scenarios are active.
+
+## Composing with other features
+
+Chaos works underneath the Portable API:
+
+```go
+bucket := storage.NewBucket(
+    chaos.WrapBucket(cloud.S3, engine), // chaos applies first
+    storage.WithRecorder(rec),
+    storage.WithMetrics(mc),
+)
+```
+
+And under the SDK-compat server:
+
+```go
+srv := awsserver.New(awsserver.Drivers{
+    S3: chaos.WrapBucket(cloud.S3, engine),
+})
+ts := httptest.NewServer(srv)
+
+// Real aws-sdk-go-v2 client now sees chaos failures end-to-end.
+```
+
+This is the load-bearing reason chaos sits between the driver and its consumers: every code path that goes through the driver inherits the chaos behavior, including paths that go through the real cloud SDKs via the SDK-compat server.
+
+## Why time-bounded
+
+Untimed chaos sticks. A test that injects a permanent failure has to remember to clear it on teardown, or it leaks into the next test. Every chaos scenario has an explicit `duration`, so the system always recovers within a known window. If you want indefinite failure, pass a long duration; if you want a single-call failure, use `ProbabilisticFailure` with `p=1.0` and a short duration.

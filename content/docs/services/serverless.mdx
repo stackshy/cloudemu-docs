@@ -1,75 +1,78 @@
 ---
 title: Serverless
-description: Function-as-a-service with versions, aliases, and layers
+description: Functions-as-a-service — drive Lambda / Azure Functions / Cloud Functions with the real SDK
 ---
 
 # Serverless
 
-Emulates serverless functions: **Lambda** (AWS), **Functions** (Azure), **CloudFunctions** (GCP).
+Emulates FaaS: **Lambda** (AWS), **Functions** (Azure), **Cloud Functions** (GCP).
 
-## Provider Mapping
+| Provider | Service | SDK-compat | Driver |
+|----------|---------|:----------:|--------|
+| AWS | Lambda (REST + JSON) | ✓ Live | `aws.Lambda` |
+| Azure | Functions (Function Apps + `/api/{name}` invoke) | ✓ Live | `azure.Functions` |
+| GCP | Cloud Functions v1 (Create LRO + `:call`) | ✓ Live | `gcp.CloudFunctions` |
 
-| Provider | Service | Access |
-|----------|---------|--------|
-| AWS | Lambda | `aws.Lambda` |
-| Azure | Functions | `azure.Functions` |
-| GCP | Cloud Functions | `gcp.CloudFunctions` |
+## Use the real SDK (recommended)
 
-## Key Operations
+```go
+import (
+    "github.com/aws/aws-sdk-go-v2/service/lambda"
+    lambdatypes "github.com/aws/aws-sdk-go-v2/service/lambda/types"
+    awsserver "github.com/stackshy/cloudemu/server/aws"
+)
 
-### Function Lifecycle
+cloud := cloudemu.NewAWS()
+ts := httptest.NewServer(awsserver.New(awsserver.Drivers{Lambda: cloud.Lambda}))
+
+client := lambda.NewFromConfig(cfg, func(o *lambda.Options) {
+    o.BaseEndpoint = aws.String(ts.URL)
+})
+
+client.CreateFunction(ctx, &lambda.CreateFunctionInput{
+    FunctionName: aws.String("my-handler"),
+    Runtime:      lambdatypes.RuntimeGo1x,
+    Role:         aws.String("arn:aws:iam::000000000000:role/test"),
+    Handler:      aws.String("main"),
+    Code:         &lambdatypes.FunctionCode{ZipFile: []byte("z")},
+})
+
+// Register a Go handler so Invoke has something to run.
+cloud.Lambda.RegisterHandler("my-handler", func(ctx context.Context, payload []byte) ([]byte, error) {
+    return []byte(`{"status":"ok"}`), nil
+})
+
+resp, _ := client.Invoke(ctx, &lambda.InvokeInput{
+    FunctionName: aws.String("my-handler"),
+    Payload:      []byte(`{"key":"value"}`),
+})
+fmt.Println(string(resp.Payload)) // {"status":"ok"}
+```
+
+Same shape with `armappservice` (Azure) and `google.golang.org/api/cloudfunctions/v1` (GCP) — see [SDK-Compat Server](/docs/sdk-compat#azure-handlers).
+
+### Operations supported via SDK-compat
+
+**Lambda:** CreateFunction, GetFunction, ListFunctions, DeleteFunction, Invoke (sync).
+
+**Azure Functions:** `Microsoft.Web/sites` CreateOrUpdate / Get / List / Delete + non-ARM `/api/{name}` invoke.
+
+**GCP Cloud Functions:** Create (LRO), Get, List, Delete (LRO), `:call` (sync invoke), `Operations.Get` for LRO polling.
+
+## Alternative: Portable Go API
 
 ```go
 import sdriver "github.com/stackshy/cloudemu/serverless/driver"
 
-// Create a function
 aws.Lambda.CreateFunction(ctx, sdriver.FunctionConfig{
-    Name:    "my-handler",
-    Runtime: "go1.x",
-    Handler: "main",
-    Memory:  128,
-    Timeout: 30,
-    Tags:    map[string]string{"team": "backend"},
+    Name: "my-handler", Runtime: "go1.x", Handler: "main",
 })
-
-// Register a Go handler
-aws.Lambda.RegisterHandler(ctx, "my-handler", func(ctx context.Context, payload []byte) ([]byte, error) {
-    return []byte(`{"status": "ok"}`), nil
+aws.Lambda.RegisterHandler("my-handler", func(_ context.Context, p []byte) ([]byte, error) {
+    return []byte(`{"ok":true}`), nil
 })
-
-// Invoke
-result, _ := aws.Lambda.InvokeFunction(ctx, "my-handler", []byte(`{"key": "value"}`))
-```
-
-### Versions and Aliases
-
-```go
-// Publish a version
-version, _ := aws.Lambda.PublishVersion(ctx, "my-handler", "v1 release")
-
-// Create an alias pointing to a version
-aws.Lambda.CreateAlias(ctx, sdriver.AliasConfig{
-    FunctionName: "my-handler", Name: "prod", FunctionVersion: "1",
-})
-
-// Weighted routing between versions
-aws.Lambda.UpdateAlias(ctx, "my-handler", "prod", sdriver.AliasUpdate{
-    FunctionVersion:          "2",
-    AdditionalVersionWeights: map[string]float64{"1": 0.1}, // 10% to v1
+out, _ := aws.Lambda.Invoke(ctx, sdriver.InvokeInput{
+    FunctionName: "my-handler", Payload: []byte(`{}`),
 })
 ```
 
-### Layers
-
-```go
-layer, _ := aws.Lambda.PublishLayerVersion(ctx, sdriver.LayerConfig{
-    Name: "common-libs", Description: "Shared libraries",
-})
-```
-
-### Concurrency
-
-```go
-aws.Lambda.PutFunctionConcurrency(ctx, "my-handler", 100) // reserve 100 concurrent executions
-conc, _ := aws.Lambda.GetFunctionConcurrency(ctx, "my-handler")
-```
+The Portable API also exposes operations not yet on the SDK-compat surface: published versions, weighted aliases, layers, function concurrency, event source mappings.

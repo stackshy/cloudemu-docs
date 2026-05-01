@@ -1,59 +1,51 @@
 ---
 title: Introduction
-description: cloudemu is a Go library that emulates cloud services entirely in memory
+description: Test against real cloud SDKs without a real cloud
 ---
 
 # Welcome to cloudemu
 
-**cloudemu** is a Go library that emulates AWS, Azure, and GCP cloud services entirely in memory. No real cloud accounts, no Docker, no network calls — just import the package, create a provider, and test your cloud code instantly.
+**cloudemu** lets you point real `aws-sdk-go-v2`, `azure-sdk-for-go`, and `cloud.google.com/go` clients at an in-memory backend. Your production code runs unchanged. No mocks. No Docker. No cloud accounts. ~10 ms per call.
 
-## Why cloudemu?
-
-Testing cloud-dependent code is painful. You either pay for real accounts, wrestle with heavy emulators that need Docker, or write incomplete mocks from scratch.
-
-| Approach | Cost | Speed | Offline |
-|----------|------|-------|---------|
-| Real cloud (AWS/Azure/GCP) | $$$ | Slow (seconds) | No |
-| LocalStack / Emulators | $ | Medium (100ms+) | Yes |
-| **cloudemu** | **Free** | **Fast (~10ms)** | **Yes** |
-
-## Quick Example
+## The pitch
 
 ```go
-package main
+cloud := cloudemu.NewAWS()
+ts := httptest.NewServer(awsserver.New(awsserver.Drivers{
+    S3: cloud.S3, DynamoDB: cloud.DynamoDB, /* ... */
+}))
 
-import (
-    "context"
-    "fmt"
-    "github.com/stackshy/cloudemu"
-    "github.com/stackshy/cloudemu/compute/driver"
-)
-
-func main() {
-    ctx := context.Background()
-    aws := cloudemu.NewAWS()
-
-    instances, _ := aws.EC2.RunInstances(ctx, driver.InstanceConfig{
-        ImageID:      "ami-0abcdef1234567890",
-        InstanceType: "t2.micro",
-    }, 2)
-
-    fmt.Println(instances[0].State) // "running"
-    fmt.Println(instances[0].ID)    // "i-00000001"
-}
+// Real aws-sdk-go-v2 client — only the endpoint changes.
+client := s3.NewFromConfig(cfg, func(o *s3.Options) {
+    o.BaseEndpoint = aws.String(ts.URL)
+})
+client.PutObject(ctx, &s3.PutObjectInput{ /* your real production code */ })
 ```
 
-This works identically across all three providers. Replace `aws.EC2` with `azure.VirtualMachines` or `gcp.GCE`.
+The server speaks the actual cloud wire protocols (S3 REST, DynamoDB JSON-RPC, EC2 query, ARM JSON, GCP REST, Smithy CBOR). The SDK can't tell it apart from `s3.amazonaws.com`.
 
-## What's Included
+## Why this is different
 
-- **16 service categories** across 3 cloud providers (48 total implementations)
-- **Realistic behaviors**: state machines, auto-metrics, alarm evaluation, FIFO dedup, DLQs, TTL expiry
-- **Cross-cutting features**: call recording, metrics collection, error injection, rate limiting, fake clock, latency simulation
-- **Zero external dependencies** (only `testify` for tests)
+| Approach | Cost | Speed | Real SDKs |
+|----------|------|-------|-----------|
+| Real cloud (AWS/Azure/GCP) | $$$ | Seconds | ✓ |
+| LocalStack / emulators | $ | 100ms+ | ✓ (with Docker) |
+| Hand-rolled mocks | Free | Fast | ✗ — rewrite every call site |
+| **cloudemu** | **Free** | **~10ms** | **✓ — no Docker, no rewrites** |
 
-## Next Steps
+## What's included
 
-- [Prerequisites](/docs/prerequisites) — what you need before starting
-- [Installation](/docs/installation) — add cloudemu to your project
-- [Quick Start](/docs/quick-start) — build something in 5 minutes
+- **[SDK-Compatible HTTP Server](/docs/sdk-compat)** — 7 service domains × 3 providers (21 services live), shipping more in lockstep
+- **3 cloud providers** — AWS, Azure, GCP, all in one binary
+- **Realistic behaviors** — state machines, auto-metrics, alarm evaluation, FIFO dedup, DLQs, TTL expiry
+- **[Chaos engineering](/docs/chaos)** — inject failures, latency spikes, throttling in time-bounded windows
+- **[Portable Go API](/docs/portable-api)** — alternative path for direct in-process calls (covers all 16 service domains, including the 9 not yet SDK-compat)
+- **Cross-cutting features** — call recording, metrics, error injection, rate limiting, fake clock, latency simulation
+- **Zero runtime dependencies**
+
+## Get started
+
+- [Prerequisites](/docs/prerequisites) — Go 1.25+ and one cloud SDK of your choice
+- [Installation](/docs/installation) — `go get`
+- [Quick Start](/docs/quick-start) — drop cloudemu in front of the real SDK in 5 minutes
+- [SDK-Compat Server](/docs/sdk-compat) — full coverage tables and quick starts for all 3 providers

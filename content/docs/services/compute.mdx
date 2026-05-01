@@ -1,104 +1,75 @@
 ---
 title: Compute
-description: Virtual machine instances with lifecycle state machines
+description: VMs and instances — drive EC2 / Azure VMs / GCE with the real cloud SDK
 ---
 
 # Compute
 
-Emulates virtual machine services: **EC2** (AWS), **VirtualMachines** (Azure), **GCE** (GCP).
+Emulates VM/instance services: **EC2** (AWS), **Virtual Machines** (Azure), **Compute Engine** (GCP).
 
-## Provider Mapping
+| Provider | Service | SDK-compat | Driver |
+|----------|---------|:----------:|--------|
+| AWS | EC2 + full VPC stack | ✓ Live | `aws.EC2` |
+| Azure | Virtual Machines + Disks/Snapshots/Images/SSH Keys | ✓ Live | `azure.VirtualMachines` |
+| GCP | Compute Engine + Disks/Snapshots/Images | ✓ Live | `gcp.GCE` |
 
-| Provider | Service | Access |
-|----------|---------|--------|
-| AWS | EC2 | `aws.EC2` |
-| Azure | Virtual Machines | `azure.VirtualMachines` |
-| GCP | GCE | `gcp.GCE` |
-
-## Key Operations
-
-### Instance Lifecycle
+## Use the real SDK (recommended)
 
 ```go
-// Launch instances
-instances, _ := aws.EC2.RunInstances(ctx, driver.InstanceConfig{
-    ImageID:      "ami-0abcdef1234",
-    InstanceType: "t3.large",
-    SubnetID:     "subnet-123",
-    Tags:         map[string]string{"env": "prod"},
+import (
+    "github.com/aws/aws-sdk-go-v2/service/ec2"
+    "github.com/aws/aws-sdk-go-v2/service/ec2/types"
+    "github.com/stackshy/cloudemu"
+    awsserver "github.com/stackshy/cloudemu/server/aws"
+)
+
+cloud := cloudemu.NewAWS()
+ts := httptest.NewServer(awsserver.New(awsserver.Drivers{
+    EC2: cloud.EC2, VPC: cloud.VPC,
+}))
+
+client := ec2.NewFromConfig(cfg, func(o *ec2.Options) {
+    o.BaseEndpoint = aws.String(ts.URL)
+})
+
+out, _ := client.RunInstances(ctx, &ec2.RunInstancesInput{
+    ImageId:      aws.String("ami-0abcdef1234"),
+    InstanceType: types.InstanceTypeT3Large,
+    MinCount:     aws.Int32(1),
+    MaxCount:     aws.Int32(3),
+})
+
+client.StopInstances(ctx, &ec2.StopInstancesInput{
+    InstanceIds: []string{*out.Instances[0].InstanceId},
+})
+```
+
+Same pattern with `armcompute` for Azure and `cloud.google.com/go/compute/apiv1` for GCP — see [SDK-Compat Server](/docs/sdk-compat).
+
+### Operations supported via SDK-compat
+
+**EC2:** RunInstances, DescribeInstances (filters: `instance-id`, `instance-type`, `instance-state-name`, `tag:*`), Start/Stop/Reboot/TerminateInstances, ModifyInstanceAttribute.
+
+**EC2 — VPC stack:** VPCs, Subnets, Security Groups + ingress/egress rules, Internet Gateways, Route Tables + Routes, NAT Gateways, VPC Peering, Flow Logs, Network ACLs, EBS Volumes, Key Pairs, Snapshots, AMIs, Spot Instances, Launch Templates, Auto Scaling Groups + scaling policies.
+
+**Azure VMs:** CreateOrUpdate, Get, List, Delete, start/powerOff/restart actions; full Disks/Snapshots/Images/SSHPublicKeys CRUD.
+
+**GCP Compute Engine:** Instances + Disks + Snapshots + Images insert/get/list/delete with LRO envelopes.
+
+## Realistic behaviors
+
+- **State machine** enforces valid lifecycle transitions (`pending → running → stopped → terminated`). Illegal transitions return errors — same as real EC2.
+- **Auto-metrics**: `RunInstances` automatically pushes CPU, Network, and Disk metrics to the monitoring service. Stop/start/terminate emit matching values.
+- **Lifecycle metric emission**: every `StartInstances` / `StopInstances` / `RebootInstances` / `TerminateInstances` call writes corresponding metric values too.
+
+## Alternative: Portable Go API
+
+```go
+aws.EC2.RunInstances(ctx, computedriver.InstanceConfig{
+    ImageID: "ami-0abcdef1234", InstanceType: "t3.large",
 }, 3)
-
-// Stop, start, reboot
-aws.EC2.StopInstances(ctx, []string{"i-00000001"})
-aws.EC2.StartInstances(ctx, []string{"i-00000001"})
-aws.EC2.RebootInstances(ctx, []string{"i-00000001"})
-
-// Modify while stopped
-aws.EC2.ModifyInstance(ctx, "i-00000001", driver.ModifyInstanceInput{
-    InstanceType: "t3.xlarge",
-})
-
-// Terminate
-aws.EC2.TerminateInstances(ctx, []string{"i-00000001"})
+aws.EC2.StopInstances(ctx, []string{instanceID})
+aws.EC2.TerminateInstances(ctx, []string{instanceID})
 ```
 
-### Describe and Filter
-
-```go
-// Get specific instances
-instances, _ := aws.EC2.DescribeInstances(ctx, []string{"i-00000001"}, nil)
-
-// Filter by state
-running, _ := aws.EC2.DescribeInstances(ctx, nil, []driver.DescribeFilter{
-    {Name: "instance-state-name", Values: []string{"running"}},
-})
-```
-
-### Auto-Scaling Groups
-
-```go
-asg, _ := aws.EC2.CreateAutoScalingGroup(ctx, driver.AutoScalingGroupConfig{
-    Name: "web-asg", MinSize: 1, MaxSize: 10, DesiredCapacity: 3,
-    InstanceConfig: driver.InstanceConfig{ImageID: "ami-123", InstanceType: "t3.micro"},
-})
-
-aws.EC2.SetDesiredCapacity(ctx, "web-asg", 5)
-```
-
-### Spot Instances
-
-```go
-requests, _ := aws.EC2.RequestSpotInstances(ctx, driver.SpotRequestConfig{
-    InstanceConfig: driver.InstanceConfig{ImageID: "ami-123", InstanceType: "t3.micro"},
-    MaxPrice: 0.05, Count: 2, Type: "one-time",
-})
-```
-
-### Launch Templates
-
-```go
-template, _ := aws.EC2.CreateLaunchTemplate(ctx, driver.LaunchTemplateConfig{
-    Name: "web-template",
-    InstanceConfig: driver.InstanceConfig{ImageID: "ami-123", InstanceType: "t3.large"},
-})
-```
-
-## State Machine
-
-Instances follow a strict state machine:
-
-```
-pending → running → stopping → stopped → starting → running
-                  → shutting-down → terminated
-```
-
-Invalid transitions return `FailedPrecondition` errors. For example, you cannot stop a terminated instance.
-
-## Auto-Metrics
-
-When instances are launched, cloudemu automatically pushes metrics to the monitoring service:
-- `CPUUtilization` — per instance
-- `NetworkIn` / `NetworkOut` — per instance
-- `DiskReadOps` / `DiskWriteOps` — per instance
-
-These metrics are queryable through `CloudWatch.GetMetricData()`.
+Use the Portable API when you want direct in-process calls without the HTTP hop.
