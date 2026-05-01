@@ -1,108 +1,64 @@
 ---
 title: Storage
-description: Object storage with buckets, versioning, and multipart upload
+description: Object storage — S3, Azure Blob, GCS — drive it with the real cloud SDK
 ---
 
 # Storage
 
-Emulates object storage: **S3** (AWS), **BlobStorage** (Azure), **GCS** (GCP).
+Emulates object storage: **S3** (AWS), **Blob Storage** (Azure), **GCS** (GCP).
 
-## Provider Mapping
+| Provider | Service | SDK-compat | Driver |
+|----------|---------|:----------:|--------|
+| AWS | S3 | ✓ Live | `aws.S3` |
+| Azure | Blob Storage | ✓ Live | `azure.BlobStorage` |
+| GCP | GCS | ✓ Live | `gcp.GCS` |
 
-| Provider | Service | Access |
-|----------|---------|--------|
-| AWS | S3 | `aws.S3` |
-| Azure | Blob Storage | `azure.BlobStorage` |
-| GCP | GCS | `gcp.GCS` |
+## Use the real SDK (recommended)
 
-## Key Operations
+Drop the SDK-compat server in front of cloudemu and call your existing production code unchanged.
 
-### Bucket Management
+```go
+import (
+    "github.com/aws/aws-sdk-go-v2/aws"
+    "github.com/aws/aws-sdk-go-v2/service/s3"
+    "github.com/stackshy/cloudemu"
+    awsserver "github.com/stackshy/cloudemu/server/aws"
+)
+
+cloud := cloudemu.NewAWS()
+ts := httptest.NewServer(awsserver.New(awsserver.Drivers{S3: cloud.S3}))
+defer ts.Close()
+
+client := s3.NewFromConfig(cfg, func(o *s3.Options) {
+    o.BaseEndpoint = aws.String(ts.URL)
+    o.UsePathStyle = true
+})
+
+client.CreateBucket(ctx, &s3.CreateBucketInput{Bucket: aws.String("my-bucket")})
+client.PutObject(ctx, &s3.PutObjectInput{
+    Bucket: aws.String("my-bucket"),
+    Key:    aws.String("config.yaml"),
+    Body:   bytes.NewReader([]byte("port: 8080")),
+})
+out, _ := client.GetObject(ctx, &s3.GetObjectInput{
+    Bucket: aws.String("my-bucket"), Key: aws.String("config.yaml"),
+})
+```
+
+The same pattern works with `armappservice` / `azblob` (Azure) and `cloud.google.com/go/storage` (GCP). See the [SDK-Compat Server page](/docs/sdk-compat#quick-start-azure) for full quick starts per provider.
+
+### Operations supported via SDK-compat
+
+CreateBucket, DeleteBucket, ListBuckets, PutObject, GetObject, HeadObject, DeleteObject, ListObjectsV2 (prefix, delimiter, common prefixes, continuation token), CopyObject.
+
+## Alternative: Portable Go API
+
+When you don't need to drive a real SDK — for example, in cloudemu-only setup code — call the driver directly:
 
 ```go
 aws.S3.CreateBucket(ctx, "my-bucket")
-
-buckets, _ := aws.S3.ListBuckets(ctx)
-
-aws.S3.DeleteBucket(ctx, "my-bucket")
+aws.S3.PutObject(ctx, "my-bucket", "config.yaml", []byte("..."), "text/yaml", nil)
+obj, _ := aws.S3.GetObject(ctx, "my-bucket", "config.yaml")
 ```
 
-### Object Operations
-
-```go
-// Upload
-aws.S3.PutObject(ctx, "my-bucket", "path/to/file.txt",
-    []byte("content"), "text/plain", map[string]string{"author": "me"})
-
-// Download
-obj, _ := aws.S3.GetObject(ctx, "my-bucket", "path/to/file.txt")
-fmt.Println(string(obj.Data)) // "content"
-
-// Head (metadata only)
-info, _ := aws.S3.HeadObject(ctx, "my-bucket", "path/to/file.txt")
-fmt.Println(info.ContentType) // "text/plain"
-
-// Delete
-aws.S3.DeleteObject(ctx, "my-bucket", "path/to/file.txt")
-
-// Copy
-aws.S3.CopyObject(ctx, "dst-bucket", "copy.txt", driver.CopySource{
-    Bucket: "my-bucket", Key: "path/to/file.txt",
-})
-```
-
-### List with Prefix and Delimiter
-
-```go
-// List all objects with a prefix
-result, _ := aws.S3.ListObjects(ctx, "my-bucket", driver.ListOptions{
-    Prefix: "v1.0/",
-})
-
-// Folder-like listing with delimiter
-result, _ = aws.S3.ListObjects(ctx, "my-bucket", driver.ListOptions{
-    Delimiter: "/",
-})
-// result.CommonPrefixes contains folder-like prefixes
-```
-
-### Multipart Upload
-
-```go
-upload, _ := aws.S3.CreateMultipartUpload(ctx, "bucket", "large-file.bin", "application/octet-stream")
-
-part1, _ := aws.S3.UploadPart(ctx, "bucket", "large-file.bin", upload.UploadID, 1, data1)
-part2, _ := aws.S3.UploadPart(ctx, "bucket", "large-file.bin", upload.UploadID, 2, data2)
-
-aws.S3.CompleteMultipartUpload(ctx, "bucket", "large-file.bin", upload.UploadID,
-    []driver.UploadPart{*part1, *part2})
-```
-
-### Versioning
-
-```go
-aws.S3.SetBucketVersioning(ctx, "my-bucket", true)
-
-enabled, _ := aws.S3.GetBucketVersioning(ctx, "my-bucket")
-```
-
-### Presigned URLs
-
-```go
-url, _ := aws.S3.GeneratePresignedURL(ctx, driver.PresignedURLRequest{
-    Bucket: "my-bucket", Key: "file.txt", Method: "GET",
-    Expiry: 15 * time.Minute,
-})
-```
-
-### Lifecycle Policies
-
-```go
-aws.S3.PutLifecycleConfig(ctx, "my-bucket", driver.LifecycleConfig{
-    Rules: []driver.LifecycleRule{
-        {Prefix: "logs/", ExpirationDays: 30, Enabled: true},
-    },
-})
-
-expired, _ := aws.S3.EvaluateLifecycle(ctx, "my-bucket")
-```
+The Portable API also exposes operations not yet on the SDK-compat surface — multipart upload, presigned URLs, lifecycle policies, versioning. See the driver interface for the full list.
