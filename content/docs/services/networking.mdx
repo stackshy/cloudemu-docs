@@ -1,91 +1,83 @@
 ---
 title: Networking
-description: Virtual networks, subnets, security groups, and peering
+description: VPCs, subnets, security groups, peering — drive with the real SDK
 ---
 
 # Networking
 
-Emulates virtual networking: **VPC** (AWS), **VNet** (Azure), **VPC** (GCP).
+Emulates virtual network primitives: **VPC** (AWS, served by the EC2 query handler), **VNet** (Azure), **VPC + Firewalls** (GCP).
 
-## Provider Mapping
+| Provider | Service | SDK-compat | Driver |
+|----------|---------|:----------:|--------|
+| AWS | VPC, Subnets, SGs, IGW, RT, NAT, Peering, Flow Logs, ACLs | ✓ Live | `aws.VPC` |
+| Azure | Virtual Network | ✓ Live | `azure.VNet` |
+| GCP | VPC, Subnetworks, Firewalls, Routes | ✓ Live | `gcp.VPC` |
 
-| Provider | Service | Access |
-|----------|---------|--------|
-| AWS | VPC | `aws.VPC` |
-| Azure | VNet | `azure.VNet` |
-| GCP | VPC | `gcp.VPC` |
+## Use the real SDK (recommended)
 
-## Key Operations
+```go
+import (
+    "github.com/aws/aws-sdk-go-v2/service/ec2"
+    "github.com/stackshy/cloudemu"
+    awsserver "github.com/stackshy/cloudemu/server/aws"
+)
 
-### VPCs / Virtual Networks
+cloud := cloudemu.NewAWS()
+ts := httptest.NewServer(awsserver.New(awsserver.Drivers{
+    EC2: cloud.EC2, VPC: cloud.VPC,
+}))
+
+client := ec2.NewFromConfig(cfg, func(o *ec2.Options) {
+    o.BaseEndpoint = aws.String(ts.URL)
+})
+
+vpc, _ := client.CreateVpc(ctx, &ec2.CreateVpcInput{
+    CidrBlock: aws.String("10.0.0.0/16"),
+})
+
+client.CreateSubnet(ctx, &ec2.CreateSubnetInput{
+    VpcId: vpc.Vpc.VpcId, CidrBlock: aws.String("10.0.1.0/24"),
+})
+
+client.CreateSecurityGroup(ctx, &ec2.CreateSecurityGroupInput{
+    VpcId: vpc.Vpc.VpcId, GroupName: aws.String("web-sg"),
+    Description: aws.String("Web traffic"),
+})
+```
+
+Azure (`armnetwork.NewVirtualNetworksClient`) and GCP (`gcpcompute.NewNetworksRESTClient`) follow the same endpoint-only-changes pattern — see [SDK-Compat Server](/docs/sdk-compat).
+
+### Operations supported via SDK-compat
+
+**AWS (via EC2 handler):** VPCs, Subnets, Security Groups + ingress/egress rules, Internet Gateways, Route Tables + Routes, NAT Gateways, VPC Peering Connections, Flow Logs, Network ACLs.
+
+**Azure VNet:** Virtual networks + subnets CRUD via ARM.
+
+**GCP:** Networks, Subnetworks, Firewalls, Routes via REST with LRO envelopes.
+
+## Topology engine — bonus feature
+
+Once your network is built, the [topology engine](/docs/architecture#pluggable-consumers) can answer real connectivity questions on top of the same drivers:
+
+```go
+import "github.com/stackshy/cloudemu/topology"
+
+topo := topology.New(cloud.EC2, cloud.VPC, cloud.Route53)
+result, _ := topo.CanConnect(ctx, topology.ConnectivityQuery{
+    SourceInstance: "i-00000001", DestIP: "10.0.2.5", Port: 443, Protocol: "tcp",
+})
+fmt.Println(result.Allowed, result.BlockedBy)
+```
+
+This walks VPC peering, security groups, route tables, and network ACLs the same way real cloud reachability tools do.
+
+## Alternative: Portable Go API
 
 ```go
 import netdriver "github.com/stackshy/cloudemu/networking/driver"
 
-vpc, _ := aws.VPC.CreateVPC(ctx, netdriver.VPCConfig{
-    CIDRBlock: "10.0.0.0/16",
-    Tags:      map[string]string{"env": "production"},
-})
-```
-
-### Subnets
-
-```go
+vpc, _ := aws.VPC.CreateVPC(ctx, netdriver.VPCConfig{CIDRBlock: "10.0.0.0/16"})
 subnet, _ := aws.VPC.CreateSubnet(ctx, netdriver.SubnetConfig{
-    VPCID:            vpc.ID,
-    CIDRBlock:        "10.0.1.0/24",
-    AvailabilityZone: "us-east-1a",
-})
-```
-
-### Security Groups
-
-```go
-sg, _ := aws.VPC.CreateSecurityGroup(ctx, netdriver.SecurityGroupConfig{
-    Name: "web-sg", Description: "Web traffic", VPCID: vpc.ID,
-})
-
-// Add ingress rule
-aws.VPC.AddIngressRule(ctx, sg.ID, netdriver.SecurityRule{
-    Protocol: "tcp", FromPort: 443, ToPort: 443, CIDR: "0.0.0.0/0",
-})
-
-// Add egress rule
-aws.VPC.AddEgressRule(ctx, sg.ID, netdriver.SecurityRule{
-    Protocol: "tcp", FromPort: 0, ToPort: 65535, CIDR: "0.0.0.0/0",
-})
-```
-
-### VPC Peering
-
-```go
-peering, _ := aws.VPC.CreatePeeringConnection(ctx, netdriver.PeeringConfig{
-    RequesterVPCID: vpc1.ID, AccepterVPCID: vpc2.ID,
-})
-aws.VPC.AcceptPeeringConnection(ctx, peering.ID)
-```
-
-### NAT Gateways
-
-```go
-nat, _ := aws.VPC.CreateNATGateway(ctx, netdriver.NATGatewayConfig{
-    SubnetID: subnet.ID,
-})
-```
-
-### Route Tables
-
-```go
-rt, _ := aws.VPC.CreateRouteTable(ctx, netdriver.RouteTableConfig{
-    VPCID: vpc.ID,
-})
-aws.VPC.AssociateRouteTable(ctx, rt.ID, subnet.ID)
-```
-
-### Flow Logs
-
-```go
-aws.VPC.CreateFlowLog(ctx, netdriver.FlowLogConfig{
-    ResourceID: vpc.ID, TrafficType: "ALL",
+    VPCID: vpc.ID, CIDRBlock: "10.0.1.0/24",
 })
 ```
