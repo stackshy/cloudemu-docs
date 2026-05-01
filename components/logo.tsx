@@ -66,11 +66,20 @@ export function Logo(props: SVGProps<SVGSVGElement>) {
 /**
  * LogoMark: same icon paired with the wordmark, suitable for nav bars.
  */
-export function LogoMark({ className }: { className?: string }) {
+export function LogoMark({
+  className,
+  size = 'md',
+}: {
+  className?: string;
+  size?: 'md' | 'lg';
+}) {
+  const iconPx = size === 'lg' ? 36 : 28;
+  const textCls = size === 'lg' ? 'text-2xl' : 'text-xl';
+
   return (
-    <span className={`inline-flex items-center gap-2 ${className ?? ''}`}>
-      <Logo width="22" height="22" />
-      <span className="font-bold text-lg tracking-tight">
+    <span className={`inline-flex items-center gap-2.5 ${className ?? ''}`}>
+      <Logo width={iconPx} height={iconPx} />
+      <span className={`font-bold ${textCls} tracking-tight`}>
         <span className="bg-gradient-to-r from-sky-400 to-violet-500 bg-clip-text text-transparent">
           cloud
         </span>
