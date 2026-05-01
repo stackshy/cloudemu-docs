@@ -20,10 +20,10 @@ export function Logo(props: SVGProps<SVGSVGElement>) {
       <defs>
         <linearGradient
           id="cloudemu-logo-gradient"
-          x1="2"
-          y1="6"
-          x2="30"
-          y2="28"
+          x1="0"
+          y1="0"
+          x2="32"
+          y2="32"
           gradientUnits="userSpaceOnUse"
         >
           <stop stopColor="#38bdf8" />
@@ -33,32 +33,32 @@ export function Logo(props: SVGProps<SVGSVGElement>) {
 
       {/* Cloud silhouette — built from overlapping circles + a rounded base */}
       <g>
-        <circle cx="10" cy="17" r="5.5" fill="url(#cloudemu-logo-gradient)" />
-        <circle cx="16" cy="13" r="6.5" fill="url(#cloudemu-logo-gradient)" />
-        <circle cx="22" cy="16" r="5" fill="url(#cloudemu-logo-gradient)" />
+        <circle cx="9" cy="15" r="7" fill="url(#cloudemu-logo-gradient)" />
+        <circle cx="18" cy="11" r="9" fill="url(#cloudemu-logo-gradient)" />
+        <circle cx="25" cy="15" r="6" fill="url(#cloudemu-logo-gradient)" />
         <rect
-          x="9"
-          y="18"
-          width="14"
-          height="6"
-          rx="3"
+          x="6"
+          y="14"
+          width="22"
+          height="10"
+          rx="5"
           fill="url(#cloudemu-logo-gradient)"
         />
       </g>
 
       {/* Three connected service nodes inside — AWS / Azure / GCP, abstracted */}
       <path
-        d="M11.5 19.5L16 21L20.5 19.5"
+        d="M11 19L18 22L25 19"
         stroke="white"
-        strokeOpacity="0.7"
-        strokeWidth="0.9"
+        strokeOpacity="0.8"
+        strokeWidth="1.1"
         strokeLinecap="round"
         strokeLinejoin="round"
         fill="none"
       />
-      <circle cx="11.5" cy="19.5" r="1.35" fill="white" />
-      <circle cx="16" cy="21" r="1.35" fill="white" />
-      <circle cx="20.5" cy="19.5" r="1.35" fill="white" />
+      <circle cx="11" cy="19" r="1.6" fill="white" />
+      <circle cx="18" cy="22" r="1.6" fill="white" />
+      <circle cx="25" cy="19" r="1.6" fill="white" />
     </svg>
   );
 }
