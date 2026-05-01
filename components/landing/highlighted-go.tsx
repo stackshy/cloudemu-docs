@@ -62,13 +62,18 @@ export function HighlightedGo({ code }: { code: string }) {
   return <>{parts}</>;
 }
 
+/**
+ * Color palette matches the docs MDX theme: rose-pink keywords, violet
+ * types/exported names, emerald strings, muted comments, orange literals.
+ * Everything else stays the default foreground (white in dark mode).
+ */
 function classify(token: string): string {
   if (token.startsWith('//')) return 'text-fd-muted-foreground';
   if (token.startsWith('"') || token.startsWith('`')) return 'text-emerald-400';
-  if (KEYWORDS.has(token)) return 'text-violet-400 font-semibold';
+  if (KEYWORDS.has(token)) return 'text-rose-400';
   if (BUILTIN_LITERALS.has(token)) return 'text-orange-400';
   if (/^\d/.test(token)) return 'text-orange-300';
-  // Pascal-case identifiers are typically types or exported names.
-  if (/^[A-Z]/.test(token)) return 'text-sky-400';
+  // Pascal-case identifiers — types, constructors, exported names.
+  if (/^[A-Z]/.test(token)) return 'text-violet-400';
   return '';
 }

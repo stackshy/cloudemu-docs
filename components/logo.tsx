@@ -7,23 +7,24 @@ import type { SVGProps } from 'react';
  *
  * Renders crisply from 16px (favicon) up to display sizes.
  */
-export function Logo(props: SVGProps<SVGSVGElement>) {
+export function Logo({ style, ...rest }: SVGProps<SVGSVGElement>) {
   return (
     <svg
-      viewBox="2 2 29 22"
+      viewBox="0 0 32 32"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       aria-label="cloudemu"
       role="img"
-      {...props}
+      style={{ display: 'block', flexShrink: 0, ...style }}
+      {...rest}
     >
       <defs>
         <linearGradient
           id="cloudemu-logo-gradient"
-          x1="2"
-          y1="2"
-          x2="31"
-          y2="24"
+          x1="0"
+          y1="0"
+          x2="32"
+          y2="32"
           gradientUnits="userSpaceOnUse"
         >
           <stop stopColor="#38bdf8" />
@@ -50,8 +51,8 @@ export function Logo(props: SVGProps<SVGSVGElement>) {
       <path
         d="M11 19L18 22L25 19"
         stroke="white"
-        strokeOpacity="0.8"
-        strokeWidth="1.1"
+        strokeOpacity="0.85"
+        strokeWidth="1.2"
         strokeLinecap="round"
         strokeLinejoin="round"
         fill="none"
@@ -77,8 +78,19 @@ export function LogoMark({
   const textCls = size === 'lg' ? 'text-2xl' : 'text-xl';
 
   return (
-    <span className={`inline-flex items-center gap-2.5 ${className ?? ''}`}>
-      <Logo width={iconPx} height={iconPx} />
+    <span
+      className={`${className ?? ''}`}
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 10,
+      }}
+    >
+      <Logo
+        width={iconPx}
+        height={iconPx}
+        style={{ width: iconPx, height: iconPx, flexShrink: 0, display: 'block' }}
+      />
       <span className={`font-bold ${textCls} tracking-tight`}>
         <span className="bg-gradient-to-r from-sky-400 to-violet-500 bg-clip-text text-transparent">
           cloud
