@@ -5,6 +5,8 @@ description: In-memory cache with TTL support
 
 # Cache
 
+> **SDK-compat status:** _Portable Go API only._ ElastiCache / Azure Cache for Redis / Memorystore expose Redis or Memcached _wire_ protocols, which are out of scope for HTTP-based SDK-compat. The cache management APIs may get SDK-compat handlers in a future phase. The full driver semantics (Get/Set/TTL expiry/eviction) are already available through the Portable Go API below.
+
 Emulates cache services: **ElastiCache** (AWS), **Cache** (Azure), **Memorystore** (GCP).
 
 ## Provider Mapping
