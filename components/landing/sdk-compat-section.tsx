@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { ArrowRight, ServerCog } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { HighlightedGo } from './highlighted-go';
 
 const tabs = [
   {
@@ -110,6 +111,17 @@ export function SDKCompatSection() {
         className="rounded-xl border border-fd-border bg-fd-card overflow-hidden shadow-2xl"
         style={{ boxShadow: '0 30px 60px -20px rgba(99,102,241,0.2)' }}
       >
+        {/* macOS-style window chrome */}
+        <div className="flex items-center gap-2 px-4 py-3 border-b border-fd-border bg-fd-secondary/50">
+          <span className="w-3 h-3 rounded-full bg-red-500/70" />
+          <span className="w-3 h-3 rounded-full bg-yellow-500/70" />
+          <span className="w-3 h-3 rounded-full bg-green-500/70" />
+          <span className="ml-2 text-xs text-fd-muted-foreground font-mono">
+            {tabs[active].label.toLowerCase()}_test.go · {tabs[active].sdk}
+          </span>
+        </div>
+
+        {/* Provider tabs */}
         <div className="flex border-b border-fd-border">
           {tabs.map((tab, i) => (
             <button
@@ -125,12 +137,10 @@ export function SDKCompatSection() {
               <span className="font-semibold" style={{ color: active === i ? tab.color : undefined }}>
                 {tab.label}
               </span>
-              <span className="ml-2 text-fd-muted-foreground text-xs font-mono hidden sm:inline">
-                {tab.sdk}
-              </span>
             </button>
           ))}
         </div>
+
         <motion.pre
           key={active}
           initial={{ opacity: 0 }}
@@ -139,7 +149,7 @@ export function SDKCompatSection() {
           className="p-6 overflow-x-auto"
         >
           <code className="text-sm font-mono text-fd-foreground leading-relaxed">
-            {tabs[active].code}
+            <HighlightedGo code={tabs[active].code} />
           </code>
         </motion.pre>
       </motion.div>
