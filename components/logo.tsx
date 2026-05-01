@@ -7,7 +7,7 @@ import type { SVGProps } from 'react';
  *
  * Renders crisply from 16px (favicon) up to display sizes.
  */
-export function Logo(props: SVGProps<SVGSVGElement>) {
+export function Logo({ style, ...rest }: SVGProps<SVGSVGElement>) {
   return (
     <svg
       viewBox="0 0 32 32"
@@ -15,7 +15,8 @@ export function Logo(props: SVGProps<SVGSVGElement>) {
       xmlns="http://www.w3.org/2000/svg"
       aria-label="cloudemu"
       role="img"
-      {...props}
+      style={{ display: 'block', flexShrink: 0, ...style }}
+      {...rest}
     >
       <defs>
         <linearGradient
@@ -77,11 +78,18 @@ export function LogoMark({
   const textCls = size === 'lg' ? 'text-2xl' : 'text-xl';
 
   return (
-    <span className={`inline-flex items-center gap-2.5 ${className ?? ''}`}>
+    <span
+      className={`${className ?? ''}`}
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 10,
+      }}
+    >
       <Logo
         width={iconPx}
         height={iconPx}
-        style={{ width: iconPx, height: iconPx, flexShrink: 0 }}
+        style={{ width: iconPx, height: iconPx, flexShrink: 0, display: 'block' }}
       />
       <span className={`font-bold ${textCls} tracking-tight`}>
         <span className="bg-gradient-to-r from-sky-400 to-violet-500 bg-clip-text text-transparent">
