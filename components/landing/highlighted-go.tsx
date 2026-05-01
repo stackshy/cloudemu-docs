@@ -62,13 +62,19 @@ export function HighlightedGo({ code }: { code: string }) {
   return <>{parts}</>;
 }
 
+/**
+ * Color palette mirrors the Shiki dark theme that fumadocs uses for MDX code
+ * blocks in the docs, so home-page snippets and docs snippets read as the
+ * same theme: rose/pink keywords, sky-blue types/exported names, light-blue
+ * strings, muted comments, orange numbers/literals.
+ */
 function classify(token: string): string {
   if (token.startsWith('//')) return 'text-fd-muted-foreground';
-  if (token.startsWith('"') || token.startsWith('`')) return 'text-emerald-400';
-  if (KEYWORDS.has(token)) return 'text-violet-400 font-semibold';
+  if (token.startsWith('"') || token.startsWith('`')) return 'text-sky-300';
+  if (KEYWORDS.has(token)) return 'text-rose-400';
   if (BUILTIN_LITERALS.has(token)) return 'text-orange-400';
   if (/^\d/.test(token)) return 'text-orange-300';
-  // Pascal-case identifiers are typically types or exported names.
-  if (/^[A-Z]/.test(token)) return 'text-sky-400';
+  // Pascal-case identifiers — types and exported names.
+  if (/^[A-Z]/.test(token)) return 'text-sky-300';
   return '';
 }
