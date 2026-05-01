@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { HighlightedGo } from './highlighted-go';
 
 const tabs = [
   {
@@ -83,6 +84,17 @@ export function CodeExample() {
         Same shape across AWS, Azure, and GCP — switch providers by changing one line
       </p>
       <div className="rounded-xl border border-fd-border bg-fd-card overflow-hidden shadow-lg">
+        {/* macOS-style window chrome */}
+        <div className="flex items-center gap-2 px-4 py-3 border-b border-fd-border bg-fd-secondary/50">
+          <span className="w-3 h-3 rounded-full bg-red-500/70" />
+          <span className="w-3 h-3 rounded-full bg-yellow-500/70" />
+          <span className="w-3 h-3 rounded-full bg-green-500/70" />
+          <span className="ml-2 text-xs text-fd-muted-foreground font-mono">
+            {tabs[active].label.toLowerCase()}_setup.go
+          </span>
+        </div>
+
+        {/* Provider tabs */}
         <div className="flex border-b border-fd-border">
           {tabs.map((tab, i) => (
             <button
@@ -99,9 +111,10 @@ export function CodeExample() {
             </button>
           ))}
         </div>
+
         <pre className="p-6 overflow-x-auto">
           <code className="text-sm font-mono text-fd-foreground leading-relaxed">
-            {tabs[active].code}
+            <HighlightedGo code={tabs[active].code} />
           </code>
         </pre>
       </div>
