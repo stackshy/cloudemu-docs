@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
 import { AnimatedBackground } from './animated-background';
 import { SDKFlowDiagram } from './sdk-flow-diagram';
+import { Logo } from '../logo';
 
 export function Hero() {
   return (
@@ -22,6 +23,10 @@ export function Hero() {
             transition={{ duration: 0.6, ease: 'easeOut' }}
             className="text-center lg:text-left"
           >
+            <div className="mb-6 flex justify-center lg:justify-start">
+              <Logo width={56} height={56} />
+            </div>
+
             <h1 className="text-4xl sm:text-5xl lg:text-[3.25rem] font-extrabold tracking-tight leading-[1.1]">
               Test against{' '}
               <GradientText>real cloud SDKs</GradientText>
