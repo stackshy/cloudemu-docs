@@ -5,12 +5,14 @@ import type { SVGProps } from 'react';
  * cloud providers (AWS, Azure, GCP) emulated inside cloudemu. Uses an inline
  * gradient by default (sky-400 → violet-500) but accepts any styling via props.
  *
- * Renders crisply from 16px (favicon) up to display sizes.
+ * Designed to fill a square 32x32 viewBox so it renders consistently at every
+ * size (16px favicon, 28px nav, 56px hero anchor, 96px README) and works the
+ * same on a transparent background and inside any container.
  */
 export function Logo(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
-      viewBox="2 2 29 22"
+      viewBox="0 0 32 32"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       aria-label="cloudemu"
@@ -20,10 +22,10 @@ export function Logo(props: SVGProps<SVGSVGElement>) {
       <defs>
         <linearGradient
           id="cloudemu-logo-gradient"
-          x1="2"
-          y1="2"
-          x2="31"
-          y2="24"
+          x1="0"
+          y1="0"
+          x2="32"
+          y2="32"
           gradientUnits="userSpaceOnUse"
         >
           <stop stopColor="#38bdf8" />
@@ -31,34 +33,34 @@ export function Logo(props: SVGProps<SVGSVGElement>) {
         </linearGradient>
       </defs>
 
-      {/* Cloud silhouette — built from overlapping circles + a rounded base */}
+      {/* Cloud silhouette — fills the 32x32 canvas */}
       <g>
-        <circle cx="9" cy="15" r="7" fill="url(#cloudemu-logo-gradient)" />
-        <circle cx="18" cy="11" r="9" fill="url(#cloudemu-logo-gradient)" />
-        <circle cx="25" cy="15" r="6" fill="url(#cloudemu-logo-gradient)" />
+        <circle cx="9" cy="15" r="8" fill="url(#cloudemu-logo-gradient)" />
+        <circle cx="18" cy="11" r="11" fill="url(#cloudemu-logo-gradient)" />
+        <circle cx="25" cy="15" r="7" fill="url(#cloudemu-logo-gradient)" />
         <rect
-          x="6"
+          x="2"
           y="14"
-          width="22"
-          height="10"
-          rx="5"
+          width="28"
+          height="18"
+          rx="9"
           fill="url(#cloudemu-logo-gradient)"
         />
       </g>
 
       {/* Three connected service nodes inside — AWS / Azure / GCP, abstracted */}
       <path
-        d="M11 19L18 22L25 19"
+        d="M11 22L18 26L25 22"
         stroke="white"
-        strokeOpacity="0.8"
-        strokeWidth="1.1"
+        strokeOpacity="0.85"
+        strokeWidth="1.3"
         strokeLinecap="round"
         strokeLinejoin="round"
         fill="none"
       />
-      <circle cx="11" cy="19" r="1.6" fill="white" />
-      <circle cx="18" cy="22" r="1.6" fill="white" />
-      <circle cx="25" cy="19" r="1.6" fill="white" />
+      <circle cx="11" cy="22" r="1.8" fill="white" />
+      <circle cx="18" cy="26" r="1.8" fill="white" />
+      <circle cx="25" cy="22" r="1.8" fill="white" />
     </svg>
   );
 }
