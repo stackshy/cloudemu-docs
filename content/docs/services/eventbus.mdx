@@ -5,6 +5,8 @@ description: Event routing with rules and targets
 
 # Event Bus
 
+> **SDK-compat status:** _Portable Go API only._ Real `aws-sdk-go-v2/service/eventbridge`, `armeventgrid`, and Eventarc REST clients can't talk to cloudemu yet — event bus SDK-compat handlers will ship in lockstep across all 3 providers in a future phase. Buses, rules, and targets are already available through the Portable Go API below.
+
 Emulates event routing: **EventBridge** (AWS), **EventGrid** (Azure), **Eventarc** (GCP).
 
 ## Provider Mapping
