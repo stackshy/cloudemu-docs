@@ -3,8 +3,9 @@ import Link from 'next/link';
 const posts = [
   {
     title: 'Introducing cloudemu',
-    description: 'Zero-cost in-memory cloud emulation for Go',
-    date: '2026-03-26',
+    description:
+      'Run your real cloud SDK code against an in-memory cloud — no accounts, no Docker, no rewrites.',
+    date: '2026-07-11',
     slug: 'hello-world',
   },
 ];
