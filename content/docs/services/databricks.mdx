@@ -1,0 +1,76 @@
+---
+title: Databricks
+description: Azure Databricks — ARM workspace control plane plus a workspace data plane the real databricks-sdk-go drives end-to-end
+---
+
+# Databricks
+
+Emulates **Azure Databricks** in two layers: the **ARM workspace control plane** (`Microsoft.Databricks/workspaces`) and the **workspace data plane** (the Databricks REST API). The real `databricks-sdk-go`, pointed at the emulator, provisions a workspace over ARM, discovers the workspace URL, and then drives clusters, jobs, and more against the in-memory data plane.
+
+| Provider | Service | SDK-compat | Driver |
+|----------|---------|:----------:|--------|
+| Azure | Databricks (ARM workspace + workspace data plane) | ✓ Live | `azure.Databricks` |
+
+## Use the real SDK (recommended)
+
+```go
+import (
+    "github.com/stackshy/cloudemu"
+    azureserver "github.com/stackshy/cloudemu/server/azure"
+)
+
+cp := cloudemu.NewAzure()
+ts := httptest.NewTLSServer(azureserver.New(azureserver.Drivers{
+    Databricks:          cp.Databricks, // ARM control plane
+    DatabricksDataPlane: cp.Databricks, // workspace data plane (same backend)
+}))
+
+// databricks-sdk-go clients:
+//   1. Create the workspace via ARM (armdatabricks).
+//   2. Read the returned WorkspaceURL, which points at this server's data plane.
+//   3. Call clusters/jobs/etc. against that URL — the SDK's config-discovery
+//      endpoint (/.well-known/databricks-config) is served automatically.
+```
+
+Both drivers point at the same in-memory `azure.Databricks` mock. See the [SDK-Compat Server page](/docs/sdk-compat) for the Azure TLS setup.
+
+### Operations supported via SDK-compat
+
+**Control plane (ARM):** CreateWorkspace, GetWorkspace, UpdateWorkspaceTags, DeleteWorkspace, ListWorkspacesByResourceGroup, ListWorkspaces.
+
+**Data plane (Databricks REST API):**
+
+- **Clusters** (`/api/2.1/clusters/*`): create, get, list, edit, delete, permanent-delete, start, restart, resize, pin/unpin, list-node-types, spark-versions, list-zones.
+- **Instance pools** (`/api/2.0/instance-pools/*`): create, get, list, edit, delete.
+- **Jobs** (`/api/2.2/jobs/*`): create, get, list, update, reset, delete, run-now.
+- **Runs** (`/api/2.2/jobs/runs/*`): submit, get, list, cancel, cancel-all, delete, repair, get-output.
+- **Cluster policies** (`/api/2.0/policies/clusters/*`): create, get, edit, delete, list.
+- **Libraries** (`/api/2.0/libraries/*`): install, uninstall, cluster-status, all-cluster-statuses.
+- **Permissions** (`/api/2.0/permissions/*`): get, set, update.
+
+Additional workspace surfaces are wired in as nested handlers: **DBFS, Repos, Git credentials, Secrets, Workspace files (WSFS), SCIM, Tokens, Pipelines, Query history, SQL Warehouses, Serving endpoints, and Unity Catalog** (+ UC storage).
+
+## Realistic behaviors
+
+- **Deterministic workspace URL**: `CreateWorkspace` synthesizes an `adb-{workspaceId}.{shard}.azuredatabricks.net` host and a numeric workspace ID derived deterministically from the resource group + name, so the same inputs always yield the same URL.
+- **SDK auto-discovery**: the `/.well-known/databricks-config` host-metadata endpoint is served so `databricks-sdk-go` can locate the workspace without manual configuration.
+- **Shared backend**: the ARM control plane and the data plane read and write the same in-memory state, so a workspace created over ARM is immediately usable over the data-plane API.
+
+## Alternative: Portable Go API
+
+The `azure.Databricks` mock implements both the control-plane and data-plane driver interfaces:
+
+```go
+import dbxdriver "github.com/stackshy/cloudemu/databricks/driver"
+
+ws, _ := azure.Databricks.CreateWorkspace(ctx, dbxdriver.WorkspaceConfig{
+    Name: "analytics", ResourceGroup: "rg-prod", Location: "eastus",
+})
+
+cluster, _ := azure.Databricks.CreateCluster(ctx, dbxdriver.ClusterConfig{
+    Name: "etl", SparkVersion: "14.3.x-scala2.12",
+    NodeTypeID: "Standard_D4s_v3", NumWorkers: 2,
+})
+
+runID, _ := azure.Databricks.RunJobNow(ctx, jobID)
+```

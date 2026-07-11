@@ -35,11 +35,12 @@ The server speaks the actual cloud wire protocols (S3 REST, DynamoDB JSON-RPC, E
 
 ## What's included
 
-- **[SDK-Compatible HTTP Server](/docs/sdk-compat)** — 7 service domains × 3 providers (21 services live), shipping more in lockstep
+- **[SDK-Compatible HTTP Server](/docs/sdk-compat)** — real SDK wire protocols across AWS, Azure, and GCP, spanning compute, storage, NoSQL + relational databases, serverless, Kubernetes, networking, monitoring, message queues, IAM, container registry, resource discovery, and provider-specific Generative AI (Bedrock/SageMaker/Vertex AI) and Databricks
 - **3 cloud providers** — AWS, Azure, GCP, all in one binary
 - **Realistic behaviors** — state machines, auto-metrics, alarm evaluation, FIFO dedup, DLQs, TTL expiry
 - **[Chaos engineering](/docs/chaos)** — inject failures, latency spikes, throttling in time-bounded windows
-- **[Portable Go API](/docs/portable-api)** — alternative path for direct in-process calls (covers all 16 service domains, including the 9 not yet SDK-compat)
+- **[Network topology](/docs/topology)** — evaluate real reachability across VPCs, peering, security groups, ACLs, and routes
+- **[Portable Go API](/docs/portable-api)** — alternative path for direct in-process calls, covering every service category (including the seven not yet SDK-compat: DNS, load balancer, notification, event bus, cache, secrets, logging)
 - **Cross-cutting features** — call recording, metrics, error injection, rate limiting, fake clock, latency simulation
 - **Zero runtime dependencies**
 

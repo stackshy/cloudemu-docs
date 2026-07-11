@@ -1,0 +1,101 @@
+---
+title: Relational Database
+description: RDS/Aurora, Redshift, Azure SQL, PostgreSQL/MySQL Flexible Server, and Cloud SQL — drive them with the real cloud SDK
+---
+
+# Relational Database
+
+Emulates managed relational databases: **RDS + Aurora + Redshift** (AWS), **Azure SQL + PostgreSQL Flexible Server + MySQL Flexible Server** (Azure), and **Cloud SQL** (GCP).
+
+This is separate from the [Database](/docs/services/database) page, which covers NoSQL (DynamoDB, Cosmos DB, Firestore).
+
+| Provider | Service | SDK-compat | Driver |
+|----------|---------|:----------:|--------|
+| AWS | RDS (+ Aurora clusters, Neptune & DocumentDB engines) | ✓ Live | `aws.RDS` |
+| AWS | Redshift (cluster + snapshots) | ✓ Live | `aws.Redshift` |
+| Azure | SQL Database (logical server + databases) | ✓ Live | `azure.SQL` |
+| Azure | PostgreSQL Flexible Server | ✓ Live | `azure.PostgresFlex` |
+| Azure | MySQL Flexible Server | ✓ Live | `azure.MySQLFlex` |
+| GCP | Cloud SQL (MySQL / PostgreSQL / SQL Server) | ✓ Live | `gcp.CloudSQL` |
+
+## Use the real SDK (recommended)
+
+```go
+import (
+    "github.com/aws/aws-sdk-go-v2/service/rds"
+    "github.com/aws/aws-sdk-go-v2/service/rds/types"
+    "github.com/stackshy/cloudemu"
+    awsserver "github.com/stackshy/cloudemu/server/aws"
+)
+
+cloud := cloudemu.NewAWS()
+ts := httptest.NewServer(awsserver.New(awsserver.Drivers{
+    RDS:      cloud.RDS,
+    Redshift: cloud.Redshift,
+}))
+
+client := rds.NewFromConfig(cfg, func(o *rds.Options) {
+    o.BaseEndpoint = aws.String(ts.URL)
+})
+
+// Standalone instance
+client.CreateDBInstance(ctx, &rds.CreateDBInstanceInput{
+    DBInstanceIdentifier: aws.String("app-db"),
+    Engine:               aws.String("postgres"),
+    DBInstanceClass:      aws.String("db.t3.micro"),
+    AllocatedStorage:     aws.Int32(20),
+})
+
+// Aurora cluster + member instance
+client.CreateDBCluster(ctx, &rds.CreateDBClusterInput{
+    DBClusterIdentifier: aws.String("app-cluster"),
+    Engine:              aws.String("aurora-postgresql"),
+})
+
+client.StopDBInstance(ctx, &rds.StopDBInstanceInput{
+    DBInstanceIdentifier: aws.String("app-db"),
+})
+```
+
+Azure servers speak ARM (`armsql`, `armpostgresqlflexibleservers`, `armmysqlflexibleservers`); Cloud SQL speaks the Cloud SQL Admin REST API (`sqladmin/v1`). See the [SDK-Compat Server page](/docs/sdk-compat) for the full quick starts.
+
+### Operations supported via SDK-compat
+
+**RDS:** CreateDBInstance, DescribeDBInstances, ModifyDBInstance, DeleteDBInstance, StartDBInstance, StopDBInstance, RebootDBInstance; CreateDBCluster, DescribeDBClusters, ModifyDBCluster, DeleteDBCluster, StartDBCluster, StopDBCluster; CreateDBSnapshot, DescribeDBSnapshots, DeleteDBSnapshot, RestoreDBInstanceFromDBSnapshot; CreateDBClusterSnapshot, DescribeDBClusterSnapshots, DeleteDBClusterSnapshot, RestoreDBClusterFromSnapshot.
+
+**Redshift:** CreateCluster, DescribeClusters, ModifyCluster, DeleteCluster, RebootCluster; CreateClusterSnapshot, DescribeClusterSnapshots, DeleteClusterSnapshot, RestoreFromClusterSnapshot. (Redshift is cluster-only — instance-level operations return an error.)
+
+**Azure SQL:** `Microsoft.Sql/servers` logical servers + `.../databases` — PUT / GET / PATCH / DELETE / LIST.
+
+**Azure PostgreSQL / MySQL Flexible Server:** `Microsoft.DBforPostgreSQL/flexibleServers` and `Microsoft.DBforMySQL/flexibleServers` — CRUD plus `start` / `stop` / `restart` actions.
+
+**Cloud SQL:** instances insert / get / list / update / delete, `restart` and `restoreBackup` actions, backup-run CRUD, and the operations endpoint (returns `DONE` immediately).
+
+## Realistic behaviors
+
+- **State machine**: instances and clusters move through `creating → available → modifying → starting → stopping → stopped → rebooting → deleting`. Illegal transitions return errors.
+- **Aurora clusters**: clusters own member instances (`Instance.ClusterID`); the `aurora-postgresql` / `aurora-mysql` engines, plus **Neptune** and **DocumentDB**, are emulated through the RDS driver with the right ports and namespaces.
+- **Auto-metrics**: lifecycle transitions push CloudWatch / Azure Monitor / Cloud Monitoring values under the correct per-engine namespace (`AWS/RDS`, `AWS/Redshift`, `Microsoft.Sql/servers/databases`, `cloudsql.googleapis.com`, …).
+- **Snapshots & restore**: instance and cluster snapshots can be created, listed, deleted, and restored into new instances/clusters. Services without a cluster concept (Redshift, Flexible Server, Cloud SQL) return an error for cluster-snapshot operations.
+- **Cloud SQL start/stop** is emulated via `settings.activationPolicy` (`ALWAYS` / `NEVER`).
+
+## Alternative: Portable Go API
+
+All six services implement one driver interface, so the same calls work across every provider:
+
+```go
+import rdbdriver "github.com/stackshy/cloudemu/relationaldb/driver"
+
+inst, _ := aws.RDS.CreateInstance(ctx, rdbdriver.InstanceConfig{
+    ID: "app-db", Engine: "postgres", InstanceClass: "db.t3.micro",
+})
+aws.RDS.StopInstance(ctx, "app-db")
+
+cluster, _ := aws.RDS.CreateCluster(ctx, rdbdriver.ClusterConfig{
+    ID: "app-cluster", Engine: "aurora-postgresql",
+})
+
+snap, _ := aws.RDS.CreateSnapshot(ctx, rdbdriver.SnapshotConfig{
+    ID: "app-db-snap", InstanceID: "app-db",
+})
+```

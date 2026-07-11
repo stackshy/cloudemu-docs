@@ -1,0 +1,72 @@
+---
+title: Generative AI & ML
+description: Bedrock, SageMaker, and Vertex AI — control planes plus deterministic runtime inference, driven by the real cloud SDKs
+---
+
+# Generative AI & ML
+
+Emulates managed AI/ML platforms: **Bedrock** and **SageMaker** (AWS) and **Vertex AI** (GCP). Each ships a control plane (model catalog, endpoints, jobs) and a deterministic runtime so inference calls return predictable, echo-based responses — no GPUs, no accounts, no cost.
+
+| Provider | Service | SDK-compat | Driver |
+|----------|---------|:----------:|--------|
+| AWS | Bedrock (control plane + `bedrock-runtime`) | ✓ Live | `aws.Bedrock` |
+| AWS | SageMaker (control plane + `sagemaker-runtime`) | ✓ Live | `aws.SageMaker` |
+| GCP | Vertex AI (control plane + runtime) | ✓ Live | `gcp.VertexAI` |
+
+> Responses are **deterministic emulations**, not real model output. Runtime calls echo the prompt back (with model-native envelopes and plausible token counts) so you can test wiring, retries, streaming setup, and error handling without a live model.
+
+## Use the real SDK (recommended)
+
+```go
+import (
+    "github.com/aws/aws-sdk-go-v2/service/bedrockruntime"
+    "github.com/stackshy/cloudemu"
+    awsserver "github.com/stackshy/cloudemu/server/aws"
+)
+
+cloud := cloudemu.NewAWS()
+ts := httptest.NewServer(awsserver.New(awsserver.Drivers{
+    Bedrock:   cloud.Bedrock,
+    SageMaker: cloud.SageMaker,
+}))
+
+rt := bedrockruntime.NewFromConfig(cfg, func(o *bedrockruntime.Options) {
+    o.BaseEndpoint = aws.String(ts.URL)
+})
+
+rt.InvokeModel(ctx, &bedrockruntime.InvokeModelInput{
+    ModelId: aws.String("anthropic.claude-3-sonnet-20240229-v1:0"),
+    Body:    []byte(`{"messages":[{"role":"user","content":"hello"}]}`),
+})
+```
+
+Vertex AI speaks the `aiplatform` REST API (`generateContent`, `predict`). See the [SDK-Compat Server page](/docs/sdk-compat).
+
+### Operations supported via SDK-compat
+
+**Bedrock — control plane:** ListFoundationModels, GetFoundationModel; custom-model customization jobs; custom models (List/Get/Delete); guardrails (Create/Get/List/Update/Delete); provisioned throughput (Create/Get/List/Delete); model-invocation logging config (Put/Get/Delete). **Runtime:** InvokeModel, Converse. Seeded model families: Anthropic Claude, Amazon Titan, Meta Llama, Cohere Command, plus Titan embedding models.
+
+**SageMaker — control plane** (`X-Amz-Target: SageMaker.*`): models, endpoint configs, endpoints (incl. UpdateEndpointWeightsAndCapacities), inference components, training / processing / transform / tuning / AutoML / labeling / compilation jobs (complete synchronously), model registry, Studio, notebook instances, HyperPod, Feature Store, pipelines, tagging. **Runtime:** InvokeEndpoint (sync), InvokeEndpointAsync (returns a synthetic S3 output URI).
+
+**Vertex AI — control plane** (REST `/v1/projects/{p}/locations/{l}/…`): models, endpoints (incl. DeployModel/UndeployModel), datasets, custom / batch-prediction / hyperparameter-tuning / training-pipeline / pipeline / tuning jobs, cached contents, Feature Store, Vector Search, metadata, tensorboards, schedules, notebook runtimes. **Runtime:** GenerateContent (Gemini), CountTokens, Predict, RawPredict.
+
+## Realistic behaviors
+
+- **Deterministic runtime**: `InvokeModel` / `Converse` / `GenerateContent` / `InvokeEndpoint` echo the input with model-family-specific response envelopes and whitespace-based token counts, so assertions are stable across runs.
+- **Embeddings**: Bedrock embedding models return fixed-dimension vectors seeded by input length.
+- **Jobs complete synchronously**: training, tuning, batch-prediction, and customization jobs are driven straight to their terminal success state — no polling loops in tests.
+- **LROs done-on-arrival**: Vertex AI long-running operations return with `done: true` and the result inlined.
+- **Endpoint validation**: `InvokeEndpoint` requires the endpoint to exist and be `InService`.
+
+## Alternative: Portable Go API
+
+```go
+import bedrockdriver "github.com/stackshy/cloudemu/bedrock/driver"
+
+models, _ := aws.Bedrock.ListFoundationModels(ctx)
+
+out, _ := aws.Bedrock.InvokeModel(ctx, bedrockdriver.InvokeModelInput{
+    ModelID: "anthropic.claude-3-sonnet-20240229-v1:0",
+    Body:    []byte(`{"prompt":"hello"}`),
+})
+```

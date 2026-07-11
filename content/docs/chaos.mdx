@@ -91,6 +91,8 @@ ebus    := chaos.WrapEventBus(cloud.EventBridge, engine)
 acr     := chaos.WrapContainerRegistry(cloud.ECR, engine)
 cache   := chaos.WrapCache(cloud.ElastiCache, engine)
 network := chaos.WrapNetworking(cloud.VPC, engine)
+smaker  := chaos.WrapSageMaker(cloud.SageMaker, engine)
+// GCP: vai := chaos.WrapVertexAI(cloud.VertexAI, engine)
 ```
 
 The wrappers preserve the underlying driver interface, so existing code (or the [Portable API](/docs/portable-api), or the [SDK-Compat Server](/docs/sdk-compat)) sees no API change — only the runtime behavior changes when scenarios are active.

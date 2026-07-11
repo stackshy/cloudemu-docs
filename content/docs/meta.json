@@ -15,6 +15,7 @@
     "---",
     "portable-api",
     "sdk-compat",
-    "chaos"
+    "chaos",
+    "topology"
   ]
 }

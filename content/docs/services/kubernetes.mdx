@@ -1,0 +1,84 @@
+---
+title: Kubernetes
+description: EKS, AKS, and GKE control planes plus an in-memory Kubernetes data-plane API that real client-go drives end-to-end
+---
+
+# Kubernetes
+
+Emulates managed Kubernetes in two layers, both shipped: **EKS** (AWS), **AKS** (Azure), **GKE** (GCP) control planes via the real cloud SDKs, plus a shared **in-memory Kubernetes data-plane API server** that `client-go` / `kubectl` talk to directly.
+
+| Provider | Service | SDK-compat | Driver |
+|----------|---------|:----------:|--------|
+| AWS | EKS (control plane + data plane) | ✓ Live | `aws.EKS` |
+| Azure | AKS (control plane + data plane) | ✓ Live | `azure.AKS` |
+| GCP | GKE (control plane + data plane) | ✓ Live | `gcp.GKE` |
+
+## The two layers
+
+- **Control plane** (EKS / AKS / GKE) — cluster, node-group/node-pool, addon, Fargate-profile, and maintenance-config lifecycle, driven by the real cloud SDKs.
+- **Data plane** (`kubernetes.APIServer`) — an in-memory Kubernetes API server. Kubeconfigs issued by the control plane point at it, so `kubectl apply -f deployment.yaml` followed by `kubectl get pods` round-trips end-to-end, and real `client-go` `Informer` / `Reflector` machinery works against it.
+
+The data-plane server is **shared across all three providers**: pass the same `*kubernetes.APIServer` into `awsserver.Drivers{K8sAPI: …}`, `azureserver.Drivers{K8sAPI: …}`, and `gcpserver.Drivers{K8sAPI: …}`, and a kubeconfig from EKS, AKS, or GKE lands on the identical backend — just like the real Kubernetes REST API is provider-agnostic.
+
+## Use the real SDK (recommended)
+
+```go
+import (
+    "github.com/aws/aws-sdk-go-v2/service/eks"
+    "github.com/stackshy/cloudemu"
+    "github.com/stackshy/cloudemu/kubernetes"
+    awsserver "github.com/stackshy/cloudemu/server/aws"
+)
+
+cloud := cloudemu.NewAWS()
+k8s := kubernetes.NewAPIServer()
+
+ts := httptest.NewServer(awsserver.New(awsserver.Drivers{
+    EKS:    cloud.EKS,
+    K8sAPI: k8s, // shared in-memory Kubernetes data plane
+}))
+k8s.SetBaseURL(ts.URL) // so issued kubeconfigs point back at this server
+
+client := eks.NewFromConfig(cfg, func(o *eks.Options) {
+    o.BaseEndpoint = aws.String(ts.URL)
+})
+
+client.CreateCluster(ctx, &eks.CreateClusterInput{Name: aws.String("prod")})
+// DescribeCluster now returns a kubeconfig whose server URL is the in-memory
+// data plane — point client-go at it and `kubectl apply` works.
+```
+
+The AKS and GKE control planes are equivalent (`armcontainerservice`, `container/apiv1`). See the [SDK-Compat Server page](/docs/sdk-compat).
+
+### Control-plane operations via SDK-compat
+
+**EKS:** CreateCluster, DescribeCluster, ListClusters, UpdateClusterConfig, UpdateClusterVersion, DeleteCluster; managed node groups (Create/Describe/List/UpdateConfig/UpdateVersion/Delete); Fargate profiles (Create/Describe/List/Delete); addons (Create/Describe/List/Update/Delete).
+
+**AKS:** ManagedClusters (CreateOrUpdate/Get/List/UpdateTags/Delete/RotateClusterCertificates); agent pools (CreateOrUpdate/Get/List/Delete); maintenance configurations (CreateOrUpdate/Get/List/Delete).
+
+**GKE:** clusters (Create/Get/List/Update/Delete) plus configuration setters (logging, monitoring, master auth, network policy, maintenance policy, resource labels, IP rotation); node pools (Create/Get/List/Update/Delete, SetSize, SetAutoscaling, SetManagement, Rollback); operations (Get/List/Cancel).
+
+### Data-plane resources (`kubernetes.APIServer`)
+
+Kinds supported: **Namespace, Pod, Service, ConfigMap, Secret, ServiceAccount, Deployment** (all Create/Get/List/Update/Delete/Patch/Watch), plus **Endpoints** (read-only — auto-created per Service; Get/List/Watch).
+
+- **Patch**: JSON-merge-patch (RFC 7396, `application/merge-patch+json`).
+- **Watch**: `?watch=true` streams `ADDED` / `MODIFIED` / `DELETED` events as newline-delimited JSON, so `Informer` / `Reflector` work.
+- API groups served: `core/v1` and `apps/v1`.
+- Each new cluster starts with the `default`, `kube-system`, and `kube-public` namespaces and a `default` ServiceAccount in each.
+
+## Intentionally out of scope
+
+To keep the data plane a fast, deterministic test double, it deliberately omits: real controllers (a Deployment does **not** create ReplicaSets/Pods — `spec.replicas` mirrors straight to `status.replicas`), the scheduler (Pods stay `Pending`, no Node binding or Pod IPs), RBAC / authorization, PersistentVolumes / PVCs, Nodes, and StatefulSet / DaemonSet / Job / CronJob / Ingress. Strategic-merge and JSON-Patch (RFC 6902) are not supported.
+
+## Alternative: Portable Go API
+
+Drive the control plane directly through the driver, or the data plane through the `kubernetes` package, without the HTTP hop:
+
+```go
+import "github.com/stackshy/cloudemu/kubernetes"
+
+k8s := kubernetes.NewAPIServer()
+// The control-plane mock registers a cluster into k8s on CreateCluster and
+// deregisters it on DeleteCluster; the same in-memory state backs both layers.
+```

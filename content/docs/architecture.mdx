@@ -25,7 +25,7 @@ The driver layer is the load-bearing contract. The HTTP server, Portable API, Ch
 
 ## Layer 1: Provider Mocks
 
-The bottom layer contains the actual in-memory implementations for each cloud provider. Each provider (AWS, Azure, GCP) implements all 16 service interfaces.
+The bottom layer contains the actual in-memory implementations for each cloud provider. Each provider (AWS, Azure, GCP) exposes its services as typed fields.
 
 ```go
 // providers/aws/aws.go
@@ -33,10 +33,15 @@ type Provider struct {
     S3         *s3.Mock
     EC2        *ec2.Mock
     DynamoDB   *dynamodb.Mock
+    RDS        *rds.Mock
     Lambda     *lambda.Mock
+    EKS        *eks.Mock
     SQS        *sqs.Mock
     CloudWatch *cloudwatch.Mock
-    // ... 16 services total
+    Bedrock    *bedrock.Mock
+    // ... plus IAM, Route53, ELB, ECR, SNS, EventBridge, ElastiCache,
+    //     SecretsManager, CloudWatchLogs, Redshift, SageMaker,
+    //     ResourceDiscovery, and more
 }
 ```
 
@@ -79,7 +84,7 @@ Each handler is a self-contained package (`server/aws/s3`, `server/azure/cosmos`
 
 ## Alternative: Portable Go API
 
-For in-process tests, code that doesn't go through an SDK, or domains where SDK-compat isn't shipped yet (IAM, DNS, Load Balancer, Notification, Event Bus, Container Registry, Cache, Secrets, Logging), call the driver directly through the [Portable Go API](/docs/portable-api):
+For in-process tests, code that doesn't go through an SDK, or domains where SDK-compat isn't shipped yet (DNS, Load Balancer, Notification, Event Bus, Cache, Secrets, Logging), call the driver directly through the [Portable Go API](/docs/portable-api):
 
 ```go
 bucket := storage.NewBucket(aws.S3,
@@ -97,7 +102,7 @@ The Portable API also adds cross-cutting concerns (recording, metrics, rate limi
 Beyond the SDK-compat server and Portable API, two more packages consume the driver interface:
 
 - **`chaos/`** — drop-in driver wrappers that inject failures, latency, and throttling in time-bounded windows. Works under both the Portable API _and_ the SDK-compat server. See [Chaos Engineering](/docs/chaos).
-- **`topology/`** — cross-service network reachability engine. Consumes compute, networking, and DNS drivers to evaluate `CanConnect`, `TraceRoute`, `Resolve`. See the networking service page for an example.
+- **`topology/`** — cross-service network reachability engine. Consumes compute, networking, and DNS drivers to evaluate `CanConnect`, `TraceRoute`, `Resolve`. See [Network Topology](/docs/topology).
 
 All consumers are optional — importing cloudemu and only using the SDK-compat server (or only the Portable API) pulls none of the others.
 
