@@ -1,50 +1,85 @@
 ---
-title: Introducing cloudemu
-description: Zero-cost in-memory cloud emulation for Go
+title: "Introducing cloudemu: run your real cloud SDK code against an in-memory cloud"
+description: Point aws-sdk-go-v2, azure-sdk-for-go, and cloud.google.com/go at a local endpoint — no accounts, no Docker, no rewrites.
+date: 2026-07-11
+author: The cloudemu team
 ---
 
 # Introducing cloudemu
 
-We're excited to announce **cloudemu** — a Go library that emulates AWS, Azure, and GCP cloud services entirely in memory.
+**cloudemu** lets you point the real `aws-sdk-go-v2`, `azure-sdk-for-go`, `cloud.google.com/go`, and `databricks-sdk-go` clients at a local, in-memory backend. Your production code runs **unchanged** — you change one thing, the endpoint. No cloud accounts. No Docker. No hand-written mocks. Around 10 ms per call.
 
-## The Problem
+## Why we built it
 
-Every team that builds on cloud services faces the same testing dilemma:
+Every team that builds on the cloud hits the same testing wall. There are three usual options, and none of them is good:
 
-1. **Use real cloud accounts** — expensive, slow, requires network access
-2. **Use Docker-based emulators** — complex setup, moderate speed, heavy on resources
-3. **Write custom mocks** — tedious, incomplete, hard to maintain
+- **Real cloud accounts** — accurate, but slow, costly, flaky, and impossible to run offline or in a locked-down CI.
+- **Docker-based emulators** — closer, but heavy to spin up, slow to start, and another moving part in CI.
+- **Hand-rolled mocks** — fast and free, but you rewrite every call site, they drift from the real API, and they never reproduce real behavior like state transitions or throttling.
 
-None of these options give you fast, realistic, and free cloud testing.
+We wanted the speed and zero cost of mocks with the fidelity of the real thing — and, crucially, **without rewriting the code under test**. That last part is the whole point: the code you ship should be the code you test.
 
-## The Solution
+## What it is
 
-cloudemu provides 48 in-memory service implementations (16 categories across AWS, Azure, and GCP) that behave like the real thing:
+cloudemu ships two surfaces you can mix and match.
+
+### 1. The SDK-compatible HTTP server (the main event)
+
+Most real apps already talk to the cloud through the official SDKs. cloudemu speaks those SDKs' actual wire protocols — AWS Query/JSON/Smithy, Azure ARM, GCP REST — over a local `httptest.NewServer`. Change the endpoint and the same production code runs against an in-memory backend:
 
 ```go
-aws := cloudemu.NewAWS()
+cloud := cloudemu.NewAWS()
+ts := httptest.NewServer(awsserver.New(awsserver.Drivers{
+    S3: cloud.S3, DynamoDB: cloud.DynamoDB, EC2: cloud.EC2,
+}))
+defer ts.Close()
 
-// This works exactly like real EC2
-instances, _ := aws.EC2.RunInstances(ctx, config, 3)
+// The REAL aws-sdk-go-v2 client — only BaseEndpoint changes.
+client := s3.NewFromConfig(cfg, func(o *s3.Options) {
+    o.BaseEndpoint = aws.String(ts.URL)
+    o.UsePathStyle = true
+})
+
+client.PutObject(ctx, &s3.PutObjectInput{ /* your real production code */ })
 ```
 
-No cloud accounts. No Docker. No network calls. Tests run in ~10ms.
+The SDK can't tell it apart from `s3.amazonaws.com`. Nothing to mock, no call sites to rewrite.
 
-## What Makes It Different
+### 2. The Portable Go API
 
-cloudemu goes beyond basic CRUD mocks:
+For in-process tests, or for services that don't yet have an SDK-compat handler, you can call typed in-memory drivers directly (`aws.S3`, `azure.VirtualMachines`, `gcp.GCE`, …) — the same backend, minus the HTTP hop, with optional recording, metrics, rate-limiting, error injection, and latency wrappers.
 
-- **State machines** enforce valid lifecycle transitions
-- **Auto-metrics** are emitted to the monitoring service
-- **FIFO deduplication** with 5-minute windows
-- **Dead-letter queues** for messages exceeding max receive count
-- **TTL expiry** with lazy cleanup on read
-- **IAM policy evaluation** with wildcard matching
+## Why you should use it
 
-## Get Started
+| Approach | Cost | Speed | Real SDKs |
+|----------|------|-------|-----------|
+| Real cloud (AWS/Azure/GCP) | $$$ | seconds | yes |
+| LocalStack / emulators | $ | 100 ms+ | yes (with Docker) |
+| Hand-rolled mocks | free | fast | no — rewrite every call site |
+| cloudemu | free | ~10 ms | yes — no Docker, no rewrites |
+
+And it goes beyond CRUD stubs — the behavior is realistic, so the code paths that only fire under real conditions actually get exercised:
+
+- **State machines** enforce valid lifecycle transitions (an instance can't jump straight from `pending` to `stopped`).
+- **Auto-metrics** flow into the monitoring service so alarms evaluate.
+- **FIFO deduplication**, **dead-letter queues**, and **TTL expiry** behave like the real queues and tables.
+- **IAM policy evaluation** with wildcard and explicit-deny semantics.
+- **Chaos engineering** and **network topology** let you inject failures or check reachability across VPCs, peering, and security groups.
+
+## What's supported
+
+SDK-compat handlers span **AWS, Azure, and GCP** across compute, storage, NoSQL and relational databases, serverless, Kubernetes (EKS/AKS/GKE plus an in-memory data plane), networking, monitoring, message queues, IAM, container registry, and resource discovery — plus provider-specific **Generative AI** (Bedrock, SageMaker, Vertex AI) and **Databricks**. Everything else is reachable today through the Portable API, with SDK-compat handlers landing in lockstep across all three providers.
+
+## When to use it (and when not)
+
+**Reach for cloudemu when** you want fast, deterministic unit and integration tests for cloud-dependent code; when you need CI to run offline with no credentials; or when you want a zero-cost local "cloud" to develop against.
+
+**It is not** a security boundary or a production service — it doesn't validate SigV4/AAD/OAuth signatures, and it's an in-memory test double, not a drop-in replacement for the real cloud. Use it to test *your* code, not to certify cloud behavior.
+
+## Get started
 
 ```bash
 go get github.com/stackshy/cloudemu
 ```
 
-Check out the [Quick Start guide](/docs/quick-start) to build your first cloud simulation in 5 minutes.
+Then drop cloudemu in front of your real SDK client and run your existing tests. The [Quick Start](/docs/quick-start) gets you there in five minutes, and the [SDK-Compatible Server](/docs/sdk-compat) page has the full coverage tables for all three providers.
