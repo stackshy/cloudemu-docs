@@ -4,7 +4,7 @@ const posts = [
   {
     title: 'Introducing cloudemu',
     description:
-      'Run your real cloud SDK code against an in-memory cloud — no accounts, no Docker, no rewrites.',
+      'Test your cloud code without the cloud — a free, instant stand-in for AWS, Azure, and Google Cloud.',
     date: '2026-07-11',
     slug: 'hello-world',
   },
