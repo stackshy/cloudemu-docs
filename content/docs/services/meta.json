@@ -5,7 +5,9 @@
     "compute",
     "storage",
     "database",
+    "relationaldb",
     "serverless",
+    "kubernetes",
     "networking",
     "monitoring",
     "iam",
@@ -17,6 +19,9 @@
     "containerregistry",
     "cache",
     "secrets",
-    "logging"
+    "logging",
+    "resource-discovery",
+    "ai",
+    "databricks"
   ]
 }

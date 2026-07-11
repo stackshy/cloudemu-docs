@@ -1,0 +1,86 @@
+---
+title: Resource Discovery
+description: A cross-service inventory engine that answers Resource Explorer, Resource Graph, and Cloud Asset Inventory queries over your emulated resources
+---
+
+# Resource Discovery
+
+A cross-service **inventory engine** that walks your emulated compute, networking, storage, database, serverless, and Databricks resources and answers the real cloud discovery APIs: **Resource Explorer 2 + Resource Groups Tagging API** (AWS), **Resource Graph** (Azure), and **Cloud Asset Inventory** (GCP).
+
+| Provider | Service | SDK-compat | Driver |
+|----------|---------|:----------:|--------|
+| AWS | Resource Explorer 2 + Resource Groups Tagging API | ✓ Live | `aws.ResourceDiscovery` |
+| Azure | Resource Graph (`armresourcegraph`, KQL) | ✓ Live | `azure.ResourceDiscovery` |
+| GCP | Cloud Asset Inventory (`cloudasset/v1`) | ✓ Live | `gcp.ResourceDiscovery` |
+
+Every provider auto-wires a `ResourceDiscovery` engine over its core drivers, so anything you create through those services is immediately discoverable — no separate registration step.
+
+## Use the real SDK (recommended)
+
+```go
+import (
+    "github.com/aws/aws-sdk-go-v2/service/resourceexplorer2"
+    "github.com/stackshy/cloudemu"
+    awsserver "github.com/stackshy/cloudemu/server/aws"
+)
+
+cloud := cloudemu.NewAWS()
+ts := httptest.NewServer(awsserver.New(awsserver.Drivers{
+    EC2: cloud.EC2, VPC: cloud.VPC, S3: cloud.S3,
+    ResourceDiscovery: cloud.ResourceDiscovery,
+    AccountID:         "123456789012",
+    Region:            "us-east-1",
+}))
+
+client := resourceexplorer2.NewFromConfig(cfg, func(o *resourceexplorer2.Options) {
+    o.BaseEndpoint = aws.String(ts.URL)
+})
+
+client.Search(ctx, &resourceexplorer2.SearchInput{
+    QueryString: aws.String("service:s3 tag.env:prod"),
+})
+```
+
+Wire the engine into `azureserver.Drivers{ResourceDiscovery: …, SubscriptionID: …}` or `gcpserver.Drivers{ResourceDiscovery: …, ProjectID: …}` for the Azure and GCP equivalents.
+
+### Operations supported via SDK-compat
+
+**AWS Resource Explorer 2:** CreateView, DeleteView, ListViews, GetView, Search, ListResources, ListIndexes, GetIndex. Query filters: `service:<name>`, `tag.<key>:<value>`, `region:<name>`.
+
+**AWS Resource Groups Tagging API:** GetResources (with `ResourceTypeFilters` + `TagFilters`), GetTagKeys, GetTagValues, TagResources, UntagResources.
+
+**Azure Resource Graph:** `POST /resources`, `POST /resourcesHistory`, `GET /operations`. A KQL subset over the `Resources` table: `where type == …` / `in~ (…)`, `where location == …`, `where tags['k'] == …`, and `| limit` / `| take`.
+
+**GCP Cloud Asset Inventory:** `searchAllResources`, `searchAllIamPolicies`, `exportAssets`, `batchGetAssetsHistory`, `assets.list`, and feed CRUD (Create/List/Get/Patch/Delete). Filters: `service:`, `assetType:`, `location:`, `labels.<k>:<v>`.
+
+## What it inventories
+
+The engine reads live state from the service drivers and emits normalized, cross-cloud resource records:
+
+| Portable service | Resource type | AWS · Azure · GCP |
+|------------------|---------------|-------------------|
+| `compute` | Instance | EC2 · VM · Compute Engine |
+| `networking` | VPC / Subnet / SecurityGroup | VPC · VNet · Network (+ NSG / Firewall) |
+| `storage` | Bucket | S3 · Storage · GCS |
+| `database` | Table | DynamoDB · Cosmos DB · Firestore |
+| `serverless` | Function | Lambda · Functions · Cloud Functions |
+| `databricks` | Workspace | — · Databricks · — |
+
+## Alternative: Portable Go API
+
+Query the engine directly, without an SDK:
+
+```go
+import "github.com/stackshy/cloudemu/resourcediscovery"
+
+all, _ := aws.ResourceDiscovery.ListAll(ctx)
+
+results, _ := aws.ResourceDiscovery.List(ctx, resourcediscovery.Query{
+    Services: []string{"compute"},
+    Type:     "Instance",
+    Region:   "us-east-1",
+    Tags:     map[string]string{"env": "prod"},
+})
+
+keys, _ := aws.ResourceDiscovery.GetTagKeys(ctx)
+```

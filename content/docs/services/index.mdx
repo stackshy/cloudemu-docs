@@ -1,36 +1,47 @@
 ---
 title: Services Overview
-description: All 16 service categories across AWS, Azure, and GCP
+description: Every emulated service across AWS, Azure, and GCP, and which ones speak the real SDK wire protocol
 ---
 
 # Services Overview
 
-cloudemu provides **16 service categories**, each implemented for all three cloud providers — **48 total implementations**.
+cloudemu emulates cloud services across **AWS, Azure, and GCP**. Most categories are implemented for all three providers; a few (Generative AI, Databricks) are provider-specific, matching where the real service exists.
 
-## Service Mapping
+The **SDK-compat** column shows whether a category has an HTTP wire-format handler that real cloud SDKs (`aws-sdk-go-v2`, `azure-sdk-for-go`, `cloud.google.com/go`, `databricks-sdk-go`) can talk to with only an endpoint change. See the [SDK-Compatible Server](/docs/sdk-compat) page for the full operation tables.
 
-The **SDK-compat** column shows whether each service has an HTTP wire-format handler that real cloud SDKs (`aws-sdk-go-v2`, `azure-sdk-for-go`, `cloud.google.com/go`) can talk to with only an endpoint change. See the [SDK-Compatible Server](/docs/sdk-compat) page for full details.
+## Core services — all three providers
 
 | Category | AWS | Azure | GCP | SDK-compat |
 |----------|-----|-------|-----|:----------:|
 | [Compute](/docs/services/compute) | EC2 | VirtualMachines | GCE | ✓ |
 | [Storage](/docs/services/storage) | S3 | BlobStorage | GCS | ✓ |
-| [Database](/docs/services/database) | DynamoDB | CosmosDB | Firestore | ✓ |
+| [Database (NoSQL)](/docs/services/database) | DynamoDB | CosmosDB | Firestore | ✓ |
+| [Relational DB](/docs/services/relationaldb) | RDS + Redshift | SQL + Postgres/MySQL Flex | Cloud SQL | ✓ |
 | [Serverless](/docs/services/serverless) | Lambda | Functions | CloudFunctions | ✓ |
+| [Kubernetes](/docs/services/kubernetes) | EKS | AKS | GKE | ✓ |
 | [Networking](/docs/services/networking) | VPC | VNet | VPC | ✓ |
 | [Monitoring](/docs/services/monitoring) | CloudWatch | Monitor | CloudMonitoring | ✓ |
 | [Message Queue](/docs/services/messagequeue) | SQS | ServiceBus | PubSub | ✓ |
-| [IAM](/docs/services/iam) | IAM | IAM | IAM | – |
+| [IAM](/docs/services/iam) | IAM | IAM | IAM | ✓ |
+| [Container Registry](/docs/services/containerregistry) | ECR | ACR | ArtifactRegistry | ✓ |
+| [Resource Discovery](/docs/services/resource-discovery) | Resource Explorer + Tagging | Resource Graph | Cloud Asset Inventory | ✓ |
 | [DNS](/docs/services/dns) | Route53 | DNS | CloudDNS | – |
 | [Load Balancer](/docs/services/loadbalancer) | ELB | LB | LB | – |
 | [Notification](/docs/services/notification) | SNS | NotificationHubs | FCM | – |
 | [Event Bus](/docs/services/eventbus) | EventBridge | EventGrid | Eventarc | – |
-| [Container Registry](/docs/services/containerregistry) | ECR | ACR | ArtifactRegistry | – |
 | [Cache](/docs/services/cache) | ElastiCache | Cache | Memorystore | – |
 | [Secrets](/docs/services/secrets) | SecretsManager | KeyVault | SecretManager | – |
 | [Logging](/docs/services/logging) | CloudWatchLogs | LogAnalytics | CloudLogging | – |
 
-Services without SDK-compat handlers are still fully usable through the [Portable API](/docs/portable-api) — the table only reflects HTTP wire-format coverage. SDK-compat handlers are added in lockstep across all 3 providers as each domain ships.
+## Provider-specific services
+
+| Category | Provider | Service | SDK-compat |
+|----------|----------|---------|:----------:|
+| [Generative AI & ML](/docs/services/ai) | AWS | Bedrock, SageMaker | ✓ |
+| [Generative AI & ML](/docs/services/ai) | GCP | Vertex AI | ✓ |
+| [Databricks](/docs/services/databricks) | Azure | Databricks (ARM + data plane) | ✓ |
+
+The seven categories marked **–** are still fully usable through the [Portable API](/docs/portable-api) — the SDK-compat column only reflects HTTP wire-format coverage. SDK-compat handlers are added in lockstep across providers as each domain ships.
 
 ## Accessing Services
 
@@ -40,20 +51,26 @@ Each provider exposes services as typed fields:
 aws := cloudemu.NewAWS()
 aws.EC2           // Compute
 aws.S3            // Storage
-aws.DynamoDB      // Database
+aws.DynamoDB      // Database (NoSQL)
+aws.RDS           // Relational DB
 aws.Lambda        // Serverless
+aws.EKS           // Kubernetes
 aws.VPC           // Networking
 aws.CloudWatch    // Monitoring
+aws.Bedrock       // Generative AI
 
 azure := cloudemu.NewAzure()
 azure.VirtualMachines  // Compute
-azure.BlobStorage      // Storage
-azure.CosmosDB         // Database
+azure.CosmosDB         // Database (NoSQL)
+azure.AKS              // Kubernetes
+azure.Databricks       // Databricks
 
 gcp := cloudemu.NewGCP()
 gcp.GCE               // Compute
-gcp.GCS               // Storage
-gcp.Firestore          // Database
+gcp.Firestore         // Database (NoSQL)
+gcp.CloudSQL          // Relational DB
+gcp.GKE               // Kubernetes
+gcp.VertexAI          // Generative AI
 ```
 
-All providers implement the same driver interfaces, so the operations and behaviors are consistent across clouds.
+All providers implement the same driver interfaces, so operations and behaviors are consistent across clouds.

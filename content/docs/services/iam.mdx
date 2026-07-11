@@ -5,17 +5,17 @@ description: Identity, roles, and policy evaluation with wildcard matching
 
 # IAM
 
-> **SDK-compat status:** _Portable Go API only._ Real `aws-sdk-go-v2/service/iam`, Azure RBAC, and GCP IAM clients can't talk to cloudemu yet — IAM SDK-compat handlers will ship in lockstep across all 3 providers in a future phase. The full driver semantics (JSON policy evaluation, wildcards, explicit-deny override, instance profiles) are already available through the Portable Go API below.
+> **SDK-compat status:** _Live._ Real `aws-sdk-go-v2/service/iam`, Azure `Microsoft.Authorization` (RBAC), and GCP IAM clients can point at the [SDK-compat server](/docs/sdk-compat). The full driver semantics (JSON policy evaluation, wildcards, explicit-deny override, instance profiles) are also available through the Portable Go API below.
 
 Emulates identity and access management across all three providers.
 
 ## Provider Mapping
 
-| Provider | Service | Access |
-|----------|---------|--------|
-| AWS | IAM | `aws.IAM` |
-| Azure | IAM | `azure.IAM` |
-| GCP | IAM | `gcp.IAM` |
+| Provider | Service | SDK-compat | Access |
+|----------|---------|:----------:|--------|
+| AWS | IAM (users, groups, roles, policies, access keys, instance profiles) | ✓ Live | `aws.IAM` |
+| Azure | RBAC (`Microsoft.Authorization` role assignments + definitions) | ✓ Live | `azure.IAM` |
+| GCP | IAM (service accounts, roles, policy bindings) | ✓ Live | `gcp.IAM` |
 
 ## Key Operations
 

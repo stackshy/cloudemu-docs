@@ -143,19 +143,26 @@ ts := httptest.NewServer(gcpserver.New(gcpserver.Drivers{
 
 ## Currently SDK-compat-shipped
 
-7 service domains have HTTP wire-format handlers across all 3 providers:
+Many domains have HTTP wire-format handlers across all 3 providers:
 
 | Domain | AWS | Azure | GCP |
 |--------|-----|-------|-----|
 | Storage | S3 | Blob | GCS |
 | Compute | EC2 + full VPC stack | Virtual Machines + Disks/Snapshots/Images | Compute Engine + Disks/Snapshots/Images |
-| Database | DynamoDB | Cosmos DB | Firestore |
+| Database (NoSQL) | DynamoDB | Cosmos DB | Firestore |
+| Relational DB | RDS + Redshift | SQL + Postgres/MySQL Flex | Cloud SQL |
 | Networking | (in EC2) | VNet | VPC + Firewalls |
 | Monitoring | CloudWatch | Azure Monitor | Cloud Monitoring |
 | Serverless | Lambda | Functions | Cloud Functions |
+| Kubernetes | EKS | AKS | GKE |
 | Message Queue | SQS | Service Bus | Pub/Sub |
+| IAM | IAM | IAM | IAM |
+| Container Registry | ECR | ACR | Artifact Registry |
+| Resource Discovery | Resource Explorer + Tagging | Resource Graph | Cloud Asset Inventory |
 
-The remaining 9 domains (IAM, DNS, Load Balancer, Notification, Event Bus, Container Registry, Cache, Secrets, Logging) are **available today via the [Portable Go API](/docs/portable-api)**; SDK-compat handlers ship in lockstep across all 3 providers as each domain lands.
+Plus provider-specific **Generative AI** (Bedrock + SageMaker on AWS, Vertex AI on GCP) and **Databricks** (Azure). Kubernetes also ships a shared in-memory data plane that `client-go` / `kubectl` drive end-to-end.
+
+The remaining 7 domains (DNS, Load Balancer, Notification, Event Bus, Cache, Secrets, Logging) are **available today via the [Portable Go API](/docs/portable-api)**; SDK-compat handlers ship in lockstep across all 3 providers as each domain lands.
 
 ## Next steps
 
