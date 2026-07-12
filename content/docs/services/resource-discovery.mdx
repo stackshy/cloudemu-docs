@@ -20,8 +20,8 @@ Every provider auto-wires a `ResourceDiscovery` engine over its core drivers, so
 ```go
 import (
     "github.com/aws/aws-sdk-go-v2/service/resourceexplorer2"
-    "github.com/stackshy/cloudemu"
-    awsserver "github.com/stackshy/cloudemu/server/aws"
+    "github.com/stackshy/cloudemu/v2"
+    awsserver "github.com/stackshy/cloudemu/v2/server/aws"
 )
 
 cloud := cloudemu.NewAWS()
@@ -71,7 +71,7 @@ The engine reads live state from the service drivers and emits normalized, cross
 Query the engine directly, without an SDK:
 
 ```go
-import "github.com/stackshy/cloudemu/resourcediscovery"
+import "github.com/stackshy/cloudemu/v2/services/resourcediscovery"
 
 all, _ := aws.ResourceDiscovery.ListAll(ctx)
 

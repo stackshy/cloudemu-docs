@@ -12,7 +12,7 @@ No mocks. No Docker. No cloud accounts. Just `go get` and an `httptest.NewServer
 ## 1. Install
 
 ```bash
-go get github.com/stackshy/cloudemu
+go get github.com/stackshy/cloudemu/v2
 go get github.com/aws/aws-sdk-go-v2/service/s3
 ```
 
@@ -32,8 +32,8 @@ import (
     "github.com/aws/aws-sdk-go-v2/credentials"
     "github.com/aws/aws-sdk-go-v2/service/s3"
 
-    "github.com/stackshy/cloudemu"
-    awsserver "github.com/stackshy/cloudemu/server/aws"
+    "github.com/stackshy/cloudemu/v2"
+    awsserver "github.com/stackshy/cloudemu/v2/server/aws"
 )
 
 func main() {
@@ -117,7 +117,7 @@ The Azure and GCP servers are drop-in replacements:
 
 ```go
 // Azure — TLS required, the SDK rejects bearer tokens over plain HTTP.
-import azureserver "github.com/stackshy/cloudemu/server/azure"
+import azureserver "github.com/stackshy/cloudemu/v2/server/azure"
 
 cp := cloudemu.NewAzure()
 ts := httptest.NewTLSServer(azureserver.New(azureserver.Drivers{
@@ -130,7 +130,7 @@ ts := httptest.NewTLSServer(azureserver.New(azureserver.Drivers{
 
 ```go
 // GCP — REST endpoint via google.golang.org/api or the cloud.google.com/go SDKs.
-import gcpserver "github.com/stackshy/cloudemu/server/gcp"
+import gcpserver "github.com/stackshy/cloudemu/v2/server/gcp"
 
 cp := cloudemu.NewGCP()
 ts := httptest.NewServer(gcpserver.New(gcpserver.Drivers{

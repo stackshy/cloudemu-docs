@@ -21,8 +21,8 @@ Drop the SDK-compat server in front of cloudemu and call your existing productio
 import (
     "github.com/aws/aws-sdk-go-v2/aws"
     "github.com/aws/aws-sdk-go-v2/service/s3"
-    "github.com/stackshy/cloudemu"
-    awsserver "github.com/stackshy/cloudemu/server/aws"
+    "github.com/stackshy/cloudemu/v2"
+    awsserver "github.com/stackshy/cloudemu/v2/server/aws"
 )
 
 cloud := cloudemu.NewAWS()

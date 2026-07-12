@@ -12,7 +12,7 @@ const tabs = [
     color: '#FF9900',
     sdk: 'aws-sdk-go-v2',
     code: `import (
-    awsserver "github.com/stackshy/cloudemu/server/aws"
+    awsserver "github.com/stackshy/cloudemu/v2/server/aws"
     "github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
@@ -34,7 +34,7 @@ client.PutObject(ctx, &s3.PutObjectInput{ /* ... */ })`,
     color: '#0078D4',
     sdk: 'azure-sdk-for-go',
     code: `import (
-    azureserver "github.com/stackshy/cloudemu/server/azure"
+    azureserver "github.com/stackshy/cloudemu/v2/server/azure"
     "github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/compute/armcompute/v5"
 )
 
@@ -57,7 +57,7 @@ client, _ := armcompute.NewVirtualMachinesClient("sub-1", cred, opts)`,
     color: '#4285F4',
     sdk: 'cloud.google.com/go',
     code: `import (
-    gcpserver "github.com/stackshy/cloudemu/server/gcp"
+    gcpserver "github.com/stackshy/cloudemu/v2/server/gcp"
     gcpcompute "cloud.google.com/go/compute/apiv1"
 )
 

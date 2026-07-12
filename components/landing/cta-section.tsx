@@ -6,7 +6,7 @@ import { Copy, Check } from 'lucide-react';
 
 export function CTASection() {
   const [copied, setCopied] = useState(false);
-  const installCmd = 'go get github.com/stackshy/cloudemu';
+  const installCmd = 'go get github.com/stackshy/cloudemu/v2';
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(installCmd);

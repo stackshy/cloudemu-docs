@@ -19,7 +19,7 @@ Emulates FaaS: **Lambda** (AWS), **Functions** (Azure), **Cloud Functions** (GCP
 import (
     "github.com/aws/aws-sdk-go-v2/service/lambda"
     lambdatypes "github.com/aws/aws-sdk-go-v2/service/lambda/types"
-    awsserver "github.com/stackshy/cloudemu/server/aws"
+    awsserver "github.com/stackshy/cloudemu/v2/server/aws"
 )
 
 cloud := cloudemu.NewAWS()
@@ -62,7 +62,7 @@ Same shape with `armappservice` (Azure) and `google.golang.org/api/cloudfunction
 ## Alternative: Portable Go API
 
 ```go
-import sdriver "github.com/stackshy/cloudemu/serverless/driver"
+import sdriver "github.com/stackshy/cloudemu/v2/services/serverless/driver"
 
 aws.Lambda.CreateFunction(ctx, sdriver.FunctionConfig{
     Name: "my-handler", Runtime: "go1.x", Handler: "main",

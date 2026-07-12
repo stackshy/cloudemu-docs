@@ -25,9 +25,9 @@ The data-plane server is **shared across all three providers**: pass the same `*
 ```go
 import (
     "github.com/aws/aws-sdk-go-v2/service/eks"
-    "github.com/stackshy/cloudemu"
-    "github.com/stackshy/cloudemu/kubernetes"
-    awsserver "github.com/stackshy/cloudemu/server/aws"
+    "github.com/stackshy/cloudemu/v2"
+    "github.com/stackshy/cloudemu/v2/services/kubernetes"
+    awsserver "github.com/stackshy/cloudemu/v2/server/aws"
 )
 
 cloud := cloudemu.NewAWS()
@@ -76,7 +76,7 @@ To keep the data plane a fast, deterministic test double, it deliberately omits:
 Drive the control plane directly through the driver, or the data plane through the `kubernetes` package, without the HTTP hop:
 
 ```go
-import "github.com/stackshy/cloudemu/kubernetes"
+import "github.com/stackshy/cloudemu/v2/services/kubernetes"
 
 k8s := kubernetes.NewAPIServer()
 // The control-plane mock registers a cluster into k8s on CreateCluster and

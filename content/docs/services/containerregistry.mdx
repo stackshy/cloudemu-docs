@@ -22,7 +22,7 @@ Emulates container registries: **ECR** (AWS), **ACR** (Azure), **ArtifactRegistr
 ### Repositories
 
 ```go
-import crdriver "github.com/stackshy/cloudemu/containerregistry/driver"
+import crdriver "github.com/stackshy/cloudemu/v2/services/containerregistry/driver"
 
 aws.ECR.CreateRepository(ctx, crdriver.RepositoryConfig{
     Name: "my-app",

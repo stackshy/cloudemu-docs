@@ -18,7 +18,7 @@ Emulates message queues: **SQS** (AWS), **Service Bus** (Azure), **Pub/Sub** (GC
 ```go
 import (
     "github.com/aws/aws-sdk-go-v2/service/sqs"
-    awsserver "github.com/stackshy/cloudemu/server/aws"
+    awsserver "github.com/stackshy/cloudemu/v2/server/aws"
 )
 
 cloud := cloudemu.NewAWS()
@@ -64,7 +64,7 @@ Same pattern with `armservicebus` (Azure ARM control plane) + raw HTTP for Servi
 ## Alternative: Portable Go API
 
 ```go
-import mqdriver "github.com/stackshy/cloudemu/messagequeue/driver"
+import mqdriver "github.com/stackshy/cloudemu/v2/services/messagequeue/driver"
 
 q, _ := aws.SQS.CreateQueue(ctx, mqdriver.QueueConfig{Name: "orders"})
 aws.SQS.SendMessage(ctx, mqdriver.SendMessageInput{

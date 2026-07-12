@@ -21,8 +21,8 @@ For managed relational databases (RDS/Aurora, Redshift, Azure SQL, PostgreSQL/My
 import (
     "github.com/aws/aws-sdk-go-v2/service/dynamodb"
     "github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
-    "github.com/stackshy/cloudemu"
-    awsserver "github.com/stackshy/cloudemu/server/aws"
+    "github.com/stackshy/cloudemu/v2"
+    awsserver "github.com/stackshy/cloudemu/v2/server/aws"
 )
 
 cloud := cloudemu.NewAWS()
@@ -72,7 +72,7 @@ Same shape with `azcosmos` (Azure) and `cloud.google.com/go/firestore` (GCP). Se
 ## Alternative: Portable Go API
 
 ```go
-import dbdriver "github.com/stackshy/cloudemu/database/driver"
+import dbdriver "github.com/stackshy/cloudemu/v2/services/database/driver"
 
 aws.DynamoDB.CreateTable(ctx, dbdriver.TableConfig{
     Name: "Users", PartitionKey: "id",

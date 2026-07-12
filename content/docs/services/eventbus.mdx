@@ -22,7 +22,7 @@ Emulates event routing: **EventBridge** (AWS), **EventGrid** (Azure), **Eventarc
 ### Event Buses
 
 ```go
-import ebdriver "github.com/stackshy/cloudemu/eventbus/driver"
+import ebdriver "github.com/stackshy/cloudemu/v2/services/eventbus/driver"
 
 bus, _ := aws.EventBridge.CreateEventBus(ctx, ebdriver.EventBusConfig{
     Name: "app-events",

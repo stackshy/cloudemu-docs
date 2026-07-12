@@ -18,8 +18,8 @@ Emulates virtual network primitives: **VPC** (AWS, served by the EC2 query handl
 ```go
 import (
     "github.com/aws/aws-sdk-go-v2/service/ec2"
-    "github.com/stackshy/cloudemu"
-    awsserver "github.com/stackshy/cloudemu/server/aws"
+    "github.com/stackshy/cloudemu/v2"
+    awsserver "github.com/stackshy/cloudemu/v2/server/aws"
 )
 
 cloud := cloudemu.NewAWS()
@@ -60,7 +60,7 @@ Azure (`armnetwork.NewVirtualNetworksClient`) and GCP (`gcpcompute.NewNetworksRE
 Once your network is built, the [topology engine](/docs/architecture#pluggable-consumers) can answer real connectivity questions on top of the same drivers:
 
 ```go
-import "github.com/stackshy/cloudemu/topology"
+import "github.com/stackshy/cloudemu/v2/features/topology"
 
 topo := topology.New(cloud.EC2, cloud.VPC, cloud.Route53)
 result, _ := topo.CanConnect(ctx, topology.ConnectivityQuery{
@@ -74,7 +74,7 @@ This walks VPC peering, security groups, route tables, and network ACLs the same
 ## Alternative: Portable Go API
 
 ```go
-import netdriver "github.com/stackshy/cloudemu/networking/driver"
+import netdriver "github.com/stackshy/cloudemu/v2/services/networking/driver"
 
 vpc, _ := aws.VPC.CreateVPC(ctx, netdriver.VPCConfig{CIDRBlock: "10.0.0.0/16"})
 subnet, _ := aws.VPC.CreateSubnet(ctx, netdriver.SubnetConfig{

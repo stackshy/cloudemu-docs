@@ -20,8 +20,8 @@ Emulates managed AI/ML platforms: **Bedrock** and **SageMaker** (AWS) and **Vert
 ```go
 import (
     "github.com/aws/aws-sdk-go-v2/service/bedrockruntime"
-    "github.com/stackshy/cloudemu"
-    awsserver "github.com/stackshy/cloudemu/server/aws"
+    "github.com/stackshy/cloudemu/v2"
+    awsserver "github.com/stackshy/cloudemu/v2/server/aws"
 )
 
 cloud := cloudemu.NewAWS()
@@ -61,7 +61,7 @@ Vertex AI speaks the `aiplatform` REST API (`generateContent`, `predict`). See t
 ## Alternative: Portable Go API
 
 ```go
-import bedrockdriver "github.com/stackshy/cloudemu/bedrock/driver"
+import bedrockdriver "github.com/stackshy/cloudemu/v2/services/bedrock/driver"
 
 models, _ := aws.Bedrock.ListFoundationModels(ctx)
 

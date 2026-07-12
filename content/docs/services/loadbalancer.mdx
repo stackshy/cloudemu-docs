@@ -22,7 +22,7 @@ Emulates load balancing: **ELB** (AWS), **LB** (Azure), **LB** (GCP).
 ### Load Balancers
 
 ```go
-import lbdriver "github.com/stackshy/cloudemu/loadbalancer/driver"
+import lbdriver "github.com/stackshy/cloudemu/v2/services/loadbalancer/driver"
 
 lb, _ := aws.ELB.CreateLoadBalancer(ctx, lbdriver.LoadBalancerConfig{
     Name:   "web-lb",
