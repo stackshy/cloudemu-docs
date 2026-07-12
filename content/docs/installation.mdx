@@ -10,7 +10,7 @@ description: How to install cloudemu in your Go project
 Add cloudemu to your Go module:
 
 ```bash
-go get github.com/stackshy/cloudemu
+go get github.com/stackshy/cloudemu/v2
 ```
 
 This installs the library and all service packages. There are no external dependencies beyond the Go standard library.
@@ -26,7 +26,7 @@ import (
     "context"
     "testing"
 
-    "github.com/stackshy/cloudemu"
+    "github.com/stackshy/cloudemu/v2"
 )
 
 func TestCloudemu(t *testing.T) {
@@ -63,13 +63,13 @@ The main package and common sub-packages:
 
 ```go
 import (
-    "github.com/stackshy/cloudemu"                    // NewAWS, NewAzure, NewGCP
-    "github.com/stackshy/cloudemu/config"              // WithRegion, WithClock, etc.
-    cerrors "github.com/stackshy/cloudemu/errors"      // Error codes and helpers
-    "github.com/stackshy/cloudemu/compute/driver"      // Compute types
-    "github.com/stackshy/cloudemu/storage/driver"      // Storage types
-    "github.com/stackshy/cloudemu/database/driver"     // Database types
-    "github.com/stackshy/cloudemu/monitoring/driver"   // Monitoring types
+    "github.com/stackshy/cloudemu/v2"                    // NewAWS, NewAzure, NewGCP
+    "github.com/stackshy/cloudemu/v2/config"              // WithRegion, WithClock, etc.
+    cerrors "github.com/stackshy/cloudemu/v2/errors"      // Error codes and helpers
+    "github.com/stackshy/cloudemu/v2/services/compute/driver"      // Compute types
+    "github.com/stackshy/cloudemu/v2/services/storage/driver"      // Storage types
+    "github.com/stackshy/cloudemu/v2/services/database/driver"     // Database types
+    "github.com/stackshy/cloudemu/v2/services/monitoring/driver"   // Monitoring types
 )
 ```
 

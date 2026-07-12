@@ -22,7 +22,7 @@ Emulates logging services: **CloudWatch Logs** (AWS), **Log Analytics** (Azure),
 ### Log Groups and Streams
 
 ```go
-import logdriver "github.com/stackshy/cloudemu/logging/driver"
+import logdriver "github.com/stackshy/cloudemu/v2/services/logging/driver"
 
 // Create a log group
 aws.CloudWatchLogs.CreateLogGroup(ctx, logdriver.LogGroupConfig{

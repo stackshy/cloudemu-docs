@@ -19,7 +19,7 @@ Emulates metric ingest + alarm evaluation: **CloudWatch** (AWS), **Azure Monitor
 import (
     "github.com/aws/aws-sdk-go-v2/service/cloudwatch"
     "github.com/aws/aws-sdk-go-v2/service/cloudwatch/types"
-    awsserver "github.com/stackshy/cloudemu/server/aws"
+    awsserver "github.com/stackshy/cloudemu/v2/server/aws"
 )
 
 cloud := cloudemu.NewAWS()
@@ -65,7 +65,7 @@ client.PutMetricAlarm(ctx, &cloudwatch.PutMetricAlarmInput{
 ## Alternative: Portable Go API
 
 ```go
-import mondriver "github.com/stackshy/cloudemu/monitoring/driver"
+import mondriver "github.com/stackshy/cloudemu/v2/services/monitoring/driver"
 
 aws.CloudWatch.PutMetricData(ctx, []mondriver.MetricDatum{
     {Namespace: "App", MetricName: "CPU", Value: 45.2, Unit: "Percent"},

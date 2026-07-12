@@ -9,9 +9,9 @@ cloudemu can deliberately fail or slow down services in controlled, time-bounded
 
 ```go
 import (
-    "github.com/stackshy/cloudemu"
-    "github.com/stackshy/cloudemu/chaos"
-    "github.com/stackshy/cloudemu/config"
+    "github.com/stackshy/cloudemu/v2"
+    "github.com/stackshy/cloudemu/v2/features/chaos"
+    "github.com/stackshy/cloudemu/v2/config"
 )
 
 cloud := cloudemu.NewAWS()

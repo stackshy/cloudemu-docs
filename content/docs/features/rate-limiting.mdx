@@ -10,7 +10,7 @@ Simulate API rate limits using a token bucket algorithm.
 ## Setup
 
 ```go
-import "github.com/stackshy/cloudemu/ratelimit"
+import "github.com/stackshy/cloudemu/v2/features/ratelimit"
 
 limiter := ratelimit.NewLimiter(100) // 100 requests per second
 
@@ -24,7 +24,7 @@ bucket := storage.NewBucket(aws.S3,
 When the rate limit is exceeded, operations return a `Throttled` error:
 
 ```go
-import cerrors "github.com/stackshy/cloudemu/errors"
+import cerrors "github.com/stackshy/cloudemu/v2/errors"
 
 err := bucket.PutObject(ctx, "bucket", "key", data, "text/plain", nil)
 if cerrors.IsThrottled(err) {

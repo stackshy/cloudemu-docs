@@ -22,7 +22,7 @@ Emulates notification services: **SNS** (AWS), **NotificationHubs** (Azure), **F
 ### Topics and Subscriptions
 
 ```go
-import notifdriver "github.com/stackshy/cloudemu/notification/driver"
+import notifdriver "github.com/stackshy/cloudemu/v2/services/notification/driver"
 
 topic, _ := aws.SNS.CreateTopic(ctx, notifdriver.TopicConfig{
     Name: "order-events",
