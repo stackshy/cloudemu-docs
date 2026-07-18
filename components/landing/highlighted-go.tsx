@@ -63,17 +63,16 @@ export function HighlightedGo({ code }: { code: string }) {
 }
 
 /**
- * Color palette matches the docs MDX theme: rose-pink keywords, violet
- * types/exported names, emerald strings, muted comments, orange literals.
- * Everything else stays the default foreground (white in dark mode).
+ * Token classes map to the --code-* palette in tokens.css — the exact same
+ * colors the Shiki theme uses, so hand-rendered panels match docs code.
  */
 function classify(token: string): string {
-  if (token.startsWith('//')) return 'text-fd-muted-foreground';
-  if (token.startsWith('"') || token.startsWith('`')) return 'text-emerald-400';
-  if (KEYWORDS.has(token)) return 'text-rose-400';
-  if (BUILTIN_LITERALS.has(token)) return 'text-orange-400';
-  if (/^\d/.test(token)) return 'text-orange-300';
+  if (token.startsWith('//')) return 'tok-c';
+  if (token.startsWith('"') || token.startsWith('`')) return 'tok-s';
+  if (KEYWORDS.has(token)) return 'tok-k';
+  if (BUILTIN_LITERALS.has(token)) return 'tok-n';
+  if (/^\d/.test(token)) return 'tok-n';
   // Pascal-case identifiers — types, constructors, exported names.
-  if (/^[A-Z]/.test(token)) return 'text-violet-400';
+  if (/^[A-Z]/.test(token)) return 'tok-t';
   return '';
 }

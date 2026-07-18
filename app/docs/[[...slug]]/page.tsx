@@ -8,6 +8,11 @@ import {
 import { notFound } from 'next/navigation';
 import defaultMdxComponents from 'fumadocs-ui/mdx';
 import type { Metadata } from 'next';
+import { CodePre } from '@/components/code/pre';
+import { ProviderTabs, ProviderTab } from '@/components/code/provider-tabs';
+import { Callout } from '@/components/docs/callout';
+import { PacketFlow } from '@/components/diagrams/packet-flow';
+import { ChaosTimeline } from '@/components/diagrams/chaos-timeline';
 
 export default async function Page(props: {
   params: Promise<{ slug?: string[] }>;
@@ -24,7 +29,17 @@ export default async function Page(props: {
       <DocsTitle>{data.title}</DocsTitle>
       <DocsDescription>{data.description}</DocsDescription>
       <DocsBody>
-        <MDX components={{ ...defaultMdxComponents }} />
+        <MDX
+          components={{
+            ...defaultMdxComponents,
+            pre: CodePre,
+            Callout,
+            ProviderTabs,
+            ProviderTab,
+            PacketFlow,
+            ChaosTimeline,
+          }}
+        />
       </DocsBody>
     </DocsPage>
   );

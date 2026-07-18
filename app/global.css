@@ -58,6 +58,10 @@
   --color-fd-warning: var(--warn);
   --color-fd-error: var(--error);
   --color-fd-success: var(--ok);
+  --color-fd-diff-remove: var(--code-diff-del);
+  --color-fd-diff-remove-symbol: var(--error);
+  --color-fd-diff-add: var(--code-diff-add);
+  --color-fd-diff-add-symbol: var(--ok);
 }
 
 .dark #nd-sidebar {
@@ -375,15 +379,61 @@ samp {
   opacity: 0.75;
 }
 
-/* focus: dim everything that is not focused */
+/* focus: dim (not blur) everything that is not focused */
 .shiki.has-focused .line:not(.focused) {
   opacity: 0.4;
-  filter: saturate(0.6);
-  transition: opacity 250ms var(--ease-signal);
+  filter: saturate(0.6) !important;
+  transition:
+    opacity 250ms var(--ease-signal),
+    filter 250ms var(--ease-signal);
 }
 .shiki.has-focused:hover .line:not(.focused) {
   opacity: 1;
-  filter: none;
+  filter: none !important;
+}
+
+/* Terminal panes: always-dark instrument screens, accent $ prompt.
+   The prompt is CSS content, so copied text never includes it. */
+.u-terminal .shiki code span {
+  color: var(--shiki-dark) !important;
+  font-style: var(--shiki-dark-font-style) !important;
+}
+.u-terminal .line {
+  padding-left: 1.1em !important;
+}
+.u-terminal .line::before {
+  content: '$';
+  position: absolute;
+  left: 0;
+  color: var(--accent);
+  opacity: 0.9;
+}
+.u-terminal .line:empty::before {
+  content: none;
+}
+
+/* Hand-tokenized code (landing morph panels) — same palette as Shiki */
+.tok-k {
+  color: var(--code-keyword);
+}
+.tok-s {
+  color: var(--code-string);
+}
+.tok-c {
+  color: var(--code-comment);
+  font-style: italic;
+}
+.tok-n {
+  color: var(--code-number);
+}
+.tok-t {
+  color: var(--code-type);
+}
+.tok-f {
+  color: var(--code-function);
+}
+.u-code-plain {
+  color: var(--code-plain);
 }
 
 /* Provider tab tinting for fumadocs Tabs (groupId="provider") */
