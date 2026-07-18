@@ -10,27 +10,21 @@ export default function NotFound() {
           </div>
           <div className="px-4 py-4 text-ink-inset">
             <p>
-              <span className="text-signal">$</span> cloudemu route /this-page
+              <span className="text-ink-inset-muted">$</span> cloudemu route
+              /this-page
             </p>
-            <p className="mt-2 text-error">
-              Error: RouteNotFound (code 404)
-            </p>
+            <p className="mt-2 text-danger">Error: RouteNotFound (code 404)</p>
             <p className="mt-1 text-ink-inset-muted">
               the requested path is not wired to any handler.
             </p>
             <p className="mt-4">
-              <span className="text-signal">$</span>{' '}
+              <span className="text-ink-inset-muted">$</span>{' '}
               <Link
                 href="/docs"
-                className="text-signal underline decoration-signal/40 underline-offset-4 hover:decoration-signal"
+                className="text-ink-inset underline decoration-white/25 underline-offset-4 transition-colors hover:text-accent hover:decoration-accent"
               >
                 cloudemu route /docs
               </Link>
-              <span
-                aria-hidden
-                className="ml-1 inline-block h-[1.1em] w-[0.55em] translate-y-[0.2em] bg-signal"
-                style={{ animation: 'u-blink 1s step-end infinite' }}
-              />
             </p>
           </div>
         </div>

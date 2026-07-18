@@ -44,14 +44,14 @@ export function CoverageMatrix() {
       <div className="mx-auto w-full max-w-6xl px-6 py-20">
         <Reveal>
           <p className="u-eyebrow mb-3">
-            <span className="text-signal">04</span> · coverage
+            <span className="text-ink-3">04</span> · coverage
           </p>
           <div className="flex flex-wrap items-end justify-between gap-4">
             <h2 className="text-3xl font-bold tracking-[-0.01em] text-ink">
               16 domains. 3 providers. All live.
             </h2>
             <p className="font-mono text-xs uppercase tracking-[0.08em] text-ink-muted">
-              <span className="text-signal">●</span> sdk-compat + portable api
+              <span className="text-ink-3">●</span> sdk-compat + portable api
             </p>
           </div>
         </Reveal>
@@ -82,7 +82,7 @@ export function CoverageMatrix() {
                   </span>
                   <span
                     aria-hidden
-                    className="size-1.5 rounded-full bg-signal"
+                    className="size-1.5 rounded-full bg-ink-3"
                     style={{
                       animation: on
                         ? 'u-breathe 4s ease-in-out infinite'
@@ -112,11 +112,11 @@ export function CoverageMatrix() {
 
         <p className="mt-4 font-mono text-xs leading-relaxed text-ink-muted">
           every domain is drivable two ways: the{' '}
-          <Link href="/docs/portable-api" className="text-signal hover:underline">
+          <Link href="/docs/portable-api" className="text-ink underline decoration-line-2 underline-offset-2 hover:text-accent hover:decoration-accent">
             portable go api
           </Link>{' '}
           (in-process, no HTTP) or the{' '}
-          <Link href="/docs/sdk-compat" className="text-signal hover:underline">
+          <Link href="/docs/sdk-compat" className="text-ink underline decoration-line-2 underline-offset-2 hover:text-accent hover:decoration-accent">
             sdk-compat server
           </Link>{' '}
           (real SDK clients over the wire).

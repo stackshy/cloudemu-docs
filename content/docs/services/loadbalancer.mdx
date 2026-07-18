@@ -1,15 +1,14 @@
 ---
 title: Load Balancer
-description: Load balancers, target groups, listeners, and health checks
+description: Emulated load balancers, target groups, listeners, and health checks
+aws: ELB
+azure: LB
+gcp: LB
 ---
 
-# Load Balancer
-
-> **SDK-compat status:** _Portable Go API only._ Real `elbv2`, `armnetwork.LoadBalancers`, and GCP LB clients can't talk to cloudemu yet — load balancer SDK-compat handlers will ship in lockstep across all 3 providers in a future phase. Targets, listeners, and health checks are already available through the Portable Go API below.
+## Overview
 
 Emulates load balancing: **ELB** (AWS), **LB** (Azure), **LB** (GCP).
-
-## Provider Mapping
 
 | Provider | Service | Access |
 |----------|---------|--------|
@@ -17,7 +16,7 @@ Emulates load balancing: **ELB** (AWS), **LB** (Azure), **LB** (GCP).
 | Azure | LB | `azure.LB` |
 | GCP | LB | `gcp.LB` |
 
-## Key Operations
+## Examples
 
 ### Load Balancers
 
@@ -53,6 +52,10 @@ aws.ELB.CreateListener(ctx, lbdriver.ListenerConfig{
     TargetGroupID:  tg.ID,
 })
 ```
+
+## Notes
+
+> **SDK-compat status:** _Portable Go API only._ Real `elbv2`, `armnetwork.LoadBalancers`, and GCP LB clients can't talk to cloudemu yet — load balancer SDK-compat handlers will ship in lockstep across all 3 providers in a future phase. Targets, listeners, and health checks are already available through the Portable Go API shown above.
 
 ### Health Checks
 

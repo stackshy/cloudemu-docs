@@ -2,12 +2,9 @@
 title: Portable API
 description: Wrap any driver with recording, metrics, rate limiting, and error injection
 ---
-
-# Portable API
-
 The portable API layer wraps driver implementations with test-oriented cross-cutting concerns. Every service category has its own portable wrapper.
 
-## Basic Usage
+## Basic usage
 
 ```go
 import (
@@ -36,7 +33,7 @@ bucket.CreateBucket(ctx, "my-bucket")
 bucket.PutObject(ctx, "my-bucket", "key", data, "text/plain", nil)
 ```
 
-## How It Works
+## How it works
 
 Every operation passes through a middleware chain:
 
@@ -47,7 +44,7 @@ Every operation passes through a middleware chain:
 5. **Metrics** — records `calls_total`, `call_duration`, `errors_total`
 6. **Recording** — logs service, operation, input, output, error, duration
 
-## Available Wrappers
+## Available wrappers
 
 Each service has its own portable type:
 
@@ -63,7 +60,7 @@ Each service has its own portable type:
 
 All wrappers support the same set of `With*` options.
 
-## Cross-Provider Testing
+## Cross-provider testing
 
 The portable API enables true cross-provider testing:
 

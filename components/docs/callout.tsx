@@ -1,24 +1,33 @@
 import type { ReactNode } from 'react';
 
-type CalloutType = 'info' | 'warn' | 'warning' | 'error' | 'danger' | 'success' | 'tip' | 'idea';
+type CalloutType =
+  | 'info'
+  | 'warn'
+  | 'warning'
+  | 'error'
+  | 'danger'
+  | 'success'
+  | 'tip'
+  | 'idea';
 
-const VARIANT: Record<
-  string,
-  { label: string; color: string; dim: string }
-> = {
-  info: { label: 'NOTE', color: 'var(--info)', dim: 'var(--info-dim)' },
-  tip: { label: 'TIP', color: 'var(--info)', dim: 'var(--info-dim)' },
-  idea: { label: 'TIP', color: 'var(--info)', dim: 'var(--info-dim)' },
-  warn: { label: 'WARNING', color: 'var(--warn)', dim: 'var(--warn-dim)' },
-  warning: { label: 'WARNING', color: 'var(--warn)', dim: 'var(--warn-dim)' },
-  error: { label: 'DANGER', color: 'var(--error)', dim: 'var(--error-dim)' },
-  danger: { label: 'DANGER', color: 'var(--error)', dim: 'var(--error-dim)' },
-  success: { label: 'OK', color: 'var(--ok)', dim: 'var(--ok-dim)' },
+/**
+ * Rail color is semantic: plain notes stay neutral; only warnings/dangers
+ * earn a colored rail. Labels are always muted mono — never colored text.
+ */
+const VARIANT: Record<string, { label: string; rail: string }> = {
+  info: { label: 'NOTE', rail: 'var(--border-2)' },
+  tip: { label: 'TIP', rail: 'var(--ok)' },
+  idea: { label: 'TIP', rail: 'var(--ok)' },
+  warn: { label: 'WARNING', rail: 'var(--warn)' },
+  warning: { label: 'WARNING', rail: 'var(--warn)' },
+  error: { label: 'DANGER', rail: 'var(--danger)' },
+  danger: { label: 'DANGER', rail: 'var(--danger)' },
+  success: { label: 'OK', rail: 'var(--ok)' },
 };
 
 /**
- * Bespoke callout: surface background, 2px semantic left rail, mono label.
- * Replaces fumadocs' Callout via the MDX components map.
+ * Quiet callout: bg-2 surface, 3px semantic left rail, 13px mono label,
+ * body in text-2. Replaces fumadocs' Callout via the MDX components map.
  */
 export function Callout({
   type = 'info',
@@ -33,13 +42,17 @@ export function Callout({
   return (
     <div
       className="not-prose relative my-5 overflow-hidden rounded-md border border-line bg-surface py-3 pl-4 pr-4 text-sm leading-relaxed"
-      style={{ boxShadow: `inset 2px 0 0 ${v.color}` }}
+      style={{ boxShadow: `inset 3px 0 0 ${v.rail}` }}
     >
-      <p className="mb-1.5 flex items-center gap-2 font-mono text-[11px] font-medium tracking-[0.08em]">
-        <span style={{ color: v.color }}>{v.label}</span>
-        {title && <span className="normal-case tracking-normal text-ink font-sans font-semibold text-[13px]">{title}</span>}
+      <p className="mb-1.5 flex items-center gap-2 font-mono text-[13px] font-medium tracking-[0.06em] text-ink-3">
+        {v.label}
+        {title && (
+          <span className="font-sans text-[13px] font-semibold normal-case tracking-normal text-ink">
+            {title}
+          </span>
+        )}
       </p>
-      <div className="space-y-2 text-ink-secondary [&_a]:text-signal [&_a]:underline [&_a]:underline-offset-2 [&_code]:u-chip-code">
+      <div className="space-y-2 text-ink-2 [&_code]:u-chip-code [&_a]:font-medium [&_a]:text-ink [&_a]:underline [&_a]:decoration-line-2 [&_a]:underline-offset-2 hover:[&_a]:text-accent hover:[&_a]:decoration-accent">
         {children}
       </div>
     </div>

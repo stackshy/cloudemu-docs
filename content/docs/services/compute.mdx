@@ -1,9 +1,12 @@
 ---
 title: Compute
-description: VMs and instances — drive EC2 / Azure VMs / GCE with the real cloud SDK
+description: VM and instance emulation for EC2, Azure Virtual Machines, and Compute Engine, driven with the real cloud SDKs.
+aws: EC2
+azure: Virtual Machines
+gcp: Compute Engine
 ---
 
-# Compute
+## Overview
 
 Emulates VM/instance services: **EC2** (AWS), **Virtual Machines** (Azure), **Compute Engine** (GCP).
 
@@ -13,7 +16,9 @@ Emulates VM/instance services: **EC2** (AWS), **Virtual Machines** (Azure), **Co
 | Azure | Virtual Machines + Disks/Snapshots/Images/SSH Keys | ✓ Live | `azure.VirtualMachines` |
 | GCP | Compute Engine + Disks/Snapshots/Images | ✓ Live | `gcp.GCE` |
 
-## Use the real SDK (recommended)
+## Examples
+
+The recommended path is to point the real SDK at the SDK-compat server:
 
 ```go
 import (
@@ -46,6 +51,20 @@ client.StopInstances(ctx, &ec2.StopInstancesInput{
 
 Same pattern with `armcompute` for Azure and `cloud.google.com/go/compute/apiv1` for GCP — see [SDK-Compat Server](/docs/sdk-compat).
 
+### Portable Go API
+
+Use the Portable API when you want direct in-process calls without the HTTP hop:
+
+```go
+aws.EC2.RunInstances(ctx, computedriver.InstanceConfig{
+    ImageID: "ami-0abcdef1234", InstanceType: "t3.large",
+}, 3)
+aws.EC2.StopInstances(ctx, []string{instanceID})
+aws.EC2.TerminateInstances(ctx, []string{instanceID})
+```
+
+## Notes
+
 ### Operations supported via SDK-compat
 
 **EC2:** RunInstances, DescribeInstances (filters: `instance-id`, `instance-type`, `instance-state-name`, `tag:*`), Start/Stop/Reboot/TerminateInstances, ModifyInstanceAttribute.
@@ -56,20 +75,8 @@ Same pattern with `armcompute` for Azure and `cloud.google.com/go/compute/apiv1`
 
 **GCP Compute Engine:** Instances + Disks + Snapshots + Images insert/get/list/delete with LRO envelopes.
 
-## Realistic behaviors
+### Realistic behaviors
 
 - **State machine** enforces valid lifecycle transitions (`pending → running → stopped → terminated`). Illegal transitions return errors — same as real EC2.
 - **Auto-metrics**: `RunInstances` automatically pushes CPU, Network, and Disk metrics to the monitoring service. Stop/start/terminate emit matching values.
 - **Lifecycle metric emission**: every `StartInstances` / `StopInstances` / `RebootInstances` / `TerminateInstances` call writes corresponding metric values too.
-
-## Alternative: Portable Go API
-
-```go
-aws.EC2.RunInstances(ctx, computedriver.InstanceConfig{
-    ImageID: "ami-0abcdef1234", InstanceType: "t3.large",
-}, 3)
-aws.EC2.StopInstances(ctx, []string{instanceID})
-aws.EC2.TerminateInstances(ctx, []string{instanceID})
-```
-
-Use the Portable API when you want direct in-process calls without the HTTP hop.

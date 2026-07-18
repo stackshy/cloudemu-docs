@@ -17,21 +17,11 @@ export function Hero() {
         <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-[1.05fr_1fr] lg:gap-14">
           {/* Left: copy */}
           <div>
-            <p className="u-eyebrow mb-5">
-              <span className="text-signal">//</span> zero-cost cloud emulation
-              for Go
-            </p>
+            <p className="u-eyebrow mb-5">zero-cost cloud emulation for Go</p>
 
-            <h1 className="text-[2.6rem] font-bold leading-[1.05] tracking-[-0.03em] text-ink sm:text-[3.4rem]">
+            <h1 className="text-[2.6rem] font-semibold leading-[1.08] tracking-[-0.02em] text-ink sm:text-[3.4rem]">
               Test against real cloud SDKs{' '}
-              <span className="relative whitespace-nowrap text-signal">
-                without a real cloud
-                <span
-                  aria-hidden
-                  className="absolute -bottom-1 left-0 h-0.5 w-full rounded bg-signal/40"
-                />
-              </span>
-              .
+              <span className="text-ink-2">without a real cloud</span>.
             </h1>
 
             <p className="mt-5 max-w-xl text-base leading-relaxed text-ink-secondary sm:text-lg">

@@ -3,20 +3,20 @@ title: Quick Start
 description: Drop cloudemu in front of the real cloud SDK in 5 minutes
 ---
 
-# Quick Start
-
 The fastest path to using cloudemu: spin up the **SDK-compat HTTP server**, point a real `aws-sdk-go-v2` (or Azure / GCP equivalent) client at it, and call your existing production code unchanged.
 
 No mocks. No Docker. No cloud accounts. Just `go get` and an `httptest.NewServer`.
 
-## 1. Install
+<div className="u-steps">
+
+## Install
 
 ```bash
 go get github.com/stackshy/cloudemu/v2
 go get github.com/aws/aws-sdk-go-v2/service/s3
 ```
 
-## 2. Stand up cloudemu over HTTP
+## Stand up cloudemu over HTTP
 
 ```go
 package main
@@ -53,7 +53,7 @@ func main() {
     defer ts.Close()
 ```
 
-## 3. Use the real `aws-sdk-go-v2` client
+## Use the real `aws-sdk-go-v2` client
 
 The only thing that changes vs. real AWS is `BaseEndpoint`. Every other line of your production code stays identical.
 
@@ -95,11 +95,13 @@ The only thing that changes vs. real AWS is `BaseEndpoint`. Every other line of 
 go run main.go
 ```
 
-Done. Real SDK, in-memory backend, ~10ms per call.
+Done. Real SDK, in-memory backend, ~10 ms per call.
+
+</div>
 
 ## What just happened
 
-<PacketFlow once />
+<RequestFlow />
 
 The server speaks the actual AWS wire protocol (S3 REST + XML, DynamoDB JSON-RPC, EC2 query, SQS `AwsJson1_0`, CloudWatch Smithy CBOR, Lambda REST). The SDK can't tell the difference between this and `s3.amazonaws.com`.
 

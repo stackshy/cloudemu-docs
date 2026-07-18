@@ -52,14 +52,14 @@ export function TerminalTypeOn() {
       ref={ref}
       className="flex items-center gap-3 rounded-lg border border-line bg-inset px-4 py-3 font-mono text-[13px] text-ink-inset"
     >
-      <span aria-hidden className="select-none text-signal">
+      <span aria-hidden className="select-none text-ink-inset-muted">
         $
       </span>
       <span className="flex-1 whitespace-nowrap" aria-label={CMD}>
         {CMD.slice(0, chars)}
         <span
           aria-hidden
-          className="ml-px inline-block h-[1.1em] w-[0.55em] translate-y-[0.18em] bg-signal"
+          className="ml-px inline-block h-[1.1em] w-[0.55em] translate-y-[0.18em] bg-ink-inset-muted"
           style={{
             animation: done ? 'none' : 'u-blink 1s step-end infinite',
             opacity: done ? 0 : 1,
@@ -79,7 +79,7 @@ export function TerminalTypeOn() {
         }`}
       >
         {copied ? (
-          <Check className="size-3.5 text-signal" />
+          <Check className="size-3.5 text-ok" />
         ) : (
           <Copy className="size-3.5" />
         )}

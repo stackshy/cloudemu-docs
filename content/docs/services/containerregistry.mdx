@@ -1,25 +1,24 @@
 ---
 title: Container Registry
 description: Container image storage, lifecycle policies, and scanning
+aws: ECR
+azure: ACR
+gcp: Artifact Registry
 ---
 
-# Container Registry
+## Overview
 
-> **SDK-compat status:** _Live._ Real `aws-sdk-go-v2/service/ecr`, `armcontainerregistry`, and Artifact Registry clients can point at the [SDK-compat server](/docs/sdk-compat). Repositories, images, and tags are also available through the Portable Go API below.
+Emulates container registries: **ECR** (AWS), **ACR** (Azure), **Artifact Registry** (GCP). Repositories, images, and tags are available through the SDK-compat server and the Portable Go API.
 
-Emulates container registries: **ECR** (AWS), **ACR** (Azure), **ArtifactRegistry** (GCP).
-
-## Provider Mapping
-
-| Provider | Service | SDK-compat | Access |
+| Provider | Service | SDK-compat | Driver |
 |----------|---------|:----------:|--------|
 | AWS | ECR (repositories + images) | ✓ Live | `aws.ECR` |
 | Azure | ACR (registries + repositories + tags) | ✓ Live | `azure.ACR` |
 | GCP | Artifact Registry (repositories + Docker images) | ✓ Live | `gcp.ArtifactRegistry` |
 
-## Key Operations
+## Examples
 
-### Repositories
+Create and list repositories through the Portable Go API:
 
 ```go
 import crdriver "github.com/stackshy/cloudemu/v2/services/containerregistry/driver"
@@ -32,7 +31,7 @@ aws.ECR.CreateRepository(ctx, crdriver.RepositoryConfig{
 repos, _ := aws.ECR.ListRepositories(ctx)
 ```
 
-### Image Management
+Push and list images:
 
 ```go
 aws.ECR.PushImage(ctx, crdriver.PushImageInput{
@@ -44,10 +43,8 @@ aws.ECR.PushImage(ctx, crdriver.PushImageInput{
 images, _ := aws.ECR.ListImages(ctx, "my-app")
 ```
 
-### Lifecycle Policies
+## Notes
 
-Configure policies to automatically clean up old or untagged images.
-
-### Image Scanning
-
-Trigger vulnerability scans on pushed images.
+- **SDK-compat status:** Live. Real `aws-sdk-go-v2/service/ecr`, `armcontainerregistry`, and Artifact Registry clients can point at the [SDK-compat server](/docs/sdk-compat).
+- **Lifecycle policies:** configure policies to automatically clean up old or untagged images.
+- **Image scanning:** trigger vulnerability scans on pushed images.

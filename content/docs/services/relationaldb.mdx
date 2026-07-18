@@ -1,13 +1,14 @@
 ---
 title: Relational Database
-description: RDS/Aurora, Redshift, Azure SQL, PostgreSQL/MySQL Flexible Server, and Cloud SQL — drive them with the real cloud SDK
+description: Managed relational database emulation for RDS/Aurora, Redshift, Azure SQL, PostgreSQL/MySQL Flexible Server, and Cloud SQL.
+aws: RDS
+azure: Azure SQL
+gcp: Cloud SQL
 ---
 
-# Relational Database
+## Overview
 
 Emulates managed relational databases: **RDS + Aurora + Redshift** (AWS), **Azure SQL + PostgreSQL Flexible Server + MySQL Flexible Server** (Azure), and **Cloud SQL** (GCP).
-
-This is separate from the [Database](/docs/services/database) page, which covers NoSQL (DynamoDB, Cosmos DB, Firestore).
 
 | Provider | Service | SDK-compat | Driver |
 |----------|---------|:----------:|--------|
@@ -18,7 +19,9 @@ This is separate from the [Database](/docs/services/database) page, which covers
 | Azure | MySQL Flexible Server | ✓ Live | `azure.MySQLFlex` |
 | GCP | Cloud SQL (MySQL / PostgreSQL / SQL Server) | ✓ Live | `gcp.CloudSQL` |
 
-## Use the real SDK (recommended)
+## Examples
+
+The recommended path is to point the real SDK at the SDK-compat server:
 
 ```go
 import (
@@ -59,27 +62,7 @@ client.StopDBInstance(ctx, &rds.StopDBInstanceInput{
 
 Azure servers speak ARM (`armsql`, `armpostgresqlflexibleservers`, `armmysqlflexibleservers`); Cloud SQL speaks the Cloud SQL Admin REST API (`sqladmin/v1`). See the [SDK-Compat Server page](/docs/sdk-compat) for the full quick starts.
 
-### Operations supported via SDK-compat
-
-**RDS:** CreateDBInstance, DescribeDBInstances, ModifyDBInstance, DeleteDBInstance, StartDBInstance, StopDBInstance, RebootDBInstance; CreateDBCluster, DescribeDBClusters, ModifyDBCluster, DeleteDBCluster, StartDBCluster, StopDBCluster; CreateDBSnapshot, DescribeDBSnapshots, DeleteDBSnapshot, RestoreDBInstanceFromDBSnapshot; CreateDBClusterSnapshot, DescribeDBClusterSnapshots, DeleteDBClusterSnapshot, RestoreDBClusterFromSnapshot.
-
-**Redshift:** CreateCluster, DescribeClusters, ModifyCluster, DeleteCluster, RebootCluster; CreateClusterSnapshot, DescribeClusterSnapshots, DeleteClusterSnapshot, RestoreFromClusterSnapshot. (Redshift is cluster-only — instance-level operations return an error.)
-
-**Azure SQL:** `Microsoft.Sql/servers` logical servers + `.../databases` — PUT / GET / PATCH / DELETE / LIST.
-
-**Azure PostgreSQL / MySQL Flexible Server:** `Microsoft.DBforPostgreSQL/flexibleServers` and `Microsoft.DBforMySQL/flexibleServers` — CRUD plus `start` / `stop` / `restart` actions.
-
-**Cloud SQL:** instances insert / get / list / update / delete, `restart` and `restoreBackup` actions, backup-run CRUD, and the operations endpoint (returns `DONE` immediately).
-
-## Realistic behaviors
-
-- **State machine**: instances and clusters move through `creating → available → modifying → starting → stopping → stopped → rebooting → deleting`. Illegal transitions return errors.
-- **Aurora clusters**: clusters own member instances (`Instance.ClusterID`); the `aurora-postgresql` / `aurora-mysql` engines, plus **Neptune** and **DocumentDB**, are emulated through the RDS driver with the right ports and namespaces.
-- **Auto-metrics**: lifecycle transitions push CloudWatch / Azure Monitor / Cloud Monitoring values under the correct per-engine namespace (`AWS/RDS`, `AWS/Redshift`, `Microsoft.Sql/servers/databases`, `cloudsql.googleapis.com`, …).
-- **Snapshots & restore**: instance and cluster snapshots can be created, listed, deleted, and restored into new instances/clusters. Services without a cluster concept (Redshift, Flexible Server, Cloud SQL) return an error for cluster-snapshot operations.
-- **Cloud SQL start/stop** is emulated via `settings.activationPolicy` (`ALWAYS` / `NEVER`).
-
-## Alternative: Portable Go API
+### Portable Go API
 
 All six services implement one driver interface, so the same calls work across every provider:
 
@@ -99,3 +82,27 @@ snap, _ := aws.RDS.CreateSnapshot(ctx, rdbdriver.SnapshotConfig{
     ID: "app-db-snap", InstanceID: "app-db",
 })
 ```
+
+## Notes
+
+This page is separate from the [Database](/docs/services/database) page, which covers NoSQL (DynamoDB, Cosmos DB, Firestore).
+
+### Operations supported via SDK-compat
+
+**RDS:** CreateDBInstance, DescribeDBInstances, ModifyDBInstance, DeleteDBInstance, StartDBInstance, StopDBInstance, RebootDBInstance; CreateDBCluster, DescribeDBClusters, ModifyDBCluster, DeleteDBCluster, StartDBCluster, StopDBCluster; CreateDBSnapshot, DescribeDBSnapshots, DeleteDBSnapshot, RestoreDBInstanceFromDBSnapshot; CreateDBClusterSnapshot, DescribeDBClusterSnapshots, DeleteDBClusterSnapshot, RestoreDBClusterFromSnapshot.
+
+**Redshift:** CreateCluster, DescribeClusters, ModifyCluster, DeleteCluster, RebootCluster; CreateClusterSnapshot, DescribeClusterSnapshots, DeleteClusterSnapshot, RestoreFromClusterSnapshot. (Redshift is cluster-only — instance-level operations return an error.)
+
+**Azure SQL:** `Microsoft.Sql/servers` logical servers + `.../databases` — PUT / GET / PATCH / DELETE / LIST.
+
+**Azure PostgreSQL / MySQL Flexible Server:** `Microsoft.DBforPostgreSQL/flexibleServers` and `Microsoft.DBforMySQL/flexibleServers` — CRUD plus `start` / `stop` / `restart` actions.
+
+**Cloud SQL:** instances insert / get / list / update / delete, `restart` and `restoreBackup` actions, backup-run CRUD, and the operations endpoint (returns `DONE` immediately).
+
+### Realistic behaviors
+
+- **State machine**: instances and clusters move through `creating → available → modifying → starting → stopping → stopped → rebooting → deleting`. Illegal transitions return errors.
+- **Aurora clusters**: clusters own member instances (`Instance.ClusterID`); the `aurora-postgresql` / `aurora-mysql` engines, plus **Neptune** and **DocumentDB**, are emulated through the RDS driver with the right ports and namespaces.
+- **Auto-metrics**: lifecycle transitions push CloudWatch / Azure Monitor / Cloud Monitoring values under the correct per-engine namespace (`AWS/RDS`, `AWS/Redshift`, `Microsoft.Sql/servers/databases`, `cloudsql.googleapis.com`, …).
+- **Snapshots & restore**: instance and cluster snapshots can be created, listed, deleted, and restored into new instances/clusters. Services without a cluster concept (Redshift, Flexible Server, Cloud SQL) return an error for cluster-snapshot operations.
+- **Cloud SQL start/stop** is emulated via `settings.activationPolicy` (`ALWAYS` / `NEVER`).

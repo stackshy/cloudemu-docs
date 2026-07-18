@@ -1,9 +1,12 @@
 ---
 title: Networking
-description: VPCs, subnets, security groups, peering — drive with the real SDK
+description: Virtual network emulation for AWS VPC, Azure Virtual Network, and GCP VPC — subnets, security groups, firewalls, and peering.
+aws: VPC
+azure: Virtual Network
+gcp: VPC
 ---
 
-# Networking
+## Overview
 
 Emulates virtual network primitives: **VPC** (AWS, served by the EC2 query handler), **VNet** (Azure), **VPC + Firewalls** (GCP).
 
@@ -13,7 +16,9 @@ Emulates virtual network primitives: **VPC** (AWS, served by the EC2 query handl
 | Azure | Virtual Network | ✓ Live | `azure.VNet` |
 | GCP | VPC, Subnetworks, Firewalls, Routes | ✓ Live | `gcp.VPC` |
 
-## Use the real SDK (recommended)
+## Examples
+
+The recommended path is to point the real SDK at the SDK-compat server:
 
 ```go
 import (
@@ -47,17 +52,22 @@ client.CreateSecurityGroup(ctx, &ec2.CreateSecurityGroupInput{
 
 Azure (`armnetwork.NewVirtualNetworksClient`) and GCP (`gcpcompute.NewNetworksRESTClient`) follow the same endpoint-only-changes pattern — see [SDK-Compat Server](/docs/sdk-compat).
 
-### Operations supported via SDK-compat
+### Portable Go API
 
-**AWS (via EC2 handler):** VPCs, Subnets, Security Groups + ingress/egress rules, Internet Gateways, Route Tables + Routes, NAT Gateways, VPC Peering Connections, Flow Logs, Network ACLs.
+For direct in-process calls without the HTTP hop:
 
-**Azure VNet:** Virtual networks + subnets CRUD via ARM.
+```go
+import netdriver "github.com/stackshy/cloudemu/v2/services/networking/driver"
 
-**GCP:** Networks, Subnetworks, Firewalls, Routes via REST with LRO envelopes.
+vpc, _ := aws.VPC.CreateVPC(ctx, netdriver.VPCConfig{CIDRBlock: "10.0.0.0/16"})
+subnet, _ := aws.VPC.CreateSubnet(ctx, netdriver.SubnetConfig{
+    VPCID: vpc.ID, CIDRBlock: "10.0.1.0/24",
+})
+```
 
-## Topology engine — bonus feature
+### Topology engine
 
-Once your network is built, the [topology engine](/docs/architecture#pluggable-consumers) can answer real connectivity questions on top of the same drivers:
+As an extra feature, once your network is built, the [topology engine](/docs/architecture#pluggable-consumers) can answer real connectivity questions on top of the same drivers:
 
 ```go
 import "github.com/stackshy/cloudemu/v2/features/topology"
@@ -71,13 +81,12 @@ fmt.Println(result.Allowed, result.BlockedBy)
 
 This walks VPC peering, security groups, route tables, and network ACLs the same way real cloud reachability tools do.
 
-## Alternative: Portable Go API
+## Notes
 
-```go
-import netdriver "github.com/stackshy/cloudemu/v2/services/networking/driver"
+### Operations supported via SDK-compat
 
-vpc, _ := aws.VPC.CreateVPC(ctx, netdriver.VPCConfig{CIDRBlock: "10.0.0.0/16"})
-subnet, _ := aws.VPC.CreateSubnet(ctx, netdriver.SubnetConfig{
-    VPCID: vpc.ID, CIDRBlock: "10.0.1.0/24",
-})
-```
+**AWS (via EC2 handler):** VPCs, Subnets, Security Groups + ingress/egress rules, Internet Gateways, Route Tables + Routes, NAT Gateways, VPC Peering Connections, Flow Logs, Network ACLs.
+
+**Azure VNet:** Virtual networks + subnets CRUD via ARM.
+
+**GCP:** Networks, Subnetworks, Firewalls, Routes via REST with LRO envelopes.

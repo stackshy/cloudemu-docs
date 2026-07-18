@@ -12,11 +12,11 @@ function MiniWire() {
     <svg viewBox="0 0 220 40" className="h-10 w-full" aria-hidden>
       <path
         d="M 8 20 H 212"
-        stroke="var(--accent)"
+        stroke="var(--border-2)"
         strokeOpacity="0.3"
         strokeWidth="1"
       />
-      <rect x="-3" y="17" width="6" height="6" rx="1" fill="var(--accent)">
+      <rect x="-3" y="17" width="6" height="6" rx="1" fill="var(--text-3)">
         <animateMotion
           dur="2.8s"
           repeatCount="indefinite"
@@ -26,8 +26,8 @@ function MiniWire() {
           keySplines="0.3 0 0.7 1"
         />
       </rect>
-      <circle cx="8" cy="20" r="3" fill="var(--bg-raised)" stroke="var(--accent)" strokeWidth="1.2" />
-      <circle cx="212" cy="20" r="3" fill="var(--bg-raised)" stroke="var(--accent)" strokeWidth="1.2" />
+      <circle cx="8" cy="20" r="3" fill="var(--bg-raised)" stroke="var(--border-2)" strokeWidth="1.2" />
+      <circle cx="212" cy="20" r="3" fill="var(--bg-raised)" stroke="var(--border-2)" strokeWidth="1.2" />
       <text x="8" y="34" fontSize="7" className="font-mono" fill="var(--text-muted)">
         sdk
       </text>
@@ -109,7 +109,7 @@ export function FeatureCards() {
       <div className="mx-auto w-full max-w-6xl px-6 py-20">
         <Reveal>
           <p className="u-eyebrow mb-3">
-            <span className="text-signal">03</span> · beyond basic mocks
+            <span className="text-ink-3">03</span> · beyond basic mocks
           </p>
           <h2 className="text-3xl font-bold tracking-[-0.01em] text-ink">
             Behavior, not stubs.
@@ -136,7 +136,7 @@ export function FeatureCards() {
           {COMPACT_FEATURES.map((f, i) => (
             <Reveal key={f.title} delay={i * 40}>
               <div className="h-full rounded-lg border border-line bg-surface p-5 transition-colors hover:border-line-strong">
-                <h3 className="font-mono text-xs font-medium tracking-[0.06em] text-signal">
+                <h3 className="font-mono text-xs font-medium tracking-[0.06em] text-ink">
                   {f.title}
                 </h3>
                 <p className="mt-2 text-sm leading-relaxed text-ink-secondary">

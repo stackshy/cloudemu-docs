@@ -16,14 +16,14 @@ export function CTASection() {
       <div className="mx-auto w-full max-w-4xl px-6 py-20">
         <Reveal>
           <p className="u-eyebrow mb-3 text-ink-inset-muted">
-            <span className="text-signal">$</span> get started
+            <span className="text-ink-3">$</span> get started
           </p>
           <h2 className="text-3xl font-bold tracking-[-0.01em] text-ink-inset">
             One command. No accounts. No Docker.
           </h2>
 
           <div className="mt-8 flex items-center gap-3 rounded-lg border border-white/10 bg-black/30 px-4 py-3.5 font-mono text-sm text-ink-inset">
-            <span aria-hidden className="select-none text-signal">
+            <span aria-hidden className="select-none text-ink-inset-muted">
               $
             </span>
             <span className="flex-1 overflow-x-auto whitespace-nowrap">{CMD}</span>
@@ -38,7 +38,7 @@ export function CTASection() {
               className="rounded p-1.5 text-ink-inset-muted transition-colors hover:bg-white/10 hover:text-ink-inset"
             >
               {copied ? (
-                <Check className="size-4 text-signal" />
+                <Check className="size-4 text-ok" />
               ) : (
                 <Copy className="size-4" />
               )}

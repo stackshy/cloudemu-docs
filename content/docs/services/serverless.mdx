@@ -1,9 +1,12 @@
 ---
 title: Serverless
-description: Functions-as-a-service — drive Lambda / Azure Functions / Cloud Functions with the real SDK
+description: Functions-as-a-service emulation for Lambda, Azure Functions, and Cloud Functions, driven with the real cloud SDKs.
+aws: Lambda
+azure: Functions
+gcp: Cloud Functions
 ---
 
-# Serverless
+## Overview
 
 Emulates FaaS: **Lambda** (AWS), **Functions** (Azure), **Cloud Functions** (GCP).
 
@@ -13,7 +16,9 @@ Emulates FaaS: **Lambda** (AWS), **Functions** (Azure), **Cloud Functions** (GCP
 | Azure | Functions (Function Apps + `/api/{name}` invoke) | ✓ Live | `azure.Functions` |
 | GCP | Cloud Functions v1 (Create LRO + `:call`) | ✓ Live | `gcp.CloudFunctions` |
 
-## Use the real SDK (recommended)
+## Examples
+
+The recommended path is to point the real SDK at the SDK-compat server:
 
 ```go
 import (
@@ -51,15 +56,9 @@ fmt.Println(string(resp.Payload)) // {"status":"ok"}
 
 Same shape with `armappservice` (Azure) and `google.golang.org/api/cloudfunctions/v1` (GCP) — see [SDK-Compat Server](/docs/sdk-compat#azure-handlers).
 
-### Operations supported via SDK-compat
+### Portable Go API
 
-**Lambda:** CreateFunction, GetFunction, ListFunctions, DeleteFunction, Invoke (sync).
-
-**Azure Functions:** `Microsoft.Web/sites` CreateOrUpdate / Get / List / Delete + non-ARM `/api/{name}` invoke.
-
-**GCP Cloud Functions:** Create (LRO), Get, List, Delete (LRO), `:call` (sync invoke), `Operations.Get` for LRO polling.
-
-## Alternative: Portable Go API
+For direct in-process calls without the HTTP hop:
 
 ```go
 import sdriver "github.com/stackshy/cloudemu/v2/services/serverless/driver"
@@ -74,5 +73,17 @@ out, _ := aws.Lambda.Invoke(ctx, sdriver.InvokeInput{
     FunctionName: "my-handler", Payload: []byte(`{}`),
 })
 ```
+
+## Notes
+
+### Operations supported via SDK-compat
+
+**Lambda:** CreateFunction, GetFunction, ListFunctions, DeleteFunction, Invoke (sync).
+
+**Azure Functions:** `Microsoft.Web/sites` CreateOrUpdate / Get / List / Delete + non-ARM `/api/{name}` invoke.
+
+**GCP Cloud Functions:** Create (LRO), Get, List, Delete (LRO), `:call` (sync invoke), `Operations.Get` for LRO polling.
+
+### Portable-API-only capabilities
 
 The Portable API also exposes operations not yet on the SDK-compat surface: published versions, weighted aliases, layers, function concurrency, event source mappings.

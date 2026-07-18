@@ -14,12 +14,12 @@ export default function BlogPage() {
   return (
     <main className="mx-auto w-full max-w-3xl px-6 py-16">
       <p className="u-eyebrow mb-3">
-        <span className="text-signal">//</span> blog
+        blog
       </p>
-      <h1 className="text-4xl font-bold tracking-[-0.02em] text-ink">
-        Signal from the team
+      <h1 className="text-[32px] font-semibold leading-[1.25] tracking-[-0.02em] text-ink">
+        Blog
       </h1>
-      <p className="mt-2 text-ink-secondary">
+      <p className="mt-2 text-ink-2">
         Updates, tutorials, and engineering notes from cloudemu.
       </p>
 
@@ -30,14 +30,14 @@ export default function BlogPage() {
             href={`/blog/${post.slug}`}
             className="group grid grid-cols-1 gap-1 border-t border-line py-7 transition-colors last:border-b sm:grid-cols-[8.5rem_1fr] sm:gap-6"
           >
-            <time className="pt-1 font-mono text-xs uppercase tracking-[0.08em] text-ink-muted">
+            <time className="pt-1 font-mono text-xs uppercase tracking-[0.06em] text-ink-3">
               {post.date}
             </time>
             <div>
-              <h2 className="text-xl font-semibold tracking-[-0.01em] text-ink transition-colors group-hover:text-signal">
+              <h2 className="text-xl font-semibold tracking-[-0.01em] text-ink">
                 {post.title}
               </h2>
-              <p className="mt-1.5 leading-relaxed text-ink-secondary">
+              <p className="mt-1.5 leading-relaxed text-ink-2">
                 {post.description}
               </p>
             </div>

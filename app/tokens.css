@@ -1,131 +1,145 @@
 /**
- * tokens.css — the single source of truth for every color/surface/type token.
- * No raw hex values in components: everything references these variables.
+ * tokens.css — single source of truth for every color/surface/type token.
+ * No raw hex in components; everything references these variables.
  *
- * Dark is the primary theme (.dark), light is a full first-class pass (:root).
- * Muted text values are tuned to hold >= 4.5:1 against their surfaces.
+ * Philosophy: quiet interface, loud content. Near-monochrome surfaces,
+ * one cool accent (--accent) whose use is restricted to: link hover/active,
+ * the 2px active rail (sidebar/TOC), focus rings, the primary button, and
+ * one live element in the hero diagram. Nothing else.
+ *
+ * Dark is the primary theme (.dark); light (:root) is a full first-class pass.
  */
 
 :root {
   /* ---- surfaces (light) ---- */
-  --bg-base: #f7f8fa;
-  --bg-surface: #ffffff;
-  --bg-raised: #f1f3f7;
-  --bg-inset: #07090d; /* terminal panes stay dark in both themes — instrument screens are dark */
-  --border-subtle: #e3e7ee;
-  --border-strong: #c9d0dc;
+  --bg: #fafaf9; /* paper */
+  --bg-2: #ffffff; /* sidebar, cards */
+  --bg-3: #f1f1ef; /* code blocks, popovers */
+  --border: #e4e4e1;
+  --border-2: #cfcfca; /* hover/strong */
 
   /* ---- text (light) ---- */
-  --text-primary: #14181f;
-  --text-secondary: #414c5c;
-  --text-muted: #5c6878;
-  --text-on-inset: #e8eaed;
-  --text-muted-on-inset: #8b95a7;
+  --text-1: #17191c; /* ink — headings, primary */
+  --text-2: #494f57; /* body secondary */
+  --text-3: #6c7178; /* muted, labels */
 
-  /* ---- brand accent: one electric signal color ---- */
-  --accent: #c93a12;
-  --accent-bright: #ff4a1f; /* large text / rails / dots only */
-  --accent-contrast: #ffffff; /* text on solid accent */
-  --accent-dim: rgba(255, 74, 31, 0.08);
-  --accent-rail: rgba(255, 74, 31, 0.55);
+  /* ---- the one accent (darker in light mode to hold 4.5:1 on paper) ---- */
+  --accent: #1d6fd1;
+  --accent-bg: rgba(29, 111, 209, 0.08);
+  --accent-ink: #ffffff; /* text on solid accent */
 
-  /* ---- provider accents (semantic, never decorative) ---- */
-  --aws: #9a5b00; /* text-safe on light */
-  --azure: #2059d4;
-  --gcp: #1e7f4a;
-  --aws-vivid: #f5a623; /* rails, dots, wires */
-  --azure-vivid: #4c8dff;
-  --gcp-vivid: #3dbe6c;
-  --aws-dim: rgba(245, 166, 35, 0.1);
-  --azure-dim: rgba(76, 141, 255, 0.1);
-  --gcp-dim: rgba(61, 190, 108, 0.1);
+  /* ---- provider colors (semantic only: tabs, chips, dots, wires) ---- */
+  --aws: #96610a;
+  --azure: #2b48c6; /* deeper indigo — never confusable with --accent */
+  --gcp: #1e7a44;
 
-  /* ---- callout / status semantics ---- */
-  --ok: #1d4ed8;
-  --warn: #b45309;
-  --error: #b91c1c;
-  --info: #1d4ed8;
-  --ok-dim: rgba(29, 78, 216, 0.08);
-  --warn-dim: rgba(180, 83, 9, 0.08);
-  --error-dim: rgba(185, 28, 28, 0.08);
-  --info-dim: rgba(29, 78, 216, 0.08);
+  /* ---- status semantics ---- */
+  --ok: #1e7a44;
+  --warn: #92600e;
+  --danger: #bd3934;
 
-  /* ---- one shadow token, popovers/modals only ---- */
-  --shadow-popover: 0 12px 32px -8px rgba(10, 14, 22, 0.18);
+  /* ---- terminal pane: dark instrument screen in both themes ---- */
+  --terminal-bg: #08090b;
+  --terminal-ink: #d6dade;
+  --terminal-muted: #6b7482;
+
+  /* ---- one shadow token, modals/popovers only ---- */
+  --shadow-popover: 0 12px 32px -8px rgba(10, 14, 22, 0.16);
 
   /* ---- motion ---- */
-  --ease-signal: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-out: cubic-bezier(0.25, 1, 0.5, 1);
 
-  /* ---- code syntax (light) ---- */
-  --code-keyword: #c2410c;
-  --code-string: #a16207;
-  --code-comment: #74808f;
-  --code-function: #1d4ed8;
-  --code-type: #6d28d9;
-  --code-number: #b45309;
-  --code-punct: #414c5c;
-  --code-plain: #1f2733;
-  --code-diff-add: rgba(29, 78, 216, 0.08);
-  --code-diff-del: rgba(185, 28, 28, 0.08);
-  --code-hl: rgba(255, 74, 31, 0.06);
+  /* ---- code syntax (light) — calm, low saturation ---- */
+  --code-plain: #24272c;
+  --code-keyword: #1f5fb8; /* cool blue */
+  --code-string: #8a6a2f; /* warm sand */
+  --code-comment: #6c7178; /* muted italic */
+  --code-function: #17191c; /* text-1 */
+  --code-type: #494f57;
+  --code-number: #8a6a2f;
+  --code-punct: #5b6169;
+  --code-diff-add: rgba(30, 122, 68, 0.08);
+  --code-diff-del: rgba(189, 57, 52, 0.08);
+  --code-hl: var(--accent-bg);
 }
 
 .dark {
   /* ---- surfaces (dark) ---- */
-  --bg-base: #0a0c10;
-  --bg-surface: #10131a;
-  --bg-raised: #161a23;
-  --bg-inset: #07090d;
-  --border-subtle: #1c212b;
-  --border-strong: #2a3140;
+  --bg: #0b0d10;
+  --bg-2: #111418;
+  --bg-3: #171b21;
+  --border: #21262e;
+  --border-2: #2e3540;
 
   /* ---- text (dark) ---- */
-  --text-primary: #e8eaed;
-  --text-secondary: #9aa3b2;
-  --text-muted: #7a8494;
-  --text-on-inset: #e8eaed;
-  --text-muted-on-inset: #8b95a7;
+  --text-1: #f2f4f6;
+  --text-2: #a9b1bc;
+  --text-3: #6b7482;
 
-  /* ---- brand accent ---- */
-  --accent: #ff4a1f;
-  --accent-bright: #ff6b47;
-  --accent-contrast: #0a0c10;
-  --accent-dim: rgba(255, 74, 31, 0.13);
-  --accent-rail: rgba(255, 74, 31, 0.6);
+  /* ---- accent: ice blue ---- */
+  --accent: #52a9ff;
+  --accent-bg: rgba(82, 169, 255, 0.1);
+  --accent-ink: #0b0d10;
 
-  /* ---- provider accents ---- */
-  --aws: #f5a623;
-  --azure: #4c8dff;
-  --gcp: #3dbe6c;
-  --aws-vivid: #f5a623;
-  --azure-vivid: #4c8dff;
-  --gcp-vivid: #3dbe6c;
-  --aws-dim: rgba(245, 166, 35, 0.12);
-  --azure-dim: rgba(76, 141, 255, 0.12);
-  --gcp-dim: rgba(61, 190, 108, 0.12);
+  /* ---- provider colors ---- */
+  --aws: #e8912d;
+  --azure: #2f6feb;
+  --gcp: #3ba55d;
 
-  /* ---- callout / status semantics ---- */
-  --ok: #60a5fa;
-  --warn: #fbbf24;
-  --error: #f87171;
-  --info: #60a5fa;
-  --ok-dim: rgba(96, 165, 250, 0.1);
-  --warn-dim: rgba(251, 191, 36, 0.1);
-  --error-dim: rgba(248, 113, 113, 0.1);
-  --info-dim: rgba(96, 165, 250, 0.1);
+  /* ---- status semantics ---- */
+  --ok: #3ba55d;
+  --warn: #d9a03f;
+  --danger: #e5534b;
 
   --shadow-popover: 0 16px 40px -12px rgba(0, 0, 0, 0.6);
 
   /* ---- code syntax (dark) ---- */
-  --code-keyword: #ff7759;
-  --code-string: #e3b341;
-  --code-comment: #7a8494;
-  --code-function: #93c5fd;
-  --code-type: #c4b5fd;
-  --code-number: #fdba74;
-  --code-punct: #9aa3b2;
-  --code-plain: #dce1e8;
-  --code-diff-add: rgba(96, 165, 250, 0.1);
-  --code-diff-del: rgba(248, 113, 113, 0.1);
-  --code-hl: rgba(255, 74, 31, 0.08);
+  --code-plain: #d5dae0;
+  --code-keyword: #7eb6ff; /* cool blue */
+  --code-string: #c9a97c; /* warm sand */
+  --code-comment: #6b7482; /* muted italic */
+  --code-function: #f2f4f6; /* text-1 */
+  --code-type: #a9b1bc;
+  --code-punct: #8b93a0;
+  --code-number: #c9a97c;
+  --code-diff-add: rgba(59, 165, 93, 0.1);
+  --code-diff-del: rgba(229, 83, 75, 0.1);
+  --code-hl: var(--accent-bg);
+}
+
+/* ------------------------------------------------------------------ */
+/* Compatibility aliases — legacy names consumed by components not yet */
+/* rebuilt on the new token set. Remove once the rollout completes.    */
+/* ------------------------------------------------------------------ */
+
+:root,
+.dark {
+  --bg-base: var(--bg);
+  --bg-surface: var(--bg-2);
+  --bg-raised: var(--bg-3);
+  --bg-inset: var(--terminal-bg);
+  --border-subtle: var(--border);
+  --border-strong: var(--border-2);
+  --text-primary: var(--text-1);
+  --text-secondary: var(--text-2);
+  --text-muted: var(--text-3);
+  --text-on-inset: var(--terminal-ink);
+  --text-muted-on-inset: var(--terminal-muted);
+  --accent-bright: var(--accent);
+  --accent-contrast: var(--accent-ink);
+  --accent-dim: var(--accent-bg);
+  --accent-rail: var(--accent);
+  --aws-vivid: var(--aws);
+  --azure-vivid: var(--azure);
+  --gcp-vivid: var(--gcp);
+  --aws-dim: color-mix(in srgb, var(--aws) 10%, transparent);
+  --azure-dim: color-mix(in srgb, var(--azure) 10%, transparent);
+  --gcp-dim: color-mix(in srgb, var(--gcp) 10%, transparent);
+  --ok-dim: color-mix(in srgb, var(--ok) 9%, transparent);
+  --warn-dim: color-mix(in srgb, var(--warn) 9%, transparent);
+  --error-dim: color-mix(in srgb, var(--danger) 9%, transparent);
+  --info-dim: var(--accent-bg);
+  --error: var(--danger);
+  --info: var(--text-3); /* plain notes are neutral, not colored */
+  --ease-signal: var(--ease-out);
 }

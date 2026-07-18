@@ -273,8 +273,7 @@ export function PacketFlow({ once = false }: { once?: boolean }) {
             cy={NODE_Y}
             r={NODE_R}
             fill="var(--bg-surface)"
-            stroke="var(--accent)"
-            strokeOpacity="0.6"
+            stroke="var(--border-2)"
             strokeWidth="1.2"
           />
           <text

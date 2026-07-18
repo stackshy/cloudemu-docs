@@ -7,8 +7,8 @@ import { X } from 'lucide-react';
 const STORAGE_KEY = 'cloudemu-banner-v2-release';
 
 /**
- * Thin announcement bar: surface background, mono text, the version as an
- * accent-bordered chip, one accent link. Dismiss persists in localStorage.
+ * One thin neutral line. Version as a bordered chip (neutral), muted text,
+ * an underlined-neutral link. No accent at rest. Dismiss persists.
  */
 export function AnnouncementBanner() {
   const [open, setOpen] = useState(false);
@@ -20,8 +20,8 @@ export function AnnouncementBanner() {
   if (!open) return null;
 
   return (
-    <div className="relative z-40 flex h-9 items-center justify-center gap-2.5 border-b border-line bg-surface px-8 font-mono text-xs text-ink-secondary">
-      <span className="rounded-[3px] border border-signal/40 bg-signal/10 px-1.5 py-px font-medium text-signal">
+    <div className="relative z-40 flex h-9 items-center justify-center gap-2.5 border-b border-line bg-canvas px-8 font-mono text-xs text-ink-2">
+      <span className="rounded-[3px] border border-line-2 px-1.5 py-px font-medium text-ink">
         v2.0.0
       </span>
       <span className="truncate">
@@ -30,9 +30,9 @@ export function AnnouncementBanner() {
       </span>
       <Link
         href="/docs/installation#migrating-to-v2"
-        className="shrink-0 font-medium text-signal underline decoration-signal/40 underline-offset-2 transition-colors hover:decoration-signal"
+        className="shrink-0 font-medium text-ink underline decoration-line-2 underline-offset-2 transition-colors hover:text-accent hover:decoration-accent"
       >
-        migration notes →
+        Migration notes →
       </Link>
       <button
         type="button"
@@ -41,7 +41,7 @@ export function AnnouncementBanner() {
           localStorage.setItem(STORAGE_KEY, 'dismissed');
           setOpen(false);
         }}
-        className="absolute right-2 rounded p-1 text-ink-muted transition-colors hover:text-ink"
+        className="absolute right-2 rounded p-1 text-ink-3 transition-colors hover:text-ink"
       >
         <X className="size-3.5" />
       </button>

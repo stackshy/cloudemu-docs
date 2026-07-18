@@ -48,7 +48,7 @@ export function LatencyTicker() {
 
   return (
     <span ref={ref} className="inline-flex items-baseline gap-1.5 tabular-nums">
-      <span className={done ? 'text-signal' : 'text-ink'}>
+      <span className={done ? 'text-ink' : 'text-ink'}>
         {done ? '~10' : value.toLocaleString()}
         <span className="text-[0.8em]">ms</span>
       </span>

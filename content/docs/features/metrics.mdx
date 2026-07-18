@@ -2,9 +2,6 @@
 title: Metrics Collection
 description: Track call counts, durations, and errors per operation
 ---
-
-# Metrics Collection
-
 Collect metrics about API calls for monitoring and assertions.
 
 ## Setup
@@ -19,7 +16,7 @@ bucket := storage.NewBucket(aws.S3,
 )
 ```
 
-## Automatic Metrics
+## Automatic metrics
 
 Every operation automatically records:
 - `calls_total` — counter incremented on each call
@@ -28,7 +25,7 @@ Every operation automatically records:
 
 All metrics include labels: `service` and `operation`.
 
-## Querying Metrics
+## Querying metrics
 
 ```go
 // Get all counters
@@ -45,7 +42,7 @@ storagePuts := mc.Query(metrics.Query{
 })
 ```
 
-## Metric Types
+## Metric types
 
 | Type | Description |
 |------|-------------|

@@ -1,36 +1,36 @@
 import type { ThemeRegistration } from 'shiki';
 
 /**
- * Custom Shiki themes written against tokens.css — one palette, two modes.
- * Values are literal because Shiki inlines them; they MUST stay in sync with
- * the --code-* tokens in app/tokens.css.
+ * Custom Shiki themes written against tokens.css — one calm, low-saturation
+ * palette, two modes. Values are literal because Shiki inlines them; they
+ * MUST stay in sync with the --code-* tokens in app/tokens.css.
  *
- * Tuned for Go: keywords accent-adjacent (coral), strings warm, comments muted
- * italic, function calls bright, types violet.
+ * Strings warm sand, keywords cool blue, functions text-1, comments muted
+ * italic. Nothing saturated; code should read, not shout.
  */
 
 const dark = {
-  keyword: '#ff7759',
-  string: '#e3b341',
-  comment: '#7a8494',
-  func: '#93c5fd',
-  type: '#c4b5fd',
-  number: '#fdba74',
-  punct: '#9aa3b2',
-  plain: '#dce1e8',
-  bg: '#161a23',
+  keyword: '#7eb6ff',
+  string: '#c9a97c',
+  comment: '#6b7482',
+  func: '#f2f4f6',
+  type: '#a9b1bc',
+  number: '#c9a97c',
+  punct: '#8b93a0',
+  plain: '#d5dae0',
+  bg: '#171b21',
 };
 
 const light = {
-  keyword: '#c2410c',
-  string: '#a16207',
-  comment: '#74808f',
-  func: '#1d4ed8',
-  type: '#6d28d9',
-  number: '#b45309',
-  punct: '#414c5c',
-  plain: '#1f2733',
-  bg: '#f1f3f7',
+  keyword: '#1f5fb8',
+  string: '#8a6a2f',
+  comment: '#6c7178',
+  func: '#17191c',
+  type: '#494f57',
+  number: '#8a6a2f',
+  punct: '#5b6169',
+  plain: '#24272c',
+  bg: '#f1f1ef',
 };
 
 function makeTheme(
@@ -109,14 +109,20 @@ function makeTheme(
         scope: ['variable', 'variable.other', 'variable.parameter'],
         settings: { foreground: c.plain },
       },
-      // JSON / YAML keys read as types; values as strings
+      // JSON / YAML keys read slightly cool; values as strings
       {
         scope: ['support.type.property-name', 'entity.name.tag.yaml'],
-        settings: { foreground: c.func },
+        settings: { foreground: c.keyword },
       },
       // Diff/patch languages
-      { scope: ['markup.inserted'], settings: { foreground: type === 'dark' ? '#60a5fa' : '#1d4ed8' } },
-      { scope: ['markup.deleted'], settings: { foreground: type === 'dark' ? '#f87171' : '#b91c1c' } },
+      {
+        scope: ['markup.inserted'],
+        settings: { foreground: type === 'dark' ? '#3ba55d' : '#1e7a44' },
+      },
+      {
+        scope: ['markup.deleted'],
+        settings: { foreground: type === 'dark' ? '#e5534b' : '#bd3934' },
+      },
     ],
   };
 }

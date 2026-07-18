@@ -1,11 +1,14 @@
 ---
 title: Monitoring
-description: Metrics, alarms, time series — drive with the real CloudWatch / Azure Monitor / Cloud Monitoring SDK
+description: Emulated metrics, alarms, and time series for CloudWatch, Azure Monitor, and Cloud Monitoring
+aws: CloudWatch
+azure: Azure Monitor
+gcp: Cloud Monitoring
 ---
 
-# Monitoring
+## Overview
 
-Emulates metric ingest + alarm evaluation: **CloudWatch** (AWS), **Azure Monitor** (Azure), **Cloud Monitoring** (GCP).
+Emulates metric ingest and alarm evaluation: **CloudWatch** (AWS), **Azure Monitor** (Azure), **Cloud Monitoring** (GCP).
 
 | Provider | Service | SDK-compat | Driver |
 |----------|---------|:----------:|--------|
@@ -13,7 +16,9 @@ Emulates metric ingest + alarm evaluation: **CloudWatch** (AWS), **Azure Monitor
 | Azure | Azure Monitor | ✓ Live | `azure.Monitor` |
 | GCP | Cloud Monitoring | ✓ Live | `gcp.CloudMonitoring` |
 
-## Use the real SDK (recommended)
+## Examples
+
+Drive the emulator with the real SDK (recommended):
 
 ```go
 import (
@@ -48,21 +53,9 @@ client.PutMetricAlarm(ctx, &cloudwatch.PutMetricAlarmInput{
 })
 ```
 
-### Operations supported via SDK-compat
+### Portable Go API
 
-**CloudWatch:** PutMetricData, GetMetricStatistics, ListMetrics, PutMetricAlarm, DescribeAlarms, DeleteAlarms.
-
-**Azure Monitor:** `microsoft.insights/metricAlerts` CRUD, metric ingest/read.
-
-**Cloud Monitoring:** Time-series ingest/read at `/v3/projects/.../`, alert policies.
-
-## Realistic behaviors
-
-- **Auto-metrics from compute**: `RunInstances` automatically pushes 5 metrics (CPU, NetworkIn, NetworkOut, DiskReadOps, DiskWriteOps) with 5 backfill datapoints at 1-minute intervals.
-- **Alarm auto-evaluation**: `PutMetricData` triggers `evaluateAlarms()` for each affected namespace+metric. Alarms transition between `OK` and `ALARM` based on threshold comparison.
-- **Alarm history**: `GetAlarmHistory()` returns transition events with timestamps.
-
-## Alternative: Portable Go API
+The same driver is available through the portable API:
 
 ```go
 import mondriver "github.com/stackshy/cloudemu/v2/services/monitoring/driver"
@@ -71,3 +64,19 @@ aws.CloudWatch.PutMetricData(ctx, []mondriver.MetricDatum{
     {Namespace: "App", MetricName: "CPU", Value: 45.2, Unit: "Percent"},
 })
 ```
+
+## Notes
+
+### Operations supported via SDK-compat
+
+**CloudWatch:** PutMetricData, GetMetricStatistics, ListMetrics, PutMetricAlarm, DescribeAlarms, DeleteAlarms.
+
+**Azure Monitor:** `microsoft.insights/metricAlerts` CRUD, metric ingest/read.
+
+**Cloud Monitoring:** Time-series ingest/read at `/v3/projects/.../`, alert policies.
+
+### Realistic behaviors
+
+- **Auto-metrics from compute**: `RunInstances` automatically pushes 5 metrics (CPU, NetworkIn, NetworkOut, DiskReadOps, DiskWriteOps) with 5 backfill datapoints at 1-minute intervals.
+- **Alarm auto-evaluation**: `PutMetricData` triggers `evaluateAlarms()` for each affected namespace+metric. Alarms transition between `OK` and `ALARM` based on threshold comparison.
+- **Alarm history**: `GetAlarmHistory()` returns transition events with timestamps.

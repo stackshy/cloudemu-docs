@@ -64,11 +64,11 @@ export function SDKCompatSection() {
       <div className="mx-auto w-full max-w-6xl px-6 py-20">
         <Reveal>
           <p className="u-eyebrow mb-3">
-            <span className="text-signal">01</span> · sdk-compat server
+            <span className="text-ink-3">01</span> · sdk-compat server
           </p>
           <h2 className="max-w-2xl text-3xl font-bold tracking-[-0.01em] text-ink sm:text-4xl">
             Don&apos;t rewrite your tests.{' '}
-            <span className="text-signal">Repoint them.</span>
+            <span className="text-ink">Repoint them.</span>
           </h2>
           <p className="mt-4 max-w-2xl text-base leading-relaxed text-ink-secondary">
             cloudemu speaks the real wire protocols — AWS Query/JSON/Smithy,
@@ -85,7 +85,7 @@ export function SDKCompatSection() {
         <div className="mt-6">
           <Link
             href="/docs/sdk-compat"
-            className="inline-flex items-center gap-1.5 font-mono text-xs uppercase tracking-[0.08em] text-signal hover:underline hover:underline-offset-4"
+            className="inline-flex items-center gap-1.5 font-mono text-xs uppercase tracking-[0.08em] text-ink underline decoration-line-2 underline-offset-4 hover:text-accent hover:decoration-accent"
           >
             Full coverage tables
             <ArrowRight className="size-3.5" />

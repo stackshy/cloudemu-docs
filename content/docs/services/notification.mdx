@@ -1,15 +1,14 @@
 ---
 title: Notification
-description: Topics, subscriptions, and push notifications
+description: Emulated topics, subscriptions, and push notifications
+aws: SNS
+azure: Notification Hubs
+gcp: FCM
 ---
 
-# Notification
-
-> **SDK-compat status:** _Portable Go API only._ Real `aws-sdk-go-v2/service/sns`, Notification Hubs ARM, and FCM REST clients can't talk to cloudemu yet — notification SDK-compat handlers will ship in lockstep across all 3 providers in a future phase. Topics, subscriptions, fan-out, and message-attribute filtering are already available through the Portable Go API below.
+## Overview
 
 Emulates notification services: **SNS** (AWS), **NotificationHubs** (Azure), **FCM** (GCP).
-
-## Provider Mapping
 
 | Provider | Service | Access |
 |----------|---------|--------|
@@ -17,7 +16,7 @@ Emulates notification services: **SNS** (AWS), **NotificationHubs** (Azure), **F
 | Azure | Notification Hubs | `azure.NotificationHubs` |
 | GCP | FCM | `gcp.FCM` |
 
-## Key Operations
+## Examples
 
 ### Topics and Subscriptions
 
@@ -44,3 +43,7 @@ aws.SNS.Publish(ctx, notifdriver.PublishInput{
     Attributes: map[string]string{"orderType": "express"},
 })
 ```
+
+## Notes
+
+> **SDK-compat status:** _Portable Go API only._ Real `aws-sdk-go-v2/service/sns`, Notification Hubs ARM, and FCM REST clients can't talk to cloudemu yet — notification SDK-compat handlers will ship in lockstep across all 3 providers in a future phase. Topics, subscriptions, fan-out, and message-attribute filtering are already available through the Portable Go API shown above.

@@ -51,7 +51,7 @@ function Glyph({ cell }: { cell: Cell }) {
       return (
         <span
           className={
-            cell.strong ? 'font-mono text-sm font-semibold text-signal' : 'text-sm text-ink-secondary'
+            cell.strong ? 'font-mono text-sm font-semibold text-ink' : 'text-sm text-ink-secondary'
           }
         >
           {cell.value}
@@ -66,7 +66,7 @@ export function ComparisonTable() {
       <div className="mx-auto w-full max-w-4xl px-6 py-20">
         <Reveal>
           <p className="u-eyebrow mb-3">
-            <span className="text-signal">02</span> · why cloudemu
+            <span className="text-ink-3">02</span> · why cloudemu
           </p>
           <h2 className="text-3xl font-bold tracking-[-0.01em] text-ink">
             Three ways to test cloud code. One is free and instant.
@@ -88,7 +88,7 @@ export function ComparisonTable() {
                     LocalStack / emulators
                   </th>
                   <th
-                    className="bg-signal/5 px-5 py-3 font-mono text-[11px] font-medium uppercase tracking-[0.08em] text-signal"
+                    className="bg-accent/5 px-5 py-3 font-mono text-[11px] font-medium uppercase tracking-[0.08em] text-ink"
                     style={{ boxShadow: 'inset 0 2px 0 var(--accent)' }}
                   >
                     cloudemu
@@ -110,7 +110,7 @@ export function ComparisonTable() {
                     <td className="px-5 py-3">
                       <Glyph cell={row.cells[1]} />
                     </td>
-                    <td className="bg-signal/5 px-5 py-3">
+                    <td className="bg-accent/5 px-5 py-3">
                       <Glyph cell={row.cells[2]} />
                     </td>
                   </tr>

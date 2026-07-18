@@ -6,7 +6,8 @@ import {
   type ComponentProps,
   type ReactNode,
 } from 'react';
-import { Check, Copy } from 'lucide-react';
+import { WrapText } from 'lucide-react';
+import { CopyButton } from './copy-button';
 
 /** Tiny mono language marks — no emoji, no logos. */
 const LANG_MARK: Record<string, string> = {
@@ -19,48 +20,25 @@ const LANG_MARK: Record<string, string> = {
 
 const TERMINAL_LANGS = new Set(['bash', 'sh', 'shell', 'console', 'zsh']);
 
-function CopyButton({
-  target,
-  className = '',
-}: {
-  target: () => string;
-  className?: string;
-}) {
-  const [copied, setCopied] = useState(false);
-  return (
-    <button
-      type="button"
-      aria-label="Copy code"
-      onClick={async () => {
-        await navigator.clipboard.writeText(target());
-        setCopied(true);
-        setTimeout(() => setCopied(false), 1600);
-      }}
-      className={`rounded p-1.5 text-ink-muted transition-colors hover:bg-raised hover:text-ink ${className}`}
-    >
-      {copied ? (
-        <Check className="size-3.5 text-signal" />
-      ) : (
-        <Copy className="size-3.5" />
-      )}
-    </button>
-  );
-}
-
 /**
  * MDX `pre` override — ONE code surface for the whole site.
  *
- * - bash/sh/console → Terminal chrome: inset pane, accent `$` prompts
+ * - bash/sh/console → Terminal chrome: darker pane, muted `$` prompts
  *   (drawn in CSS so copy never includes them), no line numbers.
- * - everything else → CodeBlock chrome: filename header with a mono
- *   language mark, copy button, optional shiki line numbers/diff/focus.
+ * - everything else → CodeBlock chrome: mono filename header, wrap toggle,
+ *   copy button, optional shiki line highlight/diff/focus.
  */
 export function CodePre({
   title,
   children,
+  className: incomingClassName,
   ...rest
 }: ComponentProps<'pre'> & { title?: string; icon?: ReactNode }) {
   const preRef = useRef<HTMLPreElement>(null);
+  const [wrap, setWrap] = useState(false);
+  // keep shiki's own classes ("shiki", theme names, has-focused, …) —
+  // the theme-switch and highlight CSS key off them
+  const shikiClasses = incomingClassName ?? '';
   const lang = (rest as Record<string, unknown>)['data-language'] as
     | string
     | undefined;
@@ -79,7 +57,7 @@ export function CodePre({
         <pre
           ref={preRef}
           {...rest}
-          className="overflow-x-auto px-4 py-3.5 text-[13px] leading-[1.65] text-ink-inset"
+          className={`${shikiClasses} overflow-x-auto px-4 py-3.5 text-[13px] leading-[1.65] text-ink-inset`}
         >
           {children}
         </pre>
@@ -89,24 +67,37 @@ export function CodePre({
 
   return (
     <figure className="u-codeblock not-prose group my-4 overflow-hidden">
-      <figcaption className="flex items-center gap-2 border-b border-line bg-surface px-3.5 py-2">
+      <figcaption className="flex items-center gap-2 border-b border-line bg-surface px-3.5 py-1.5">
         {lang && (
           <span
             aria-hidden
-            className="rounded-[3px] border border-line px-1 py-px font-mono text-[10px] font-medium tracking-wider text-ink-muted"
+            className="rounded-[3px] border border-line px-1 py-px font-mono text-[10px] font-medium tracking-wider text-ink-3"
           >
             {LANG_MARK[lang] ?? lang.toUpperCase()}
           </span>
         )}
-        <span className="truncate font-mono text-xs text-ink-secondary">
+        <span className="truncate font-mono text-xs text-ink-3">
           {title ?? ''}
         </span>
-        <CopyButton target={text} className="ms-auto" />
+        <button
+          type="button"
+          aria-label="Toggle line wrap"
+          aria-pressed={wrap}
+          onClick={() => setWrap((w) => !w)}
+          className={`ms-auto rounded p-1.5 transition-colors hover:bg-raised hover:text-ink ${
+            wrap ? 'text-ink' : 'text-ink-3'
+          }`}
+        >
+          <WrapText className="size-3.5" />
+        </button>
+        <CopyButton target={text} />
       </figcaption>
       <pre
         ref={preRef}
         {...rest}
-        className="overflow-x-auto py-3.5 text-[13px] leading-[1.65]"
+        className={`${shikiClasses} overflow-x-auto py-3.5 text-[13px] leading-[1.65] ${
+          wrap ? '[&_code]:whitespace-pre-wrap' : ''
+        }`}
       >
         {children}
       </pre>

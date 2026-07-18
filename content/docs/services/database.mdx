@@ -1,13 +1,14 @@
 ---
 title: Database
-description: NoSQL — DynamoDB, Cosmos DB, Firestore — drive it with the real cloud SDK
+description: NoSQL database emulation for DynamoDB, Cosmos DB, and Firestore, driven with the real cloud SDKs.
+aws: DynamoDB
+azure: Cosmos DB
+gcp: Firestore
 ---
 
-# Database
+## Overview
 
 Emulates NoSQL databases: **DynamoDB** (AWS), **Cosmos DB** (Azure), **Firestore** (GCP).
-
-For managed relational databases (RDS/Aurora, Redshift, Azure SQL, PostgreSQL/MySQL Flexible Server, Cloud SQL), see [Relational Database](/docs/services/relationaldb).
 
 | Provider | Service | SDK-compat | Driver |
 |----------|---------|:----------:|--------|
@@ -15,7 +16,9 @@ For managed relational databases (RDS/Aurora, Redshift, Azure SQL, PostgreSQL/My
 | Azure | Cosmos DB | ✓ Live | `azure.CosmosDB` |
 | GCP | Firestore | ✓ Live | `gcp.Firestore` |
 
-## Use the real SDK (recommended)
+## Examples
+
+The recommended path is to point the real SDK at the SDK-compat server:
 
 ```go
 import (
@@ -54,22 +57,9 @@ client.PutItem(ctx, &dynamodb.PutItemInput{
 
 Same shape with `azcosmos` (Azure) and `cloud.google.com/go/firestore` (GCP). See the [SDK-Compat Server page](/docs/sdk-compat) for the full quick starts.
 
-### Operations supported via SDK-compat
+### Portable Go API
 
-**DynamoDB:** CreateTable, DeleteTable, DescribeTable, ListTables, PutItem, GetItem, DeleteItem, UpdateItem (SET/REMOVE), Query, Scan (with FilterExpression), BatchWriteItem, BatchGetItem, TransactWriteItems.
-
-**Cosmos DB:** Databases, Containers, Documents — full CRUD with `x-ms-documentdb-*` headers + query.
-
-**Firestore:** `:commit`, `:batchGet`, `:runQuery`, document CRUD via the REST data plane.
-
-## Realistic behaviors
-
-- **TTL expiry**: items with TTL attributes expire on read.
-- **Numeric-aware comparisons**: filters compare `"10" > "9"` correctly using numeric ordering, not string ordering.
-- **Stream / change feed**: `PutItem` / `UpdateItem` / `DeleteItem` produce stream records (INSERT / MODIFY / REMOVE) when streams are enabled.
-- **Global Secondary Indexes**: `CreateIndex`, `DescribeIndex`, `DeleteIndex`; queries can target a GSI via `QueryInput.IndexName`.
-
-## Alternative: Portable Go API
+For direct in-process calls without the HTTP hop:
 
 ```go
 import dbdriver "github.com/stackshy/cloudemu/v2/services/database/driver"
@@ -80,3 +70,22 @@ aws.DynamoDB.CreateTable(ctx, dbdriver.TableConfig{
 aws.DynamoDB.PutItem(ctx, "Users", map[string]any{"id": "u1", "name": "Alice"})
 item, _ := aws.DynamoDB.GetItem(ctx, "Users", map[string]any{"id": "u1"})
 ```
+
+## Notes
+
+For managed relational databases (RDS/Aurora, Redshift, Azure SQL, PostgreSQL/MySQL Flexible Server, Cloud SQL), see [Relational Database](/docs/services/relationaldb).
+
+### Operations supported via SDK-compat
+
+**DynamoDB:** CreateTable, DeleteTable, DescribeTable, ListTables, PutItem, GetItem, DeleteItem, UpdateItem (SET/REMOVE), Query, Scan (with FilterExpression), BatchWriteItem, BatchGetItem, TransactWriteItems.
+
+**Cosmos DB:** Databases, Containers, Documents — full CRUD with `x-ms-documentdb-*` headers + query.
+
+**Firestore:** `:commit`, `:batchGet`, `:runQuery`, document CRUD via the REST data plane.
+
+### Realistic behaviors
+
+- **TTL expiry**: items with TTL attributes expire on read.
+- **Numeric-aware comparisons**: filters compare `"10" > "9"` correctly using numeric ordering, not string ordering.
+- **Stream / change feed**: `PutItem` / `UpdateItem` / `DeleteItem` produce stream records (INSERT / MODIFY / REMOVE) when streams are enabled.
+- **Global Secondary Indexes**: `CreateIndex`, `DescribeIndex`, `DeleteIndex`; queries can target a GSI via `QueryInput.IndexName`.

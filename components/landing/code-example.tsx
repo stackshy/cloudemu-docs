@@ -70,7 +70,7 @@ export function CodeExample() {
       <div className="mx-auto w-full max-w-4xl px-6 py-20">
         <Reveal>
           <p className="u-eyebrow mb-3">
-            <span className="text-signal">05</span> · portable go api
+            <span className="text-ink-3">05</span> · portable go api
           </p>
           <h2 className="text-3xl font-bold tracking-[-0.01em] text-ink">
             Or skip HTTP entirely.

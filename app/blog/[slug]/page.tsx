@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import fs from 'fs';
 import path from 'path';
 import type { Metadata } from 'next';
+import { CodeCopy } from '@/components/blog/code-copy';
 
 const blogDir = path.join(process.cwd(), 'content/blog');
 
@@ -47,12 +48,13 @@ function inline(s: string): string {
   return escapeHtml(s)
     .replace(
       /`([^`]+)`/g,
-      '<code class="rounded bg-fd-muted px-1.5 py-0.5 text-sm font-mono">$1</code>',
+      '<code class="u-chip-code">$1</code>',
     )
-    .replace(/\*\*([^*]+)\*\*/g, '<strong class="text-fd-foreground font-semibold">$1</strong>')
+    .replace(/\*\*([^*]+)\*\*/g, '<strong class="text-ink font-semibold">$1</strong>')
+    .replace(/(^|[^*])\*([^*\n]+)\*(?!\*)/g, '$1<em>$2</em>')
     .replace(
       /\[([^\]]+)\]\(([^)]+)\)/g,
-      '<a href="$2" class="text-fd-primary underline underline-offset-2 hover:no-underline">$1</a>',
+      '<a href="$2" class="font-medium text-ink underline decoration-line-2 underline-offset-2 transition-colors hover:text-accent hover:decoration-accent">$1</a>',
     );
 }
 
@@ -76,7 +78,7 @@ function renderMarkdown(md: string): string {
 
   const flushCode = () => {
     out.push(
-      `<pre class="my-4 overflow-x-auto rounded-lg border border-fd-border bg-fd-card p-4"><code class="font-mono text-sm">${escapeHtml(
+      `<pre class="my-7 overflow-x-auto rounded-lg border border-line bg-raised p-4"><code class="font-mono text-[13px] leading-[1.65]">${escapeHtml(
         codeBuffer.join('\n'),
       )}</code></pre>`,
     );
@@ -99,7 +101,7 @@ function renderMarkdown(md: string): string {
     const th = header
       .map(
         (c) =>
-          `<th class="border border-fd-border px-3 py-2 text-left font-semibold text-fd-foreground">${inline(
+          `<th class="border-b border-line-2 px-3 py-2 text-left font-mono text-[11px] font-medium uppercase tracking-[0.06em] text-ink-3">${inline(
             c,
           )}</th>`,
       )
@@ -111,7 +113,7 @@ function renderMarkdown(md: string): string {
         rows[i]
           .map(
             (c) =>
-              `<td class="border border-fd-border px-3 py-2 text-fd-muted-foreground">${inline(c)}</td>`,
+              `<td class="border-b border-line px-3 py-2 text-ink-2">${inline(c)}</td>`,
           )
           .join('') +
         '</tr>';
@@ -149,17 +151,17 @@ function renderMarkdown(md: string): string {
 
     if (line.startsWith('### ')) {
       closeList();
-      out.push(`<h3 class="text-xl font-semibold mt-8 mb-2">${inline(line.slice(4))}</h3>`);
+      out.push(`<h3 class="text-[17px] font-semibold text-ink mt-8 mb-2">${inline(line.slice(4))}</h3>`);
     } else if (line.startsWith('## ')) {
       closeList();
-      out.push(`<h2 class="text-2xl font-bold mt-10 mb-3">${inline(line.slice(3))}</h2>`);
+      out.push(`<h2 class="text-[22px] font-semibold text-ink mt-12 mb-3 border-t border-line pt-6">${inline(line.slice(3))}</h2>`);
     } else if (line.startsWith('# ')) {
       closeList();
-      out.push(`<h1 class="text-3xl font-bold mt-10 mb-4">${inline(line.slice(2))}</h1>`);
+      out.push(`<h1 class="text-[26px] font-semibold text-ink mt-10 mb-4">${inline(line.slice(2))}</h1>`);
     } else if (line.startsWith('> ')) {
       closeList();
       out.push(
-        `<blockquote class="my-4 border-l-4 border-fd-primary/40 pl-4 italic text-fd-muted-foreground">${inline(
+        `<blockquote class="my-4 border-l-2 border-line-2 pl-4 italic text-ink-2">${inline(
           line.slice(2),
         )}</blockquote>`,
       );
@@ -168,12 +170,12 @@ function renderMarkdown(md: string): string {
         out.push('<ul class="my-4 flex flex-col gap-1">');
         inList = true;
       }
-      out.push(`<li class="ml-6 list-disc text-fd-muted-foreground">${inline(line.slice(2))}</li>`);
+      out.push(`<li class="ml-6 list-disc text-ink-2">${inline(line.slice(2))}</li>`);
     } else if (line.trim() === '') {
       closeList();
     } else {
       closeList();
-      out.push(`<p class="my-4 text-fd-muted-foreground leading-relaxed">${inline(line)}</p>`);
+      out.push(`<p class="my-5 text-ink-2 leading-[1.75]">${inline(line)}</p>`);
     }
   }
 
@@ -198,19 +200,21 @@ export default async function BlogPostPage(props: {
   return (
     <main className="max-w-3xl mx-auto px-6 py-16">
       <article>
-        <h1 className="text-4xl font-bold tracking-[-0.02em] mb-3">{post.title}</h1>
+        <h1 className="text-[32px] font-semibold leading-[1.25] tracking-[-0.02em] text-ink mb-3">{post.title}</h1>
         {(post.date || post.author) && (
-          <p className="mb-3 font-mono text-xs uppercase tracking-[0.08em] text-fd-muted-foreground">
+          <p className="mb-3 font-mono text-xs uppercase tracking-[0.06em] text-ink-3">
             {post.date}
             {post.date && post.author ? ' · ' : ''}
             {post.author}
           </p>
         )}
-        <p className="text-lg text-fd-muted-foreground mb-8 leading-relaxed">{post.description}</p>
-        <div
-          className="prose dark:prose-invert max-w-none"
-          dangerouslySetInnerHTML={{ __html: html }}
-        />
+        <p className="text-base text-ink-2 mb-8 leading-relaxed">{post.description}</p>
+        <CodeCopy>
+          <div
+            className="max-w-[72ch] text-base"
+            dangerouslySetInnerHTML={{ __html: html }}
+          />
+        </CodeCopy>
       </article>
     </main>
   );
