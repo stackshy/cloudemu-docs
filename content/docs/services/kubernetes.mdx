@@ -8,7 +8,7 @@ gcp: GKE
 
 ## Overview
 
-Emulates managed Kubernetes in two layers, both shipped: **EKS** (AWS), **AKS** (Azure), **GKE** (GCP) control planes via the real cloud SDKs, plus a shared **in-memory Kubernetes data-plane API server** that `client-go` / `kubectl` talk to directly.
+Create **EKS**, **AKS**, and **GKE** clusters with the real SDKs, then drive the in-memory data plane with `client-go` or `kubectl`. Two layers, both shipped: the three control planes plus a shared **in-memory Kubernetes data-plane API server**.
 
 | Provider | Service | SDK-compat | Driver |
 |----------|---------|:----------:|--------|

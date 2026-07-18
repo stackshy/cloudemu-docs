@@ -2,7 +2,7 @@
 title: Latency Simulation
 description: Add delays to test timeout handling and performance
 ---
-Add artificial latency to simulate real-world network conditions.
+Add fixed delays per provider or per service to test timeouts and context cancellation.
 
 ## Provider-level latency
 
@@ -28,7 +28,7 @@ bucket := storage.NewBucket(aws.S3,
 
 - Test timeout handling — verify your code handles slow responses correctly
 - Test context cancellation — ensure operations respect `context.WithTimeout`
-- Performance testing — measure how your code behaves under various latency conditions
+- Performance testing — measure how your code behaves at different latencies
 
 ```go
 ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)

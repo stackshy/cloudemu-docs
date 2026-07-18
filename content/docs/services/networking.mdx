@@ -8,7 +8,7 @@ gcp: VPC
 
 ## Overview
 
-Emulates virtual network primitives: **VPC** (AWS, served by the EC2 query handler), **VNet** (Azure), **VPC + Firewalls** (GCP).
+Build VPCs, subnets, and security groups on AWS, Azure, and GCP with the real SDKs — then query connectivity. Covers **VPC** (AWS, served by the EC2 query handler), **VNet** (Azure), **VPC + Firewalls** (GCP).
 
 | Provider | Service | SDK-compat | Driver |
 |----------|---------|:----------:|--------|
@@ -67,7 +67,7 @@ subnet, _ := aws.VPC.CreateSubnet(ctx, netdriver.SubnetConfig{
 
 ### Topology engine
 
-As an extra feature, once your network is built, the [topology engine](/docs/architecture#pluggable-consumers) can answer real connectivity questions on top of the same drivers:
+Once your network is built, the [topology engine](/docs/architecture#pluggable-consumers) answers connectivity questions on top of the same drivers:
 
 ```go
 import "github.com/stackshy/cloudemu/v2/features/topology"

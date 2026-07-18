@@ -7,22 +7,26 @@ import { Reveal } from '@/components/reveal';
 
 const CMD = 'go get github.com/stackshy/cloudemu/v2';
 
-/** Final CTA: a terminal-styled band on the inset surface. */
+/**
+ * Final CTA: open canvas between hairlines — no band fill. The terminal
+ * command line is the one earned box in the section.
+ */
 export function CTASection() {
   const [copied, setCopied] = useState(false);
 
   return (
-    <section className="w-full border-t border-line bg-inset">
-      <div className="mx-auto w-full max-w-4xl px-6 py-20">
+    <section className="w-full border-y border-line">
+      <div className="mx-auto w-full max-w-[1120px] px-6 py-20">
         <Reveal>
-          <p className="u-eyebrow mb-3 text-ink-inset-muted">
-            <span className="text-ink-3">$</span> get started
+          <p className="u-eyebrow mb-3">
+            <span aria-hidden>$</span> get started
           </p>
-          <h2 className="text-3xl font-bold tracking-[-0.01em] text-ink-inset">
-            One command. No accounts. No Docker.
+          <h2 className="max-w-[60ch] text-3xl font-bold tracking-[-0.01em] text-ink">
+            One <code className="font-mono font-semibold">go get</code> from
+            now, your tests stop needing the internet.
           </h2>
 
-          <div className="mt-8 flex items-center gap-3 rounded-lg border border-white/10 bg-black/30 px-4 py-3.5 font-mono text-sm text-ink-inset">
+          <div className="mt-8 flex max-w-xl items-center gap-3 rounded-lg border border-line bg-inset px-4 py-3.5 font-mono text-sm text-ink-inset">
             <span aria-hidden className="select-none text-ink-inset-muted">
               $
             </span>
@@ -50,15 +54,12 @@ export function CTASection() {
               Read the docs
               <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
             </Link>
-            <Link
-              href="/docs/quick-start"
-              className="u-btn border border-white/20 text-ink-inset hover:bg-white/5"
-            >
+            <Link href="/docs/quick-start" className="u-btn u-btn-secondary">
               Quick Start
             </Link>
           </div>
 
-          <p className="mt-10 font-mono text-xs uppercase tracking-[0.08em] text-ink-inset-muted">
+          <p className="mt-10 font-mono text-xs uppercase tracking-[0.06em] text-ink-3">
             MIT license · Go 1.25+ · zero dependencies
           </p>
         </Reveal>

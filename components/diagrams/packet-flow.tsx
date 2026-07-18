@@ -278,7 +278,7 @@ export function PacketFlow({ once = false }: { once?: boolean }) {
           />
           <text
             x={NODE_X}
-            y={NODE_Y - 4}
+            y={NODE_Y - 6}
             textAnchor="middle"
             fontSize="12"
             fontWeight="700"
@@ -288,13 +288,23 @@ export function PacketFlow({ once = false }: { once?: boolean }) {
           </text>
           <text
             x={NODE_X}
-            y={NODE_Y + 11}
+            y={NODE_Y + 8}
             textAnchor="middle"
-            fontSize="8"
+            fontSize="7"
             className="font-mono"
             fill="var(--text-muted)"
           >
-            in-memory · ~10ms
+            in-memory
+          </text>
+          <text
+            x={NODE_X}
+            y={NODE_Y + 18}
+            textAnchor="middle"
+            fontSize="7"
+            className="font-mono"
+            fill="var(--text-muted)"
+          >
+            ~10ms
           </text>
         </g>
       </svg>

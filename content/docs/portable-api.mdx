@@ -2,7 +2,7 @@
 title: Portable API
 description: Wrap any driver with recording, metrics, rate limiting, and error injection
 ---
-The portable API layer wraps driver implementations with test-oriented cross-cutting concerns. Every service category has its own portable wrapper.
+Wrap any driver with recording, metrics, rate limiting, latency, and error injection — no HTTP involved. Every service category has its own portable wrapper.
 
 ## Basic usage
 
@@ -62,7 +62,7 @@ All wrappers support the same set of `With*` options.
 
 ## Cross-provider testing
 
-The portable API enables true cross-provider testing:
+The portable API lets one test body run against all three providers:
 
 ```go
 func testStorage(t *testing.T, bucket *storage.Bucket) {

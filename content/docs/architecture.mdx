@@ -2,7 +2,7 @@
 title: Architecture
 description: How cloudemu serves real cloud SDKs from an in-memory backend
 ---
-cloudemu's primary surface is the **SDK-compatible HTTP server** — a layer that speaks each cloud's real wire protocol so unmodified SDK clients can drive the in-memory backend. Underneath sits a small, deliberately boring three-layer core.
+Trace a request from an unmodified SDK client down to the in-memory store — and see where to plug in. The primary surface is the **SDK-compatible HTTP server**, which speaks each cloud's real wire protocol; underneath sits a small, deliberately boring three-layer core.
 
 ```
 SDK-Compat HTTP Server   ←  the primary surface (real aws-sdk-go-v2 / azure-sdk-for-go / cloud.google.com/go)

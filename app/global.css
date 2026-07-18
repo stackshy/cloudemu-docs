@@ -193,6 +193,17 @@ samp {
   }
 }
 
+/* Breathing status dot (coverage matrix) */
+@keyframes u-breathe {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
 /* ------------------------------------------------------------------ */
 /* Docs shell                                                          */
 /* ------------------------------------------------------------------ */
@@ -288,10 +299,11 @@ samp {
 }
 #nd-sidebar a:hover {
   color: var(--text-1);
+  background: transparent;
 }
 #nd-sidebar a[data-active='true'] {
   color: var(--text-1);
-  background: var(--accent-bg);
+  background: transparent;
 }
 #nd-sidebar a[data-active='true']::before {
   content: '';
@@ -411,9 +423,19 @@ samp {
   color: var(--text-2);
 }
 
-/* Tables: mono muted header, hairline row rules only, quiet hover */
+/* Tables: open spec-sheet — no outer border, no cell walls, no fills.
+   Mono muted header over one hairline; hairlines between rows only. */
 .prose table {
   font-size: 0.875rem;
+  border: 0 !important;
+  background: transparent;
+}
+.prose table :is(th, td) {
+  border-left: 0 !important;
+  border-right: 0 !important;
+  border-top: 0 !important;
+  background: transparent !important;
+  padding: 12px 16px 12px 0;
 }
 .prose thead th {
   font-family: var(--font-mono);
@@ -427,11 +449,8 @@ samp {
 .prose tbody td {
   border-bottom: 1px solid var(--border);
 }
-.prose tbody tr {
-  transition: background-color 150ms var(--ease-out);
-}
-.prose tbody tr:hover {
-  background: var(--bg-2);
+.prose tbody tr:hover td {
+  color: var(--text-1);
 }
 .prose table code {
   white-space: nowrap;
