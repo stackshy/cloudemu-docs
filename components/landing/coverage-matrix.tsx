@@ -58,7 +58,7 @@ export function CoverageMatrix() {
               16 domains. 3 providers. All live.
             </h2>
             <p className="font-mono text-xs uppercase tracking-[0.06em] text-ink-3">
-              <span aria-hidden>●</span> sdk-compat + portable api
+              <span aria-hidden className="text-ok">●</span> sdk-compat + portable api
             </p>
           </div>
         </Reveal>
@@ -75,36 +75,40 @@ export function CoverageMatrix() {
                 transition: `opacity 250ms var(--ease-out) ${r * 90}ms`,
               }}
             >
-              {row.map((s) => (
+              {row.map((s, i) => (
                 <Link
                   key={s.slug}
                   href={`/docs/services/${s.slug}`}
                   className="group py-5"
                 >
-                  <span className="flex items-center gap-2 text-sm font-semibold text-ink">
+                  <span className="flex items-center gap-2 text-sm font-semibold text-ink transition-colors group-hover:text-accent">
                     {s.category}
                     <span
                       aria-hidden
-                      className="size-1.5 rounded-full bg-ink-3 transition-colors group-hover:bg-ok"
+                      className="size-1.5 rounded-full bg-ok"
+                      style={{
+                        animation: 'u-breathe 4s ease-in-out infinite',
+                        animationDelay: `${(i % 7) * 400}ms`,
+                      }}
                     />
                   </span>
                   <span className="mt-2 flex flex-col gap-0.5 font-mono text-[11px] leading-relaxed text-ink-2">
                     <span className="truncate">
-                      <span className="text-[10px]" style={{ color: 'var(--aws)' }}>
+                      <span className="inline-block w-7 text-[10px]" style={{ color: 'var(--aws)' }}>
                         aws
-                      </span>{' '}
+                      </span>
                       {s.aws}
                     </span>
                     <span className="truncate">
-                      <span className="text-[10px]" style={{ color: 'var(--azure)' }}>
+                      <span className="inline-block w-7 text-[10px]" style={{ color: 'var(--azure)' }}>
                         azr
-                      </span>{' '}
+                      </span>
                       {s.azure}
                     </span>
                     <span className="truncate">
-                      <span className="text-[10px]" style={{ color: 'var(--gcp)' }}>
+                      <span className="inline-block w-7 text-[10px]" style={{ color: 'var(--gcp)' }}>
                         gcp
-                      </span>{' '}
+                      </span>
                       {s.gcp}
                     </span>
                   </span>
