@@ -13,7 +13,7 @@ import { Reveal } from '@/components/reveal';
 const SURFACES = [
   {
     label: 'SDK-COMPAT SERVER',
-    stat: '21 services live · real wire protocols',
+    stat: '21 domains · real wire protocols',
     code: `ts := httptest.NewServer(awsserver.New(drivers))
 client := s3.NewFromConfig(cfg, func(o *s3.Options) {
     o.BaseEndpoint = aws.String(ts.URL)
@@ -24,12 +24,12 @@ client := s3.NewFromConfig(cfg, func(o *s3.Options) {
   },
   {
     label: 'PORTABLE GO API',
-    stat: '48 services · in-process, no HTTP',
+    stat: '21 domains · in-process, no HTTP',
     code: `cloud := cloudemu.NewAWS()
 cloud.S3.CreateBucket(ctx, "app-data")
 cloud.S3.PutObject(ctx, "app-data", "cfg.yaml",
     []byte("port: 8080"), "text/yaml", nil)`,
-    body: 'Typed Go interfaces on the same backend — for setup code, assertions, and the seven domains not yet on the wire.',
+    body: 'Typed Go interfaces on the same backend — for setup code, assertions, and tests that skip HTTP altogether.',
     href: '/docs/portable-api',
     linkText: 'portable api docs',
   },

@@ -56,11 +56,11 @@ export function Hero() {
           </span>
           <span aria-hidden className="text-line-strong">·</span>
           <span>
-            <span className="text-ink">16</span> DOMAINS
+            <span className="text-ink">21</span> DOMAINS
           </span>
           <span aria-hidden className="text-line-strong">·</span>
           <span>
-            <span className="text-ink">48</span> SERVICES
+            <span className="text-ink">60+</span> SERVICES
           </span>
           <span aria-hidden className="text-line-strong">·</span>
           <span className="text-sm">

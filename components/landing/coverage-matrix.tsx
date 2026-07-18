@@ -13,7 +13,7 @@ import { Reveal } from '@/components/reveal';
  */
 
 const GRID =
-  'grid grid-cols-[minmax(120px,1.1fr)_minmax(90px,1fr)_minmax(110px,1fr)_minmax(100px,1fr)_72px] gap-x-6';
+  'grid grid-cols-[minmax(120px,1.1fr)_minmax(90px,1fr)_minmax(110px,1fr)_minmax(100px,1fr)_72px] gap-x-5';
 
 export function CoverageMatrix() {
   const ref = useRef<HTMLDivElement>(null);
@@ -47,15 +47,15 @@ export function CoverageMatrix() {
             <span className="text-ink-3">04</span> · coverage
           </p>
           <h2 className="text-3xl font-bold tracking-[-0.01em] text-ink">
-            16 domains. 3 providers. All live.
+            21 domains. 3 providers. All live.
           </h2>
         </Reveal>
 
-        <div ref={ref} className="mt-10 overflow-x-auto">
+        <div ref={ref} className="mt-8 overflow-x-auto">
           <div className="min-w-[760px]">
             {/* header row */}
             <div
-              className={`${GRID} border-b border-line-2 pb-3 font-mono text-[11px] font-medium uppercase tracking-[0.06em]`}
+              className={`${GRID} border-b border-line-2 pb-2.5 font-mono text-[11px] font-medium uppercase tracking-[0.06em]`}
             >
               <span className="text-ink-3">Domain</span>
               <span style={{ color: 'var(--aws)' }}>AWS</span>
@@ -68,23 +68,35 @@ export function CoverageMatrix() {
               <Link
                 key={s.slug}
                 href={`/docs/services/${s.slug}`}
-                className={`${GRID} group items-center border-b border-line py-3.5`}
+                className={`${GRID} group items-center border-b border-line py-2`}
                 style={{
                   opacity: on ? 1 : 0,
                   transform: on ? 'none' : 'translateY(4px)',
                   transition: `opacity 250ms var(--ease-out) ${i * 35}ms, transform 250ms var(--ease-out) ${i * 35}ms`,
                 }}
               >
-                <span className="text-sm font-medium text-ink transition-colors group-hover:text-accent">
+                <span className="text-[13px] font-medium text-ink transition-colors group-hover:text-accent">
                   {s.category}
                 </span>
-                <span className="truncate font-mono text-xs text-ink-2 transition-colors group-hover:text-ink">
+                <span
+                  className={`truncate font-mono text-xs transition-colors ${
+                    s.aws === '—' ? 'text-ink-3' : 'text-ink-2 group-hover:text-ink'
+                  }`}
+                >
                   {s.aws}
                 </span>
-                <span className="truncate font-mono text-xs text-ink-2 transition-colors group-hover:text-ink">
+                <span
+                  className={`truncate font-mono text-xs transition-colors ${
+                    s.azure === '—' ? 'text-ink-3' : 'text-ink-2 group-hover:text-ink'
+                  }`}
+                >
                   {s.azure}
                 </span>
-                <span className="truncate font-mono text-xs text-ink-2 transition-colors group-hover:text-ink">
+                <span
+                  className={`truncate font-mono text-xs transition-colors ${
+                    s.gcp === '—' ? 'text-ink-3' : 'text-ink-2 group-hover:text-ink'
+                  }`}
+                >
                   {s.gcp}
                 </span>
                 <span className="flex items-center justify-end gap-1.5 font-mono text-[11px] text-ink-3">
