@@ -6,19 +6,14 @@ import { services } from '@/lib/services';
 import { Reveal } from '@/components/reveal';
 
 /**
- * Coverage matrix: open clusters on the canvas — no cell boxes. Four columns;
- * hairline rules between matrix rows only. Each cluster: domain name with an
- * inline status dot, then three provider lines with tinted mono prefixes.
- * Rows fade in once on view; hover brightens text.
+ * Coverage: a status board, not a card grid. One aligned row per domain —
+ * domain name, then the three provider service names in tinted-header
+ * columns, then a breathing live dot. Hairlines between rows only; rows
+ * reveal top-to-bottom on view; each row links to its docs page.
  */
 
-const COLS = 4;
-
-function chunk<T>(arr: T[], n: number): T[][] {
-  const out: T[][] = [];
-  for (let i = 0; i < arr.length; i += n) out.push(arr.slice(i, i + n));
-  return out;
-}
+const GRID =
+  'grid grid-cols-[minmax(120px,1.1fr)_minmax(90px,1fr)_minmax(110px,1fr)_minmax(100px,1fr)_72px] gap-x-6';
 
 export function CoverageMatrix() {
   const ref = useRef<HTMLDivElement>(null);
@@ -38,13 +33,11 @@ export function CoverageMatrix() {
           io.disconnect();
         }
       },
-      { threshold: 0.2 },
+      { threshold: 0.15 },
     );
     io.observe(el);
     return () => io.disconnect();
   }, []);
-
-  const rows = chunk(services, COLS);
 
   return (
     <section className="w-full border-t border-line">
@@ -53,72 +46,64 @@ export function CoverageMatrix() {
           <p className="u-eyebrow mb-3">
             <span className="text-ink-3">04</span> · coverage
           </p>
-          <div className="flex flex-wrap items-end justify-between gap-4">
-            <h2 className="text-3xl font-bold tracking-[-0.01em] text-ink">
-              16 domains. 3 providers. All live.
-            </h2>
-            <p className="font-mono text-xs uppercase tracking-[0.06em] text-ink-3">
-              <span aria-hidden className="text-ok">●</span> sdk-compat + portable api
-            </p>
-          </div>
+          <h2 className="text-3xl font-bold tracking-[-0.01em] text-ink">
+            16 domains. 3 providers. All live.
+          </h2>
         </Reveal>
 
-        <div ref={ref} className="mt-10">
-          {rows.map((row, r) => (
+        <div ref={ref} className="mt-10 overflow-x-auto">
+          <div className="min-w-[760px]">
+            {/* header row */}
             <div
-              key={r}
-              className={`grid grid-cols-2 gap-x-8 sm:grid-cols-2 lg:grid-cols-4 ${
-                r > 0 ? 'border-t border-line' : ''
-              }`}
-              style={{
-                opacity: on ? 1 : 0,
-                transition: `opacity 250ms var(--ease-out) ${r * 90}ms`,
-              }}
+              className={`${GRID} border-b border-line-2 pb-3 font-mono text-[11px] font-medium uppercase tracking-[0.06em]`}
             >
-              {row.map((s, i) => (
-                <Link
-                  key={s.slug}
-                  href={`/docs/services/${s.slug}`}
-                  className="group py-5"
-                >
-                  <span className="flex items-center gap-2 text-sm font-semibold text-ink transition-colors group-hover:text-accent">
-                    {s.category}
-                    <span
-                      aria-hidden
-                      className="size-1.5 rounded-full bg-ok"
-                      style={{
-                        animation: 'u-breathe 4s ease-in-out infinite',
-                        animationDelay: `${(i % 7) * 400}ms`,
-                      }}
-                    />
-                  </span>
-                  <span className="mt-2 flex flex-col gap-0.5 font-mono text-[11px] leading-relaxed text-ink-2">
-                    <span className="truncate">
-                      <span className="inline-block w-7 text-[10px]" style={{ color: 'var(--aws)' }}>
-                        aws
-                      </span>
-                      {s.aws}
-                    </span>
-                    <span className="truncate">
-                      <span className="inline-block w-7 text-[10px]" style={{ color: 'var(--azure)' }}>
-                        azr
-                      </span>
-                      {s.azure}
-                    </span>
-                    <span className="truncate">
-                      <span className="inline-block w-7 text-[10px]" style={{ color: 'var(--gcp)' }}>
-                        gcp
-                      </span>
-                      {s.gcp}
-                    </span>
-                  </span>
-                </Link>
-              ))}
+              <span className="text-ink-3">Domain</span>
+              <span style={{ color: 'var(--aws)' }}>AWS</span>
+              <span style={{ color: 'var(--azure)' }}>Azure</span>
+              <span style={{ color: 'var(--gcp)' }}>GCP</span>
+              <span className="text-right text-ink-3">Status</span>
             </div>
-          ))}
+
+            {services.map((s, i) => (
+              <Link
+                key={s.slug}
+                href={`/docs/services/${s.slug}`}
+                className={`${GRID} group items-center border-b border-line py-3.5`}
+                style={{
+                  opacity: on ? 1 : 0,
+                  transform: on ? 'none' : 'translateY(4px)',
+                  transition: `opacity 250ms var(--ease-out) ${i * 35}ms, transform 250ms var(--ease-out) ${i * 35}ms`,
+                }}
+              >
+                <span className="text-sm font-medium text-ink transition-colors group-hover:text-accent">
+                  {s.category}
+                </span>
+                <span className="truncate font-mono text-xs text-ink-2 transition-colors group-hover:text-ink">
+                  {s.aws}
+                </span>
+                <span className="truncate font-mono text-xs text-ink-2 transition-colors group-hover:text-ink">
+                  {s.azure}
+                </span>
+                <span className="truncate font-mono text-xs text-ink-2 transition-colors group-hover:text-ink">
+                  {s.gcp}
+                </span>
+                <span className="flex items-center justify-end gap-1.5 font-mono text-[11px] text-ink-3">
+                  <span
+                    aria-hidden
+                    className="size-1.5 rounded-full bg-ok"
+                    style={{
+                      animation: on ? 'u-breathe 4s ease-in-out infinite' : 'none',
+                      animationDelay: `${(i % 8) * 350}ms`,
+                    }}
+                  />
+                  live
+                </span>
+              </Link>
+            ))}
+          </div>
         </div>
 
-        <p className="mt-6 border-t border-line pt-4 font-mono text-xs leading-relaxed text-ink-3">
+        <p className="mt-6 font-mono text-xs leading-relaxed text-ink-3">
           every domain is drivable two ways: the{' '}
           <Link
             href="/docs/portable-api"
