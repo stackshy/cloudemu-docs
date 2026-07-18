@@ -1,93 +1,89 @@
-'use client';
-
 import Link from 'next/link';
-import { motion } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
-import { AnimatedBackground } from './animated-background';
-import { SDKFlowDiagram } from './sdk-flow-diagram';
-import { Logo } from '../logo';
+import { PacketFlow } from '@/components/diagrams/packet-flow';
+import { TerminalTypeOn } from './terminal-typeon';
+import { LatencyTicker } from './latency-ticker';
 
+/**
+ * Hero: asymmetric two-column. Left — mono eyebrow, display headline with one
+ * accent phrase, subhead, CTAs, and the type-on install terminal (the install
+ * command IS the hero CTA). Right — the Packet Flow diagram. Below: mono stat
+ * strip with the live Latency Ticker.
+ */
 export function Hero() {
   return (
-    <section className="relative w-full overflow-hidden">
-      <div className="absolute inset-0 -z-10">
-        <AnimatedBackground />
-      </div>
-
-      <div className="w-full max-w-6xl mx-auto px-6 pt-24 pb-20">
-        <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] gap-12 lg:gap-16 items-center">
+    <section className="w-full">
+      <div className="mx-auto w-full max-w-6xl px-6 pb-14 pt-20">
+        <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-[1.05fr_1fr] lg:gap-14">
           {/* Left: copy */}
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, ease: 'easeOut' }}
-            className="text-center lg:text-left"
-          >
-            <div className="mb-6 flex justify-center lg:justify-start">
-              <Logo width={56} height={56} />
-            </div>
-
-            <h1 className="text-4xl sm:text-5xl lg:text-[3.25rem] font-extrabold tracking-tight leading-[1.1]">
-              Test against{' '}
-              <GradientText>real cloud SDKs</GradientText>
-              <br />
-              without a real cloud.
-            </h1>
-
-            <p className="mt-5 text-base sm:text-lg text-fd-muted-foreground leading-relaxed max-w-xl mx-auto lg:mx-0">
-              Point <CodePill>aws-sdk-go-v2</CodePill>, <CodePill>azure-sdk-for-go</CodePill>, or{' '}
-              <CodePill>cloud.google.com/go</CodePill> at a local{' '}
-              <code className="font-mono text-[0.95em]">httptest</code> server. ~10ms per call.
+          <div>
+            <p className="u-eyebrow mb-5">
+              <span className="text-signal">//</span> zero-cost cloud emulation
+              for Go
             </p>
 
-            <div className="mt-8 flex items-center justify-center lg:justify-start gap-3 flex-wrap">
-              <Link
-                href="/docs/sdk-compat"
-                className="group px-6 py-2.5 rounded-lg bg-fd-foreground text-fd-background font-semibold inline-flex items-center gap-2 hover:opacity-90 transition-opacity"
-              >
-                Use Real SDKs
-                <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
-              </Link>
-              <Link
-                href="/docs/quick-start"
-                className="px-6 py-2.5 rounded-lg border border-fd-border bg-fd-card font-semibold hover:bg-fd-accent transition-colors"
-              >
+            <h1 className="text-[2.6rem] font-bold leading-[1.05] tracking-[-0.03em] text-ink sm:text-[3.4rem]">
+              Test against real cloud SDKs{' '}
+              <span className="relative whitespace-nowrap text-signal">
+                without a real cloud
+                <span
+                  aria-hidden
+                  className="absolute -bottom-1 left-0 h-0.5 w-full rounded bg-signal/40"
+                />
+              </span>
+              .
+            </h1>
+
+            <p className="mt-5 max-w-xl text-base leading-relaxed text-ink-secondary sm:text-lg">
+              Point <code className="u-chip-code">aws-sdk-go-v2</code>,{' '}
+              <code className="u-chip-code">azure-sdk-for-go</code>, or{' '}
+              <code className="u-chip-code">cloud.google.com/go</code> at a
+              local in-memory server that speaks their real wire protocols.
+              Your production code runs unchanged.
+            </p>
+
+            <div className="mt-7 flex flex-wrap items-center gap-3">
+              <Link href="/docs/quick-start" className="u-btn u-btn-primary group">
                 Quick Start
+                <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
+              </Link>
+              <Link href="/docs/sdk-compat" className="u-btn u-btn-secondary">
+                SDK-compat coverage
               </Link>
             </div>
-          </motion.div>
 
-          {/* Right: animated diagram — no card, no border, sits directly on the page */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.96 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.7, delay: 0.2, ease: 'easeOut' }}
-          >
-            <SDKFlowDiagram />
-          </motion.div>
+            <div className="mt-5 max-w-md">
+              <TerminalTypeOn />
+            </div>
+          </div>
+
+          {/* Right: the wire */}
+          <PacketFlow />
+        </div>
+
+        {/* Stat strip */}
+        <div className="mt-16 flex flex-wrap items-center gap-x-8 gap-y-3 border-t border-line pt-6 font-mono text-xs tracking-[0.08em] text-ink-muted">
+          <span>
+            <span className="text-ink">3</span> PROVIDERS
+          </span>
+          <span aria-hidden className="text-line-strong">·</span>
+          <span>
+            <span className="text-ink">16</span> DOMAINS
+          </span>
+          <span aria-hidden className="text-line-strong">·</span>
+          <span>
+            <span className="text-ink">48</span> SERVICES
+          </span>
+          <span aria-hidden className="text-line-strong">·</span>
+          <span className="text-sm">
+            <LatencyTicker />
+          </span>
+          <span aria-hidden className="text-line-strong">·</span>
+          <span>
+            <span className="text-ink">0</span> DEPS
+          </span>
         </div>
       </div>
     </section>
-  );
-}
-
-/**
- * GradientText: a tighter, more controlled highlight than a 3-stop rainbow.
- * Single soft transition between two adjacent hues + slight saturation boost
- * via a transparent overlay reads cleaner at large display sizes.
- */
-function GradientText({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="bg-gradient-to-r from-sky-400 to-violet-500 bg-clip-text text-transparent whitespace-nowrap">
-      {children}
-    </span>
-  );
-}
-
-function CodePill({ children }: { children: React.ReactNode }) {
-  return (
-    <code className="font-mono text-[0.95em] px-1.5 py-0.5 rounded bg-fd-card border border-fd-border whitespace-nowrap">
-      {children}
-    </code>
   );
 }
