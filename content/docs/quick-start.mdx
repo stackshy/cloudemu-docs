@@ -57,7 +57,7 @@ func main() {
 
 The only thing that changes vs. real AWS is `BaseEndpoint`. Every other line of your production code stays identical.
 
-```go
+```go title="main.go"
     cfg, _ := awsconfig.LoadDefaultConfig(ctx,
         awsconfig.WithRegion("us-east-1"),
         awsconfig.WithCredentialsProvider(
@@ -66,7 +66,7 @@ The only thing that changes vs. real AWS is `BaseEndpoint`. Every other line of 
     )
 
     client := s3.NewFromConfig(cfg, func(o *s3.Options) {
-        o.BaseEndpoint = aws.String(ts.URL)
+        o.BaseEndpoint = aws.String(ts.URL) // [!code focus]
         o.UsePathStyle = true
     })
 
@@ -99,24 +99,33 @@ Done. Real SDK, in-memory backend, ~10ms per call.
 
 ## What just happened
 
-```
-your test code
-   │
-   ▼
-real aws-sdk-go-v2 client  ──HTTP──▶  awsserver.New (httptest)
-                                          │
-                                          ▼
-                            cloudemu in-memory backend
-```
+<PacketFlow once />
 
 The server speaks the actual AWS wire protocol (S3 REST + XML, DynamoDB JSON-RPC, EC2 query, SQS `AwsJson1_0`, CloudWatch Smithy CBOR, Lambda REST). The SDK can't tell the difference between this and `s3.amazonaws.com`.
 
 ## Same pattern, every provider
 
-The Azure and GCP servers are drop-in replacements:
+The Azure and GCP servers are drop-in replacements. The tabs below stay in sync across the whole site — pick your provider once.
 
-```go
-// Azure — TLS required, the SDK rejects bearer tokens over plain HTTP.
+<ProviderTabs>
+<ProviderTab value="aws">
+
+```go title="aws_server.go"
+import awsserver "github.com/stackshy/cloudemu/v2/server/aws"
+
+cloud := cloudemu.NewAWS()
+ts := httptest.NewServer(awsserver.New(awsserver.Drivers{
+    S3: cloud.S3, DynamoDB: cloud.DynamoDB, EC2: cloud.EC2,
+    Lambda: cloud.Lambda, SQS: cloud.SQS, CloudWatch: cloud.CloudWatch,
+}))
+// s3.NewFromConfig with o.BaseEndpoint = ts.URL → done.
+```
+
+</ProviderTab>
+<ProviderTab value="azure">
+
+```go title="azure_server.go"
+// TLS required — the SDK rejects bearer tokens over plain HTTP.
 import azureserver "github.com/stackshy/cloudemu/v2/server/azure"
 
 cp := cloudemu.NewAzure()
@@ -128,8 +137,11 @@ ts := httptest.NewTLSServer(azureserver.New(azureserver.Drivers{
 // armcompute.NewVirtualMachinesClient with ts.URL → done.
 ```
 
-```go
-// GCP — REST endpoint via google.golang.org/api or the cloud.google.com/go SDKs.
+</ProviderTab>
+<ProviderTab value="gcp">
+
+```go title="gcp_server.go"
+// REST endpoint via google.golang.org/api or the cloud.google.com/go SDKs.
 import gcpserver "github.com/stackshy/cloudemu/v2/server/gcp"
 
 cp := cloudemu.NewGCP()
@@ -141,9 +153,12 @@ ts := httptest.NewServer(gcpserver.New(gcpserver.Drivers{
 // option.WithEndpoint(ts.URL) on any cloud.google.com/go client → done.
 ```
 
-## Currently SDK-compat-shipped
+</ProviderTab>
+</ProviderTabs>
 
-Many domains have HTTP wire-format handlers across all 3 providers:
+## SDK-compat coverage
+
+Every domain ships HTTP wire-format handlers across all 3 providers:
 
 | Domain | AWS | Azure | GCP |
 |--------|-----|-------|-----|
@@ -160,9 +175,9 @@ Many domains have HTTP wire-format handlers across all 3 providers:
 | Container Registry | ECR | ACR | Artifact Registry |
 | Resource Discovery | Resource Explorer + Tagging | Resource Graph | Cloud Asset Inventory |
 
-Plus provider-specific **Generative AI** (Bedrock + SageMaker on AWS, Vertex AI on GCP) and **Databricks** (Azure). Kubernetes also ships a shared in-memory data plane that `client-go` / `kubectl` drive end-to-end.
+Plus **DNS, Load Balancer, Notification, Event Bus, Cache, Secrets, and Logging** (SDK-compat since v1.9.0), provider-specific **Generative AI** (Bedrock + SageMaker on AWS, Vertex AI on GCP), and **Databricks** (Azure). Kubernetes also ships a shared in-memory data plane that `client-go` / `kubectl` drive end-to-end.
 
-The remaining 7 domains (DNS, Load Balancer, Notification, Event Bus, Cache, Secrets, Logging) are **available today via the [Portable Go API](/docs/portable-api)**; SDK-compat handlers ship in lockstep across all 3 providers as each domain lands.
+Everything is equally reachable through the [Portable Go API](/docs/portable-api) when you'd rather skip HTTP.
 
 ## Next steps
 

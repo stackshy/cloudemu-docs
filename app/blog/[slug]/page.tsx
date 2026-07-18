@@ -198,15 +198,15 @@ export default async function BlogPostPage(props: {
   return (
     <main className="max-w-3xl mx-auto px-6 py-16">
       <article>
-        <h1 className="text-4xl font-bold mb-3">{post.title}</h1>
+        <h1 className="text-4xl font-bold tracking-[-0.02em] mb-3">{post.title}</h1>
         {(post.date || post.author) && (
-          <p className="text-sm text-fd-muted-foreground mb-2">
+          <p className="mb-3 font-mono text-xs uppercase tracking-[0.08em] text-fd-muted-foreground">
             {post.date}
             {post.date && post.author ? ' · ' : ''}
             {post.author}
           </p>
         )}
-        <p className="text-lg text-fd-muted-foreground mb-8">{post.description}</p>
+        <p className="text-lg text-fd-muted-foreground mb-8 leading-relaxed">{post.description}</p>
         <div
           className="prose dark:prose-invert max-w-none"
           dangerouslySetInnerHTML={{ __html: html }}

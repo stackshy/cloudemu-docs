@@ -97,11 +97,9 @@ go get github.com/stackshy/cloudemu/v2@v2.0.0
 
 Add the `/v2` suffix and point service packages at their new homes:
 
-```go
-// before
-import "github.com/stackshy/cloudemu/storage"
-// after
-import "github.com/stackshy/cloudemu/v2/services/storage"
+```go title="imports.go"
+import "github.com/stackshy/cloudemu/storage" // [!code --]
+import "github.com/stackshy/cloudemu/v2/services/storage" // [!code ++]
 ```
 
 Where packages moved:
