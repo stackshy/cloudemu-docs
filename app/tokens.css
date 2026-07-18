@@ -1,0 +1,131 @@
+/**
+ * tokens.css — the single source of truth for every color/surface/type token.
+ * No raw hex values in components: everything references these variables.
+ *
+ * Dark is the primary theme (.dark), light is a full first-class pass (:root).
+ * Muted text values are tuned to hold >= 4.5:1 against their surfaces.
+ */
+
+:root {
+  /* ---- surfaces (light) ---- */
+  --bg-base: #f7f8fa;
+  --bg-surface: #ffffff;
+  --bg-raised: #f1f3f7;
+  --bg-inset: #07090d; /* terminal panes stay dark in both themes — instrument screens are dark */
+  --border-subtle: #e3e7ee;
+  --border-strong: #c9d0dc;
+
+  /* ---- text (light) ---- */
+  --text-primary: #14181f;
+  --text-secondary: #414c5c;
+  --text-muted: #5c6878;
+  --text-on-inset: #e8eaed;
+  --text-muted-on-inset: #8b95a7;
+
+  /* ---- brand accent: one electric signal color ---- */
+  --accent: #047857;
+  --accent-bright: #059669; /* large text / glyphs only */
+  --accent-contrast: #ffffff; /* text on solid accent */
+  --accent-dim: rgba(4, 120, 87, 0.08);
+  --accent-rail: rgba(4, 120, 87, 0.55);
+
+  /* ---- provider accents (semantic, never decorative) ---- */
+  --aws: #9a5b00; /* text-safe on light */
+  --azure: #2059d4;
+  --gcp: #1e7f4a;
+  --aws-vivid: #f5a623; /* rails, dots, wires */
+  --azure-vivid: #4c8dff;
+  --gcp-vivid: #3dbe6c;
+  --aws-dim: rgba(245, 166, 35, 0.1);
+  --azure-dim: rgba(76, 141, 255, 0.1);
+  --gcp-dim: rgba(61, 190, 108, 0.1);
+
+  /* ---- callout / status semantics ---- */
+  --ok: #047857;
+  --warn: #b45309;
+  --error: #b91c1c;
+  --info: #1d4ed8;
+  --ok-dim: rgba(4, 120, 87, 0.08);
+  --warn-dim: rgba(180, 83, 9, 0.08);
+  --error-dim: rgba(185, 28, 28, 0.08);
+  --info-dim: rgba(29, 78, 216, 0.08);
+
+  /* ---- one shadow token, popovers/modals only ---- */
+  --shadow-popover: 0 12px 32px -8px rgba(10, 14, 22, 0.18);
+
+  /* ---- motion ---- */
+  --ease-signal: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* ---- code syntax (light) ---- */
+  --code-keyword: #0f766e;
+  --code-string: #a16207;
+  --code-comment: #74808f;
+  --code-function: #1d4ed8;
+  --code-type: #6d28d9;
+  --code-number: #b45309;
+  --code-punct: #414c5c;
+  --code-plain: #1f2733;
+  --code-diff-add: rgba(4, 120, 87, 0.1);
+  --code-diff-del: rgba(185, 28, 28, 0.08);
+  --code-hl: rgba(4, 120, 87, 0.07);
+}
+
+.dark {
+  /* ---- surfaces (dark) ---- */
+  --bg-base: #0a0c10;
+  --bg-surface: #10131a;
+  --bg-raised: #161a23;
+  --bg-inset: #07090d;
+  --border-subtle: #1c212b;
+  --border-strong: #2a3140;
+
+  /* ---- text (dark) ---- */
+  --text-primary: #e8eaed;
+  --text-secondary: #9aa3b2;
+  --text-muted: #7a8494;
+  --text-on-inset: #e8eaed;
+  --text-muted-on-inset: #8b95a7;
+
+  /* ---- brand accent ---- */
+  --accent: #4ade80;
+  --accent-bright: #4ade80;
+  --accent-contrast: #052e16;
+  --accent-dim: rgba(74, 222, 128, 0.12);
+  --accent-rail: rgba(74, 222, 128, 0.6);
+
+  /* ---- provider accents ---- */
+  --aws: #f5a623;
+  --azure: #4c8dff;
+  --gcp: #3dbe6c;
+  --aws-vivid: #f5a623;
+  --azure-vivid: #4c8dff;
+  --gcp-vivid: #3dbe6c;
+  --aws-dim: rgba(245, 166, 35, 0.12);
+  --azure-dim: rgba(76, 141, 255, 0.12);
+  --gcp-dim: rgba(61, 190, 108, 0.12);
+
+  /* ---- callout / status semantics ---- */
+  --ok: #4ade80;
+  --warn: #fbbf24;
+  --error: #f87171;
+  --info: #60a5fa;
+  --ok-dim: rgba(74, 222, 128, 0.1);
+  --warn-dim: rgba(251, 191, 36, 0.1);
+  --error-dim: rgba(248, 113, 113, 0.1);
+  --info-dim: rgba(96, 165, 250, 0.1);
+
+  --shadow-popover: 0 16px 40px -12px rgba(0, 0, 0, 0.6);
+
+  /* ---- code syntax (dark) ---- */
+  --code-keyword: #5eead4;
+  --code-string: #e3b341;
+  --code-comment: #7a8494;
+  --code-function: #93c5fd;
+  --code-type: #c4b5fd;
+  --code-number: #fdba74;
+  --code-punct: #9aa3b2;
+  --code-plain: #dce1e8;
+  --code-diff-add: rgba(74, 222, 128, 0.12);
+  --code-diff-del: rgba(248, 113, 113, 0.1);
+  --code-hl: rgba(74, 222, 128, 0.08);
+}

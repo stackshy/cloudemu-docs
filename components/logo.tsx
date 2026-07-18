@@ -91,11 +91,8 @@ export function LogoMark({
         height={iconPx}
         style={{ width: iconPx, height: iconPx, flexShrink: 0, display: 'block' }}
       />
-      <span className={`font-bold ${textCls} tracking-tight`}>
-        <span className="bg-gradient-to-r from-sky-400 to-violet-500 bg-clip-text text-transparent">
-          cloud
-        </span>
-        emu
+      <span className={`font-bold ${textCls} tracking-tight text-ink`}>
+        cloud<span className="text-signal">emu</span>
       </span>
     </span>
   );

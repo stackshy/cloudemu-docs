@@ -1,9 +1,406 @@
 @import 'tailwindcss';
+@import './tokens.css';
 @import 'fumadocs-ui/css/neutral.css';
 @import 'fumadocs-ui/css/preset.css';
 
-@theme {
-  --color-aws: #FF9900;
-  --color-azure: #0078D4;
-  --color-gcp: #4285F4;
+/* ------------------------------------------------------------------ */
+/* Tailwind theme mapping — utilities reference tokens, never raw hex  */
+/* ------------------------------------------------------------------ */
+
+@theme inline {
+  --font-sans: var(--font-instrument-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, 'SF Mono', monospace;
+
+  --color-base: var(--bg-base);
+  --color-surface: var(--bg-surface);
+  --color-raised: var(--bg-raised);
+  --color-inset: var(--bg-inset);
+  --color-line: var(--border-subtle);
+  --color-line-strong: var(--border-strong);
+  --color-ink: var(--text-primary);
+  --color-ink-secondary: var(--text-secondary);
+  --color-ink-muted: var(--text-muted);
+  --color-ink-inset: var(--text-on-inset);
+  --color-ink-inset-muted: var(--text-muted-on-inset);
+  --color-signal: var(--accent);
+  --color-signal-contrast: var(--accent-contrast);
+  --color-aws: var(--aws);
+  --color-azure: var(--azure);
+  --color-gcp: var(--gcp);
+  --color-ok: var(--ok);
+  --color-warn: var(--warn);
+  --color-error: var(--error);
+  --color-info: var(--info);
+}
+
+/* ------------------------------------------------------------------ */
+/* Fumadocs shell retint — every fd surface consumes our tokens        */
+/* ------------------------------------------------------------------ */
+
+:root {
+  --color-fd-background: var(--bg-base);
+  --color-fd-foreground: var(--text-primary);
+  --color-fd-muted: var(--bg-raised);
+  --color-fd-muted-foreground: var(--text-muted);
+  --color-fd-popover: var(--bg-surface);
+  --color-fd-popover-foreground: var(--text-primary);
+  --color-fd-card: var(--bg-surface);
+  --color-fd-card-foreground: var(--text-primary);
+  --color-fd-border: var(--border-subtle);
+  --color-fd-primary: var(--accent);
+  --color-fd-primary-foreground: var(--accent-contrast);
+  --color-fd-secondary: var(--bg-raised);
+  --color-fd-secondary-foreground: var(--text-secondary);
+  --color-fd-accent: var(--accent-dim);
+  --color-fd-accent-foreground: var(--text-primary);
+  --color-fd-ring: var(--accent);
+  --color-fd-info: var(--info);
+  --color-fd-warning: var(--warn);
+  --color-fd-error: var(--error);
+  --color-fd-success: var(--ok);
+}
+
+.dark #nd-sidebar {
+  --color-fd-muted: var(--bg-raised);
+  --color-fd-secondary: var(--bg-raised);
+  --color-fd-muted-foreground: var(--text-muted);
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--bg-base);
+  color: var(--text-primary);
+  text-rendering: optimizeLegibility;
+}
+
+code,
+pre,
+kbd,
+samp {
+  font-family: var(--font-mono);
+}
+
+/* Signature texture: sub-perceptual dot grid on the page canvas only.  */
+.dark body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: radial-gradient(var(--text-muted) 1px, transparent 1px);
+  background-size: 28px 28px;
+  opacity: 0.03;
+}
+
+/* ------------------------------------------------------------------ */
+/* Focus + motion                                                      */
+/* ------------------------------------------------------------------ */
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Shared primitives (used site-wide)                                  */
+/* ------------------------------------------------------------------ */
+
+/* Mono eyebrow label — the identity treatment for section markers */
+.u-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+
+/* The one inline-code chip style */
+.u-chip-code,
+.prose :not(pre) > code {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  background: var(--bg-raised);
+  border: 1px solid var(--border-subtle);
+  border-radius: 3px;
+  padding: 0.1em 0.35em;
+  color: var(--text-primary);
+}
+
+/* Buttons */
+.u-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+  border-radius: 6px;
+  padding: 0.625rem 1.25rem;
+  transition:
+    transform 150ms var(--ease-signal),
+    box-shadow 150ms var(--ease-signal),
+    background-color 150ms var(--ease-signal),
+    border-color 150ms var(--ease-signal);
+}
+.u-btn:active {
+  transform: scale(0.98);
+}
+.u-btn-primary {
+  background: var(--accent);
+  color: var(--accent-contrast);
+}
+.u-btn-primary:hover {
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.25);
+}
+.u-btn-secondary {
+  border: 1px solid var(--border-strong);
+  color: var(--text-primary);
+  background: transparent;
+}
+.u-btn-secondary:hover {
+  background: var(--bg-surface);
+  border-color: var(--text-muted);
+  box-shadow: inset 0 0 0 1px var(--accent-dim);
+}
+
+/* Wire-draw reveal — the site's motion signature */
+@keyframes u-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.u-reveal {
+  opacity: 0;
+}
+.u-reveal[data-inview='true'] {
+  animation: u-rise 300ms var(--ease-signal) forwards;
+}
+
+@keyframes u-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* Breathing status dot (coverage matrix) */
+@keyframes u-breathe {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+@keyframes u-blink {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Docs shell (Phase 3)                                                */
+/* ------------------------------------------------------------------ */
+
+/* Sidebar: mono group labels, accent rail on the active item */
+#nd-sidebar {
+  background: var(--bg-base);
+}
+#nd-sidebar [data-radix-collection-item] > p,
+#nd-sidebar p.u-sidebar-group {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+#nd-sidebar a {
+  position: relative;
+  font-size: 14px;
+  transition:
+    color 150ms var(--ease-signal),
+    background-color 150ms var(--ease-signal);
+}
+#nd-sidebar a[data-active='true'] {
+  color: var(--accent);
+  background: var(--accent-dim);
+}
+#nd-sidebar a[data-active='true']::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 6px;
+  bottom: 6px;
+  width: 2px;
+  border-radius: 1px;
+  background: var(--accent);
+}
+
+/* TOC: mono eyebrow + accent scroll-spy */
+#nd-toc {
+  font-size: 13px;
+}
+#nd-toc h3,
+#nd-toc [data-toc-header],
+#nd-toc .u-toc-title {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+#nd-toc a {
+  transition: color 150ms var(--ease-signal);
+}
+#nd-toc a[data-active='true'] {
+  color: var(--accent);
+}
+
+/* Prose: measure, h2 accent top-rule, anchors */
+.prose {
+  max-width: 70ch;
+  line-height: 1.7;
+}
+.prose h1 {
+  letter-spacing: -0.02em;
+}
+.prose h2 {
+  position: relative;
+  padding-top: 0.85rem;
+  letter-spacing: -0.01em;
+}
+.prose h2::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 24px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--accent);
+}
+.prose a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: color-mix(in srgb, var(--accent) 40%, transparent);
+  transition: text-decoration-color 150ms var(--ease-signal);
+}
+.prose a:hover {
+  text-decoration-color: var(--accent);
+}
+
+/* Tables: mono header, horizontal rules only, hover wash */
+.prose table {
+  font-size: 0.875rem;
+}
+.prose thead th {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 500;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border-strong);
+}
+.prose tbody td {
+  border-bottom: 1px solid var(--border-subtle);
+}
+.prose tbody tr {
+  transition: background-color 150ms var(--ease-signal);
+}
+.prose tbody tr:hover {
+  background: var(--bg-surface);
+}
+.prose table code {
+  white-space: nowrap;
+}
+
+/* ------------------------------------------------------------------ */
+/* Code blocks (Phase 2) — chrome for the fumadocs/shiki pipeline      */
+/* ------------------------------------------------------------------ */
+
+.prose figure[data-rehype-pretty-code-figure],
+.prose figure.shiki,
+.u-codeblock {
+  background: var(--bg-raised);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+}
+
+.shiki {
+  background: transparent !important;
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+/* line highlight: accent wash + left rail */
+.shiki .line.highlighted,
+.shiki [data-highlighted-line] {
+  background: var(--code-hl);
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+
+/* diff */
+.shiki .line.diff.add {
+  background: var(--code-diff-add);
+  box-shadow: inset 2px 0 0 var(--ok);
+}
+.shiki .line.diff.remove {
+  background: var(--code-diff-del);
+  box-shadow: inset 2px 0 0 var(--error);
+  opacity: 0.75;
+}
+
+/* focus: dim everything that is not focused */
+.shiki.has-focused .line:not(.focused) {
+  opacity: 0.4;
+  filter: saturate(0.6);
+  transition: opacity 250ms var(--ease-signal);
+}
+.shiki.has-focused:hover .line:not(.focused) {
+  opacity: 1;
+  filter: none;
+}
+
+/* Provider tab tinting for fumadocs Tabs (groupId="provider") */
+.u-provider-tabs [role='tab'] {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+}
+.u-provider-tabs [role='tab'][data-state='active'][data-provider='aws'] {
+  color: var(--aws);
+  box-shadow: inset 0 -2px 0 var(--aws-vivid);
+}
+.u-provider-tabs [role='tab'][data-state='active'][data-provider='azure'] {
+  color: var(--azure);
+  box-shadow: inset 0 -2px 0 var(--azure-vivid);
+}
+.u-provider-tabs [role='tab'][data-state='active'][data-provider='gcp'] {
+  color: var(--gcp);
+  box-shadow: inset 0 -2px 0 var(--gcp-vivid);
 }
