@@ -2,9 +2,6 @@
 title: Network Topology
 description: Simulate real network reachability across VPCs, peering, security groups, ACLs, and routes so you can test connectivity logic without a cloud
 ---
-
-# Network Topology
-
 cloudemu can evaluate **actual network reachability** between your emulated resources. It reads the compute, networking, and DNS drivers and answers three questions the way a real cloud network would: *can these two instances talk?*, *what path does traffic take?*, and *what does this hostname resolve to?*
 
 This lets you unit-test firewall rules, security-group changes, routing, and DNS wiring deterministically — no VPCs to stand up, no cloud account.

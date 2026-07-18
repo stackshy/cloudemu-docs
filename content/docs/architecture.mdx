@@ -2,9 +2,6 @@
 title: Architecture
 description: How cloudemu serves real cloud SDKs from an in-memory backend
 ---
-
-# Architecture
-
 cloudemu's primary surface is the **SDK-compatible HTTP server** — a layer that speaks each cloud's real wire protocol so unmodified SDK clients can drive the in-memory backend. Underneath sits a small, deliberately boring three-layer core.
 
 ```
@@ -23,7 +20,7 @@ Provider Mocks           ←  in-memory backends (AWS/Azure/GCP) using generic m
 
 The driver layer is the load-bearing contract. The HTTP server, Portable API, Chaos engine, and Topology engine all wrap or consume drivers — so a new feature lights up across every consumer at once.
 
-## Layer 1: Provider Mocks
+## Layer 1: provider mocks
 
 The bottom layer contains the actual in-memory implementations for each cloud provider. Each provider (AWS, Azure, GCP) exposes its services as typed fields.
 
@@ -47,7 +44,7 @@ type Provider struct {
 
 All mocks are backed by a generic, thread-safe `memstore.Store[V]` — an in-memory key-value store. Services are wired together at initialization (e.g. EC2 emits metrics into CloudWatch automatically).
 
-## Layer 2: Driver Interfaces
+## Layer 2: driver interfaces
 
 Each service category defines a minimal Go interface that all providers implement:
 
@@ -63,7 +60,7 @@ type Compute interface {
 
 The driver is the contract — every consumer above this line sees the same interface, regardless of which provider is underneath.
 
-## Layer 3: SDK-Compat HTTP Server (the primary surface)
+## Layer 3: SDK-compat HTTP server (the primary surface)
 
 The `server/` package wraps drivers with handlers that speak each cloud's real wire protocol. Pointing a real SDK client at a local `httptest.NewServer` is the recommended way to use cloudemu:
 
@@ -82,7 +79,7 @@ client.PutObject(ctx, &s3.PutObjectInput{ /* real production code */ })
 
 Each handler is a self-contained package (`server/aws/s3`, `server/azure/cosmos`, `server/gcp/pubsub`, …). Adding a new service is one new package + one `Register` call — the core never changes. See [SDK-Compatible Server](/docs/sdk-compat) for the full coverage matrix and quick starts.
 
-## Alternative: Portable Go API
+## Alternative: portable Go API
 
 For in-process tests, code that doesn't go through an SDK, or domains where SDK-compat isn't shipped yet (DNS, Load Balancer, Notification, Event Bus, Cache, Secrets, Logging), call the driver directly through the [Portable Go API](/docs/portable-api):
 

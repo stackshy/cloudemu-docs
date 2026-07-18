@@ -2,15 +2,12 @@
 title: Installation
 description: How to install cloudemu in your Go project
 ---
-
-# Installation
-
 <Callout type="warn" title="Migrating to v2">
   As of **v2.0.0**, the module path is <code>github.com/stackshy/cloudemu/v2</code> and the public
   packages are grouped by role. If you are upgrading from v1, see [Migrating to v2](#migrating-to-v2) below.
 </Callout>
 
-## Install the Package
+## Install the package
 
 Add cloudemu to your Go module:
 
@@ -20,7 +17,7 @@ go get github.com/stackshy/cloudemu/v2
 
 This installs the library and all service packages. There are no external dependencies beyond the Go standard library.
 
-## Verify Installation
+## Verify installation
 
 Create a simple test file to verify everything works:
 
@@ -62,7 +59,7 @@ go test -v ./...
 
 If you see `PASS`, cloudemu is ready to use.
 
-## Import Paths
+## Import paths
 
 The main package and common sub-packages:
 
@@ -97,11 +94,9 @@ go get github.com/stackshy/cloudemu/v2@v2.0.0
 
 Add the `/v2` suffix and point service packages at their new homes:
 
-```go
-// before
-import "github.com/stackshy/cloudemu/storage"
-// after
-import "github.com/stackshy/cloudemu/v2/services/storage"
+```go title="imports.go"
+import "github.com/stackshy/cloudemu/storage" // [!code --]
+import "github.com/stackshy/cloudemu/v2/services/storage" // [!code ++]
 ```
 
 Where packages moved:
@@ -119,7 +114,7 @@ Where packages moved:
   imports under `services/` and the cross-cutting wrappers under `features/`.
 </Callout>
 
-## Next Steps
+## Next steps
 
 - [Quick Start](/docs/quick-start) — build a complete example
 - [Configuration](/docs/configuration) — customize your providers

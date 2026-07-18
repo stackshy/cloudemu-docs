@@ -12,23 +12,35 @@ const posts = [
 
 export default function BlogPage() {
   return (
-    <main className="max-w-3xl mx-auto px-6 py-16">
-      <h1 className="text-4xl font-bold mb-2">Blog</h1>
-      <p className="text-fd-muted-foreground mb-10">
-        Updates, tutorials, and insights from the cloudemu team
+    <main className="mx-auto w-full max-w-3xl px-6 py-16">
+      <p className="u-eyebrow mb-3">
+        blog
       </p>
-      <div className="flex flex-col gap-6">
+      <h1 className="text-[32px] font-semibold leading-[1.25] tracking-[-0.02em] text-ink">
+        Blog
+      </h1>
+      <p className="mt-2 text-ink-2">
+        Updates, tutorials, and engineering notes from cloudemu.
+      </p>
+
+      <div className="mt-12 flex flex-col">
         {posts.map((post) => (
           <Link
             key={post.slug}
             href={`/blog/${post.slug}`}
-            className="group block rounded-xl border border-fd-border bg-fd-card p-6 hover:border-fd-primary/50 hover:shadow-md transition-all"
+            className="group grid grid-cols-1 gap-1 border-t border-line py-7 transition-colors last:border-b sm:grid-cols-[8.5rem_1fr] sm:gap-6"
           >
-            <time className="text-sm text-fd-muted-foreground">{post.date}</time>
-            <h2 className="text-xl font-semibold mt-1 group-hover:text-fd-primary transition-colors">
-              {post.title}
-            </h2>
-            <p className="text-fd-muted-foreground mt-2">{post.description}</p>
+            <time className="pt-1 font-mono text-xs uppercase tracking-[0.06em] text-ink-3">
+              {post.date}
+            </time>
+            <div>
+              <h2 className="text-xl font-semibold tracking-[-0.01em] text-ink">
+                {post.title}
+              </h2>
+              <p className="mt-1.5 leading-relaxed text-ink-2">
+                {post.description}
+              </p>
+            </div>
           </Link>
         ))}
       </div>

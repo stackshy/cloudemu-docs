@@ -1,0 +1,145 @@
+/**
+ * tokens.css — single source of truth for every color/surface/type token.
+ * No raw hex in components; everything references these variables.
+ *
+ * Philosophy: quiet interface, loud content. Near-monochrome surfaces,
+ * one cool accent (--accent) whose use is restricted to: link hover/active,
+ * the 2px active rail (sidebar/TOC), focus rings, the primary button, and
+ * one live element in the hero diagram. Nothing else.
+ *
+ * Dark is the primary theme (.dark); light (:root) is a full first-class pass.
+ */
+
+:root {
+  /* ---- surfaces (light) ---- */
+  --bg: #fafaf9; /* paper */
+  --bg-2: #ffffff; /* sidebar, cards */
+  --bg-3: #f1f1ef; /* code blocks, popovers */
+  --border: #e4e4e1;
+  --border-2: #cfcfca; /* hover/strong */
+
+  /* ---- text (light) ---- */
+  --text-1: #17191c; /* ink — headings, primary */
+  --text-2: #494f57; /* body secondary */
+  --text-3: #6c7178; /* muted, labels */
+
+  /* ---- the one accent (darker in light mode to hold 4.5:1 on paper) ---- */
+  --accent: #1d6fd1;
+  --accent-bg: rgba(29, 111, 209, 0.08);
+  --accent-ink: #ffffff; /* text on solid accent */
+
+  /* ---- provider colors (semantic only: tabs, chips, dots, wires) ---- */
+  --aws: #96610a;
+  --azure: #2b48c6; /* deeper indigo — never confusable with --accent */
+  --gcp: #1e7a44;
+
+  /* ---- status semantics ---- */
+  --ok: #1e7a44;
+  --warn: #92600e;
+  --danger: #bd3934;
+
+  /* ---- terminal pane: dark instrument screen in both themes ---- */
+  --terminal-bg: #08090b;
+  --terminal-ink: #d6dade;
+  --terminal-muted: #6b7482;
+
+  /* ---- one shadow token, modals/popovers only ---- */
+  --shadow-popover: 0 12px 32px -8px rgba(10, 14, 22, 0.16);
+
+  /* ---- motion ---- */
+  --ease-out: cubic-bezier(0.25, 1, 0.5, 1);
+
+  /* ---- code syntax (light) — calm, low saturation ---- */
+  --code-plain: #24272c;
+  --code-keyword: #1f5fb8; /* cool blue */
+  --code-string: #8a6a2f; /* warm sand */
+  --code-comment: #6c7178; /* muted italic */
+  --code-function: #17191c; /* text-1 */
+  --code-type: #494f57;
+  --code-number: #8a6a2f;
+  --code-punct: #5b6169;
+  --code-diff-add: rgba(30, 122, 68, 0.08);
+  --code-diff-del: rgba(189, 57, 52, 0.08);
+  --code-hl: var(--accent-bg);
+}
+
+.dark {
+  /* ---- surfaces (dark) ---- */
+  --bg: #0b0d10;
+  --bg-2: #111418;
+  --bg-3: #171b21;
+  --border: #21262e;
+  --border-2: #2e3540;
+
+  /* ---- text (dark) ---- */
+  --text-1: #f2f4f6;
+  --text-2: #a9b1bc;
+  --text-3: #6b7482;
+
+  /* ---- accent: ice blue ---- */
+  --accent: #52a9ff;
+  --accent-bg: rgba(82, 169, 255, 0.1);
+  --accent-ink: #0b0d10;
+
+  /* ---- provider colors ---- */
+  --aws: #e8912d;
+  --azure: #2f6feb;
+  --gcp: #3ba55d;
+
+  /* ---- status semantics ---- */
+  --ok: #3ba55d;
+  --warn: #d9a03f;
+  --danger: #e5534b;
+
+  --shadow-popover: 0 16px 40px -12px rgba(0, 0, 0, 0.6);
+
+  /* ---- code syntax (dark) ---- */
+  --code-plain: #d5dae0;
+  --code-keyword: #7eb6ff; /* cool blue */
+  --code-string: #c9a97c; /* warm sand */
+  --code-comment: #6b7482; /* muted italic */
+  --code-function: #f2f4f6; /* text-1 */
+  --code-type: #a9b1bc;
+  --code-punct: #8b93a0;
+  --code-number: #c9a97c;
+  --code-diff-add: rgba(59, 165, 93, 0.1);
+  --code-diff-del: rgba(229, 83, 75, 0.1);
+  --code-hl: var(--accent-bg);
+}
+
+/* ------------------------------------------------------------------ */
+/* Compatibility aliases — legacy names consumed by components not yet */
+/* rebuilt on the new token set. Remove once the rollout completes.    */
+/* ------------------------------------------------------------------ */
+
+:root,
+.dark {
+  --bg-base: var(--bg);
+  --bg-surface: var(--bg-2);
+  --bg-raised: var(--bg-3);
+  --bg-inset: var(--terminal-bg);
+  --border-subtle: var(--border);
+  --border-strong: var(--border-2);
+  --text-primary: var(--text-1);
+  --text-secondary: var(--text-2);
+  --text-muted: var(--text-3);
+  --text-on-inset: var(--terminal-ink);
+  --text-muted-on-inset: var(--terminal-muted);
+  --accent-bright: var(--accent);
+  --accent-contrast: var(--accent-ink);
+  --accent-dim: var(--accent-bg);
+  --accent-rail: var(--accent);
+  --aws-vivid: var(--aws);
+  --azure-vivid: var(--azure);
+  --gcp-vivid: var(--gcp);
+  --aws-dim: color-mix(in srgb, var(--aws) 10%, transparent);
+  --azure-dim: color-mix(in srgb, var(--azure) 10%, transparent);
+  --gcp-dim: color-mix(in srgb, var(--gcp) 10%, transparent);
+  --ok-dim: color-mix(in srgb, var(--ok) 9%, transparent);
+  --warn-dim: color-mix(in srgb, var(--warn) 9%, transparent);
+  --error-dim: color-mix(in srgb, var(--danger) 9%, transparent);
+  --info-dim: var(--accent-bg);
+  --error: var(--danger);
+  --info: var(--text-3); /* plain notes are neutral, not colored */
+  --ease-signal: var(--ease-out);
+}

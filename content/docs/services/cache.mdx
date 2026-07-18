@@ -1,25 +1,24 @@
 ---
 title: Cache
 description: In-memory cache with TTL support
+aws: ElastiCache
+azure: Cache for Redis
+gcp: Memorystore
 ---
 
-# Cache
+## Overview
 
-> **SDK-compat status:** _Portable Go API only._ ElastiCache / Azure Cache for Redis / Memorystore expose Redis or Memcached _wire_ protocols, which are out of scope for HTTP-based SDK-compat. The cache management APIs may get SDK-compat handlers in a future phase. The full driver semantics (Get/Set/TTL expiry/eviction) are already available through the Portable Go API below.
+Emulates cache services: **ElastiCache** (AWS), **Cache** (Azure), **Memorystore** (GCP). The full driver semantics — Get/Set, TTL expiry, eviction — are available through the Portable Go API.
 
-Emulates cache services: **ElastiCache** (AWS), **Cache** (Azure), **Memorystore** (GCP).
+| Provider | Service | SDK-compat | Driver |
+|----------|---------|:----------:|--------|
+| AWS | ElastiCache | — | `aws.ElastiCache` |
+| Azure | Cache for Redis | — | `azure.Cache` |
+| GCP | Memorystore | — | `gcp.Memorystore` |
 
-## Provider Mapping
+## Examples
 
-| Provider | Service | Access |
-|----------|---------|--------|
-| AWS | ElastiCache | `aws.ElastiCache` |
-| Azure | Cache for Redis | `azure.Cache` |
-| GCP | Memorystore | `gcp.Memorystore` |
-
-## Key Operations
-
-### Basic Operations
+Create a cache instance, then set, get, and delete values:
 
 ```go
 import cachedriver "github.com/stackshy/cloudemu/v2/services/cache/driver"
@@ -40,7 +39,8 @@ data, _ := aws.ElastiCache.Get(ctx, "session-cache", "user:123")
 aws.ElastiCache.Delete(ctx, "session-cache", "user:123")
 ```
 
-## Realistic Behaviors
+## Notes
 
-- **TTL expiry**: cached items are automatically expired after their TTL, with lazy cleanup on read
-- **Thread-safe**: all cache operations are safe for concurrent access
+- **SDK-compat status:** Portable Go API only. ElastiCache / Azure Cache for Redis / Memorystore expose Redis or Memcached _wire_ protocols, which are out of scope for HTTP-based SDK-compat. The cache management APIs may get SDK-compat handlers in a future phase.
+- **TTL expiry:** cached items are automatically expired after their TTL, with lazy cleanup on read.
+- **Thread-safe:** all cache operations are safe for concurrent access.

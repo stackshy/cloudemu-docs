@@ -55,8 +55,19 @@ export default function CustomSearchDialog(props: SharedProps) {
             )
           }
         />
+        <SearchDialogFooter className="flex items-center gap-3 font-mono text-[11px] text-ink-3">
+        <span className="flex items-center gap-1">
+          <kbd>↑</kbd>
+          <kbd>↓</kbd> navigate
+        </span>
+        <span className="flex items-center gap-1">
+          <kbd>↵</kbd> open
+        </span>
+        <span className="flex items-center gap-1">
+          <kbd>esc</kbd> close
+        </span>
+        </SearchDialogFooter>
       </SearchDialogContent>
-      <SearchDialogFooter />
     </SearchDialog>
   );
 }

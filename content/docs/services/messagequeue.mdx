@@ -1,9 +1,12 @@
 ---
 title: Message Queue
-description: Queues — drive SQS / Service Bus / Pub/Sub with the real SDK
+description: Emulated message queues for SQS, Service Bus, and Pub/Sub
+aws: SQS
+azure: Service Bus
+gcp: Pub/Sub
 ---
 
-# Message Queue
+## Overview
 
 Emulates message queues: **SQS** (AWS), **Service Bus** (Azure), **Pub/Sub** (GCP).
 
@@ -13,7 +16,9 @@ Emulates message queues: **SQS** (AWS), **Service Bus** (Azure), **Pub/Sub** (GC
 | Azure | Service Bus (ARM control plane + REST data plane) | ✓ Live | `azure.ServiceBus` |
 | GCP | Pub/Sub (REST) | ✓ Live | `gcp.PubSub` |
 
-## Use the real SDK (recommended)
+## Examples
+
+Drive the emulator with the real SDK (recommended):
 
 ```go
 import (
@@ -47,21 +52,9 @@ client.DeleteMessage(ctx, &sqs.DeleteMessageInput{
 
 Same pattern with `armservicebus` (Azure ARM control plane) + raw HTTP for Service Bus data plane (the modern `azservicebus` SDK is AMQP-only and out of scope), and `google.golang.org/api/pubsub/v1` for GCP Pub/Sub. See [SDK-Compat Server](/docs/sdk-compat).
 
-### Operations supported via SDK-compat
+### Portable Go API
 
-**SQS:** CreateQueue, GetQueueUrl, ListQueues, DeleteQueue, SendMessage, ReceiveMessage, DeleteMessage.
-
-**Service Bus:** ARM `Microsoft.ServiceBus/namespaces[/queues]` CRUD + raw-HTTP REST data plane (`POST /{ns}/{queue}/messages`, `DELETE /messages/head`).
-
-**Pub/Sub:** Topics + Subscriptions lifecycle, `:publish`, `:pull`, `:acknowledge`.
-
-## Realistic behaviors
-
-- **FIFO deduplication**: FIFO queues enforce 5-minute deduplication windows using `MessageDeduplicationId`.
-- **Visibility timeout**: received messages are invisible to other consumers until the timeout expires or the message is deleted.
-- **Dead-letter queues**: messages exceeding `MaxReceiveCount` move to the configured DLQ automatically.
-
-## Alternative: Portable Go API
+The same driver is available through the portable API:
 
 ```go
 import mqdriver "github.com/stackshy/cloudemu/v2/services/messagequeue/driver"
@@ -74,5 +67,21 @@ msgs, _ := aws.SQS.ReceiveMessages(ctx, mqdriver.ReceiveMessageInput{
     QueueURL: q.URL, MaxMessages: 1,
 })
 ```
+
+## Notes
+
+### Operations supported via SDK-compat
+
+**SQS:** CreateQueue, GetQueueUrl, ListQueues, DeleteQueue, SendMessage, ReceiveMessage, DeleteMessage.
+
+**Service Bus:** ARM `Microsoft.ServiceBus/namespaces[/queues]` CRUD + raw-HTTP REST data plane (`POST /{ns}/{queue}/messages`, `DELETE /messages/head`).
+
+**Pub/Sub:** Topics + Subscriptions lifecycle, `:publish`, `:pull`, `:acknowledge`.
+
+### Realistic behaviors
+
+- **FIFO deduplication**: FIFO queues enforce 5-minute deduplication windows using `MessageDeduplicationId`.
+- **Visibility timeout**: received messages are invisible to other consumers until the timeout expires or the message is deleted.
+- **Dead-letter queues**: messages exceeding `MaxReceiveCount` move to the configured DLQ automatically.
 
 The Portable API also exposes batch ops, ChangeMessageVisibility, queue attributes, and PurgeQueue, which are not yet on the SDK-compat surface.

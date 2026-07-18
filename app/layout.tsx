@@ -1,11 +1,23 @@
 import './global.css';
 import { RootProvider } from 'fumadocs-ui/provider/next';
-import { Banner } from 'fumadocs-ui/components/banner';
-import { Logo } from '@/components/logo';
-import Link from 'next/link';
+import { Instrument_Sans, JetBrains_Mono } from 'next/font/google';
 import type { ReactNode } from 'react';
 import type { Metadata } from 'next';
 import CustomSearchDialog from '@/components/search-dialog';
+import { AnnouncementBanner } from '@/components/announcement-banner';
+import { MotionProvider } from '@/components/motion-provider';
+
+const sans = Instrument_Sans({
+  subsets: ['latin'],
+  variable: '--font-instrument-sans',
+  display: 'swap',
+});
+
+const mono = JetBrains_Mono({
+  subsets: ['latin'],
+  variable: '--font-jetbrains-mono',
+  display: 'swap',
+});
 
 export const metadata: Metadata = {
   title: {
@@ -24,40 +36,32 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html
+      lang="en"
+      suppressHydrationWarning
+      className={`${sans.variable} ${mono.variable}`}
+    >
       <body>
+        <a
+          href="#nd-page"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded focus:bg-surface focus:px-3 focus:py-2 focus:font-mono focus:text-xs"
+        >
+          Skip to content
+        </a>
         <RootProvider
           theme={{
             attribute: 'class',
-            defaultTheme: 'system',
+            defaultTheme: 'dark',
             enableSystem: true,
           }}
           search={{
             SearchDialog: CustomSearchDialog,
           }}
         >
-          <Banner id="cloudemu-v2-release" variant="rainbow" height="2.75rem">
-            <span className="inline-flex items-center gap-1.5">
-              <Logo
-                width={18}
-                height={18}
-                style={{ width: 18, height: 18 }}
-              />
-              <strong>cloudemu v2.0.0</strong> is here — packages are
-              reorganized and the import path is now{' '}
-              <code className="mx-0.5 rounded bg-black/15 px-1 py-0.5 font-mono text-[0.85em] dark:bg-white/15">
-                /v2
-              </code>
-              .{' '}
-              <Link
-                href="/docs/installation#migrating-to-v2"
-                className="font-semibold underline underline-offset-2 hover:no-underline"
-              >
-                Read the migration notes →
-              </Link>
-            </span>
-          </Banner>
-          {children}
+          <MotionProvider>
+            <AnnouncementBanner />
+            {children}
+          </MotionProvider>
         </RootProvider>
       </body>
     </html>

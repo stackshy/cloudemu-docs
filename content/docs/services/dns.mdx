@@ -1,15 +1,14 @@
 ---
 title: DNS
-description: DNS zones and records with weighted routing
+description: Emulated DNS zones and records with weighted routing
+aws: Route53
+azure: DNS
+gcp: Cloud DNS
 ---
 
-# DNS
-
-> **SDK-compat status:** _Portable Go API only._ Real `aws-sdk-go-v2/service/route53`, `armdns`, and Cloud DNS REST clients can't talk to cloudemu yet — DNS SDK-compat handlers will ship in lockstep across all 3 providers in a future phase. The full driver semantics (zones, records, weighted routing, hostname resolution) are already available through the Portable Go API below.
+## Overview
 
 Emulates DNS services: **Route53** (AWS), **DNS** (Azure), **CloudDNS** (GCP).
-
-## Provider Mapping
 
 | Provider | Service | Access |
 |----------|---------|--------|
@@ -17,7 +16,7 @@ Emulates DNS services: **Route53** (AWS), **DNS** (Azure), **CloudDNS** (GCP).
 | Azure | DNS | `azure.DNS` |
 | GCP | Cloud DNS | `gcp.CloudDNS` |
 
-## Key Operations
+## Examples
 
 ### Zones
 
@@ -44,6 +43,10 @@ aws.Route53.CreateRecord(ctx, dnsdriver.RecordConfig{
 
 records, _ := aws.Route53.ListRecords(ctx, zone.ID)
 ```
+
+## Notes
+
+> **SDK-compat status:** _Portable Go API only._ Real `aws-sdk-go-v2/service/route53`, `armdns`, and Cloud DNS REST clients can't talk to cloudemu yet — DNS SDK-compat handlers will ship in lockstep across all 3 providers in a future phase. The full driver semantics (zones, records, weighted routing, hostname resolution) are already available through the Portable Go API shown above.
 
 ### Weighted Routing
 

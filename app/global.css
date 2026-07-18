@@ -1,9 +1,616 @@
 @import 'tailwindcss';
+@import './tokens.css';
 @import 'fumadocs-ui/css/neutral.css';
 @import 'fumadocs-ui/css/preset.css';
 
-@theme {
-  --color-aws: #FF9900;
-  --color-azure: #0078D4;
-  --color-gcp: #4285F4;
+/* ------------------------------------------------------------------ */
+/* Tailwind theme mapping — utilities reference tokens, never raw hex  */
+/* ------------------------------------------------------------------ */
+
+@theme inline {
+  --font-sans: var(--font-instrument-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, 'SF Mono', monospace;
+
+  /* canonical */
+  --color-canvas: var(--bg);
+  --color-surface: var(--bg-2);
+  --color-raised: var(--bg-3);
+  --color-line: var(--border);
+  --color-line-2: var(--border-2);
+  --color-ink: var(--text-1);
+  --color-ink-2: var(--text-2);
+  --color-ink-3: var(--text-3);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-aws: var(--aws);
+  --color-azure: var(--azure);
+  --color-gcp: var(--gcp);
+  --color-ok: var(--ok);
+  --color-warn: var(--warn);
+  --color-danger: var(--danger);
+
+  /* legacy utility names still consumed by unmigrated components */
+  --color-base: var(--bg);
+  --color-inset: var(--terminal-bg);
+  --color-line-strong: var(--border-2);
+  --color-ink-secondary: var(--text-2);
+  --color-ink-muted: var(--text-3);
+  --color-ink-inset: var(--terminal-ink);
+  --color-ink-inset-muted: var(--terminal-muted);
+  --color-signal: var(--accent);
+  --color-signal-contrast: var(--accent-ink);
+  --color-error: var(--danger);
+  --color-info: var(--text-3);
+}
+
+/* ------------------------------------------------------------------ */
+/* Fumadocs shell retint — every fd surface consumes our tokens.       */
+/* fd-accent is a HOVER BACKGROUND in fumadocs: it must stay neutral.  */
+/* ------------------------------------------------------------------ */
+
+:root {
+  --color-fd-background: var(--bg);
+  --color-fd-foreground: var(--text-1);
+  --color-fd-muted: var(--bg-3);
+  --color-fd-muted-foreground: var(--text-3);
+  --color-fd-popover: var(--bg-2);
+  --color-fd-popover-foreground: var(--text-1);
+  --color-fd-card: var(--bg-2);
+  --color-fd-card-foreground: var(--text-1);
+  --color-fd-border: var(--border);
+  --color-fd-primary: var(--accent);
+  --color-fd-primary-foreground: var(--accent-ink);
+  --color-fd-secondary: var(--bg-3);
+  --color-fd-secondary-foreground: var(--text-2);
+  --color-fd-accent: var(--bg-3); /* neutral hover wash — never the accent */
+  --color-fd-accent-foreground: var(--text-1);
+  --color-fd-ring: var(--accent);
+  --color-fd-info: var(--text-3);
+  --color-fd-warning: var(--warn);
+  --color-fd-error: var(--danger);
+  --color-fd-success: var(--ok);
+  --color-fd-diff-remove: var(--code-diff-del);
+  --color-fd-diff-remove-symbol: var(--danger);
+  --color-fd-diff-add: var(--code-diff-add);
+  --color-fd-diff-add-symbol: var(--ok);
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--bg);
+  color: var(--text-1);
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+code,
+pre,
+kbd,
+samp {
+  font-family: var(--font-mono);
+}
+
+/* ------------------------------------------------------------------ */
+/* Focus + motion                                                      */
+/* ------------------------------------------------------------------ */
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Shared primitives                                                   */
+/* ------------------------------------------------------------------ */
+
+/* Mono label — 11px uppercase, muted. The only section-marker treatment. */
+.u-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-3);
+}
+
+/* The one inline-code chip: 0.875em, subtle — never dominates a sentence */
+.u-chip-code,
+.prose :not(pre) > code {
+  font-family: var(--font-mono);
+  font-size: 0.875em;
+  background: var(--bg-3);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.08em 0.3em;
+  color: var(--text-1);
+  font-weight: 400;
+}
+
+/* Buttons — max ONE solid-accent primary per viewport */
+.u-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 500;
+  font-size: 0.875rem;
+  border-radius: 6px;
+  padding: 0.55rem 1.1rem;
+  transition:
+    background-color 150ms var(--ease-out),
+    border-color 150ms var(--ease-out),
+    color 150ms var(--ease-out);
+}
+.u-btn-primary {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.u-btn-primary:hover {
+  background: color-mix(in srgb, var(--accent) 88%, var(--text-1));
+}
+.u-btn-secondary {
+  border: 1px solid var(--border-2);
+  color: var(--text-1);
+  background: transparent;
+}
+.u-btn-secondary:hover {
+  border-color: var(--text-3);
+  background: var(--bg-2);
+}
+
+/* Section entrance: single 8px fade-rise — subtle enough to miss */
+@keyframes u-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.u-reveal {
+  opacity: 0;
+}
+.u-reveal[data-inview='true'] {
+  animation: u-rise 250ms var(--ease-out) forwards;
+}
+
+@keyframes u-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Docs shell                                                          */
+/* ------------------------------------------------------------------ */
+
+/* Three-column shell: sidebar 260px / content / TOC 220px */
+@media (min-width: 48rem) {
+  #nd-docs-layout:has(#nd-sidebar) {
+    --fd-sidebar-width: 260px;
+  }
+}
+@media (min-width: 80rem) {
+  #nd-docs-layout:has(#nd-sidebar) {
+    --fd-toc-width: 220px;
+  }
+}
+
+/* Breadcrumb: mono, muted — the trailing item is never accent-colored */
+.u-breadcrumb,
+.u-breadcrumb a,
+.u-breadcrumb span {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-3) !important;
+  font-weight: 400 !important;
+}
+.u-breadcrumb a:hover {
+  color: var(--text-1) !important;
+}
+
+/* TOC title: ours only — the default icon+label h3 is replaced */
+#nd-toc #toc-title {
+  display: none;
+}
+.u-toc-title {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-3);
+}
+
+/* Numbered steps (Quick Start): mono numerals beside h2s */
+.u-steps {
+  counter-reset: step;
+}
+.u-steps h2::before {
+  counter-increment: step;
+  content: counter(step, decimal-leading-zero);
+  display: inline-block;
+  margin-right: 14px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--text-3);
+  transform: translateY(-2px);
+}
+
+/* Heading anchor: muted `#`, visible only while hovering the heading */
+.u-anchor {
+  margin-left: 0.4em;
+  font-weight: 400;
+  color: var(--text-3);
+  text-decoration: none;
+  opacity: 0;
+  transition: opacity 150ms var(--ease-out);
+}
+:is(h1, h2, h3, h4):hover > .u-anchor,
+.u-anchor:focus-visible {
+  opacity: 1;
+}
+
+/* Sidebar: bg-2 surface, mono group labels, neutral text; active item is
+   brighter text + a 2px accent rail + a faint accent wash. Never colored text. */
+#nd-sidebar {
+  background: var(--bg-2);
+  border-color: var(--border);
+}
+#nd-sidebar [data-radix-collection-item] > p,
+#nd-sidebar p.u-sidebar-group {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-3);
+}
+#nd-sidebar a {
+  position: relative;
+  font-size: 14px;
+  color: var(--text-2);
+  transition:
+    color 150ms var(--ease-out),
+    background-color 150ms var(--ease-out);
+}
+#nd-sidebar a:hover {
+  color: var(--text-1);
+}
+#nd-sidebar a[data-active='true'] {
+  color: var(--text-1);
+  background: var(--accent-bg);
+}
+#nd-sidebar a[data-active='true']::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 5px;
+  bottom: 5px;
+  width: 2px;
+  border-radius: 1px;
+  background: var(--accent);
+}
+
+/* TOC: mono header, neutral items; active = brighter text + 2px rail */
+#nd-toc {
+  font-size: 13px;
+}
+#nd-toc h3,
+#nd-toc [data-toc-header],
+#nd-toc .u-toc-title {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-3);
+}
+#nd-toc a {
+  position: relative;
+  color: var(--text-2);
+  transition: color 150ms var(--ease-out);
+}
+#nd-toc a:hover {
+  color: var(--text-1);
+}
+#nd-toc a[data-active='true'] {
+  color: var(--text-1);
+}
+#nd-toc a[data-active='true']::before {
+  content: '';
+  position: absolute;
+  left: -1px;
+  top: 4px;
+  bottom: 4px;
+  width: 2px;
+  border-radius: 1px;
+  background: var(--accent);
+}
+
+/* ------------------------------------------------------------------ */
+/* Prose — 16/1.75, 72ch, structure via space + hairlines, never color */
+/* ------------------------------------------------------------------ */
+
+.prose {
+  max-width: 72ch;
+  font-size: 16px;
+  line-height: 1.75;
+  color: var(--text-2);
+}
+.prose p {
+  margin-block: 20px;
+}
+.prose > :first-child {
+  margin-top: 0;
+}
+.prose :is(h1, h2, h3, h4) {
+  color: var(--text-1);
+  font-weight: 600;
+  text-decoration: none;
+}
+.prose h1 {
+  font-size: 32px;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+.prose h2 {
+  font-size: 22px;
+  letter-spacing: -0.01em;
+  margin-top: 48px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+}
+.prose h3 {
+  font-size: 17px;
+  margin-top: 32px;
+}
+
+/* Links in prose: same color as text, hairline underline; accent only on hover */
+.prose a {
+  color: var(--text-1);
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+  text-decoration-color: var(--border-2);
+  transition:
+    color 150ms var(--ease-out),
+    text-decoration-color 150ms var(--ease-out);
+}
+.prose a:hover {
+  color: var(--accent);
+  text-decoration-color: var(--accent);
+}
+
+/* Headings are never links in appearance — anchor `#` is muted, hover-only */
+.prose :is(h1, h2, h3, h4) a {
+  color: inherit;
+  font-weight: inherit;
+  text-decoration: none;
+}
+.prose :is(h1, h2, h3, h4) svg {
+  color: var(--text-3);
+}
+
+.prose blockquote {
+  border-left: 2px solid var(--border-2);
+  padding-left: 1rem;
+  font-style: italic;
+  color: var(--text-2);
+}
+
+/* Tables: mono muted header, hairline row rules only, quiet hover */
+.prose table {
+  font-size: 0.875rem;
+}
+.prose thead th {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 500;
+  color: var(--text-3);
+  border-bottom: 1px solid var(--border-2);
+}
+.prose tbody td {
+  border-bottom: 1px solid var(--border);
+}
+.prose tbody tr {
+  transition: background-color 150ms var(--ease-out);
+}
+.prose tbody tr:hover {
+  background: var(--bg-2);
+}
+.prose table code {
+  white-space: nowrap;
+}
+
+/* ------------------------------------------------------------------ */
+/* Code blocks — one component, every page                             */
+/* ------------------------------------------------------------------ */
+
+.prose figure[data-rehype-pretty-code-figure],
+.prose figure.shiki,
+.u-codeblock {
+  background: var(--bg-3);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.prose :is(.u-codeblock, .u-terminal) {
+  margin-block: 28px;
+}
+
+.shiki {
+  background: transparent !important;
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+/* line highlight: the one sanctioned accent use inside code */
+.shiki .line.highlighted,
+.shiki [data-highlighted-line] {
+  background: var(--code-hl) !important;
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+/* fumadocs draws its own half-opacity rail — ours replaces it */
+.shiki .highlighted::after {
+  display: none;
+}
+
+/* diff rails */
+.shiki .line.diff.add {
+  background: var(--code-diff-add);
+  box-shadow: inset 2px 0 0 var(--ok);
+}
+.shiki .line.diff.remove {
+  background: var(--code-diff-del);
+  box-shadow: inset 2px 0 0 var(--danger);
+  opacity: 0.75;
+}
+
+/* focus-dim: non-focused lines at 45% — never blur (fumadocs default) */
+.shiki.has-focused .line:not(.focused) {
+  opacity: 0.45;
+  filter: none !important;
+  transition: opacity 250ms var(--ease-out);
+}
+.shiki.has-focused:hover .line:not(.focused) {
+  opacity: 1;
+}
+
+/* Terminal panes: darker instrument screens in both themes.
+   The `$` prompt is muted (never accent) and drawn in CSS content, so
+   copied text never includes it. */
+.u-terminal .shiki code span {
+  color: var(--shiki-dark) !important;
+  font-style: var(--shiki-dark-font-style) !important;
+}
+.u-terminal .line {
+  padding-left: 1.1em !important;
+}
+.u-terminal .line::before {
+  content: '$';
+  position: absolute;
+  left: 0;
+  color: var(--terminal-muted);
+}
+.u-terminal .line:empty::before {
+  content: none;
+}
+
+/* Hand-tokenized code (landing panels) — same palette as Shiki */
+.tok-k {
+  color: var(--code-keyword);
+}
+.tok-s {
+  color: var(--code-string);
+}
+.tok-c {
+  color: var(--code-comment);
+  font-style: italic;
+}
+.tok-n {
+  color: var(--code-number);
+}
+.tok-t {
+  color: var(--code-type);
+}
+.tok-f {
+  color: var(--code-function);
+}
+.u-code-plain {
+  color: var(--code-plain);
+}
+
+/* Copy button injected onto raw-HTML code blocks (blog renderer) */
+.u-copywrap {
+  position: relative;
+}
+.u-copywrap .u-copybtn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: inline-flex;
+  padding: 6px;
+  border-radius: 4px;
+  color: var(--text-3);
+  background: var(--bg-3);
+  opacity: 0;
+  transition:
+    opacity 150ms var(--ease-out),
+    color 150ms var(--ease-out);
+}
+.u-copywrap:hover .u-copybtn,
+.u-copybtn:focus-visible {
+  opacity: 1;
+}
+.u-copybtn:hover {
+  color: var(--text-1);
+}
+
+/* Keyboard chips (search footer, shortcuts) */
+kbd {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  background: var(--bg-3);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 1px 5px;
+  color: var(--text-2);
+}
+
+/* Search dialog: bg-3 modal, mono input, accent rail on the selected row */
+[role='dialog'] input {
+  font-family: var(--font-mono);
+  font-size: 14px;
+}
+[role='dialog'] input::placeholder {
+  color: var(--text-3);
+}
+[role='dialog'][id^='radix'] {
+  background: var(--bg-3);
+  box-shadow: var(--shadow-popover);
+}
+[role='dialog'] button[aria-selected='true'] {
+  background: var(--accent-bg);
+  box-shadow: inset 2px 0 0 var(--accent);
+  border-radius: 6px;
+}
+/* match highlight: neutral emphasis, not accent link-text */
+[role='dialog'] .text-fd-primary {
+  color: var(--text-1);
+  font-weight: 600;
+  text-decoration-color: var(--border-2);
+}
+
+/* Provider tabs: mono labels; active = provider-color 2px underline + tint.
+   The ONLY place provider colors touch text. */
+.u-provider-tabs [role='tab'] {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+}
+.u-provider-tabs [role='tab'][data-state='active'][data-provider='aws'] {
+  color: var(--aws);
+  box-shadow: inset 0 -2px 0 var(--aws);
+}
+.u-provider-tabs [role='tab'][data-state='active'][data-provider='azure'] {
+  color: var(--azure);
+  box-shadow: inset 0 -2px 0 var(--azure);
+}
+.u-provider-tabs [role='tab'][data-state='active'][data-provider='gcp'] {
+  color: var(--gcp);
+  box-shadow: inset 0 -2px 0 var(--gcp);
 }

@@ -1,9 +1,12 @@
 ---
 title: Storage
-description: Object storage — S3, Azure Blob, GCS — drive it with the real cloud SDK
+description: Object storage emulation for S3, Azure Blob Storage, and GCS, driven with the real cloud SDKs.
+aws: S3
+azure: Blob Storage
+gcp: GCS
 ---
 
-# Storage
+## Overview
 
 Emulates object storage: **S3** (AWS), **Blob Storage** (Azure), **GCS** (GCP).
 
@@ -13,9 +16,9 @@ Emulates object storage: **S3** (AWS), **Blob Storage** (Azure), **GCS** (GCP).
 | Azure | Blob Storage | ✓ Live | `azure.BlobStorage` |
 | GCP | GCS | ✓ Live | `gcp.GCS` |
 
-## Use the real SDK (recommended)
+## Examples
 
-Drop the SDK-compat server in front of cloudemu and call your existing production code unchanged.
+The recommended path is to drop the SDK-compat server in front of cloudemu and call your existing production code unchanged:
 
 ```go
 import (
@@ -47,11 +50,7 @@ out, _ := client.GetObject(ctx, &s3.GetObjectInput{
 
 The same pattern works with `armappservice` / `azblob` (Azure) and `cloud.google.com/go/storage` (GCP). See the [SDK-Compat Server page](/docs/sdk-compat#quick-start-azure) for full quick starts per provider.
 
-### Operations supported via SDK-compat
-
-CreateBucket, DeleteBucket, ListBuckets, PutObject, GetObject, HeadObject, DeleteObject, ListObjectsV2 (prefix, delimiter, common prefixes, continuation token), CopyObject.
-
-## Alternative: Portable Go API
+### Portable Go API
 
 When you don't need to drive a real SDK — for example, in cloudemu-only setup code — call the driver directly:
 
@@ -60,5 +59,13 @@ aws.S3.CreateBucket(ctx, "my-bucket")
 aws.S3.PutObject(ctx, "my-bucket", "config.yaml", []byte("..."), "text/yaml", nil)
 obj, _ := aws.S3.GetObject(ctx, "my-bucket", "config.yaml")
 ```
+
+## Notes
+
+### Operations supported via SDK-compat
+
+CreateBucket, DeleteBucket, ListBuckets, PutObject, GetObject, HeadObject, DeleteObject, ListObjectsV2 (prefix, delimiter, common prefixes, continuation token), CopyObject.
+
+### Portable-API-only capabilities
 
 The Portable API also exposes operations not yet on the SDK-compat surface — multipart upload, presigned URLs, lifecycle policies, versioning. See the driver interface for the full list.

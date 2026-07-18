@@ -2,9 +2,6 @@
 title: Call Recording
 description: Capture every API call with inputs, outputs, errors, and timing
 ---
-
-# Call Recording
-
 Record every API call made to a service for test assertions.
 
 ## Setup
@@ -19,7 +16,7 @@ bucket := storage.NewBucket(aws.S3,
 )
 ```
 
-## Inspecting Calls
+## Inspecting calls
 
 After running your code, inspect all recorded calls:
 
@@ -40,7 +37,7 @@ Each `Call` contains:
 - `Timestamp` — when the call was made
 - `Duration` — how long it took
 
-## Fluent Assertions
+## Fluent assertions
 
 Use the `Matcher` for expressive test assertions:
 

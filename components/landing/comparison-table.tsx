@@ -1,123 +1,125 @@
-import { Check, X, Minus } from 'lucide-react';
+import { Reveal } from '@/components/reveal';
+
+/**
+ * Comparison table with real mono glyphs: ✓ in --ok, ✗ in muted, ◐ for
+ * partial. The cloudemu column gets an accent wash + accent top border.
+ */
+
+type Cell =
+  | { kind: 'yes' }
+  | { kind: 'no' }
+  | { kind: 'partial' }
+  | { kind: 'text'; value: string; strong?: boolean };
+
+const yes: Cell = { kind: 'yes' };
+const no: Cell = { kind: 'no' };
+const partial: Cell = { kind: 'partial' };
+const t = (value: string, strong = false): Cell => ({ kind: 'text', value, strong });
+
+const ROWS: { feature: string; cells: [Cell, Cell, Cell] }[] = [
+  { feature: 'Cost', cells: [t('$$$'), t('$'), t('Free', true)] },
+  { feature: 'Speed', cells: [t('seconds'), t('100ms+'), t('~10ms', true)] },
+  { feature: 'Works offline', cells: [no, yes, yes] },
+  { feature: 'No Docker', cells: [yes, no, yes] },
+  { feature: 'Setup', cells: [t('account + creds'), t('Docker + config'), t('go get', true)] },
+  { feature: 'Realistic behavior', cells: [yes, partial, yes] },
+  { feature: 'Multi-cloud', cells: [no, no, yes] },
+  { feature: 'Real SDKs unchanged', cells: [yes, yes, yes] },
+];
+
+function Glyph({ cell }: { cell: Cell }) {
+  switch (cell.kind) {
+    case 'yes':
+      return (
+        <span className="font-mono text-sm text-ok" aria-label="yes">
+          ✓
+        </span>
+      );
+    case 'no':
+      return (
+        <span className="font-mono text-sm text-ink-muted" aria-label="no">
+          ✗
+        </span>
+      );
+    case 'partial':
+      return (
+        <span className="font-mono text-sm text-warn" aria-label="partial">
+          ◐
+        </span>
+      );
+    case 'text':
+      return (
+        <span
+          className={
+            cell.strong ? 'font-mono text-sm font-semibold text-ink' : 'text-sm text-ink-secondary'
+          }
+        >
+          {cell.value}
+        </span>
+      );
+  }
+}
 
 export function ComparisonTable() {
   return (
-    <section className="w-full max-w-4xl mx-auto px-6 py-16">
-      <h2 className="text-3xl font-bold text-center mb-2">Why cloudemu?</h2>
-      <p className="text-fd-muted-foreground text-center mb-10">
-        Compare approaches to testing cloud-dependent code
-      </p>
-      <div className="overflow-x-auto rounded-xl border border-fd-border">
-        <table className="w-full text-left">
-          <thead>
-            <tr className="border-b border-fd-border bg-fd-secondary/50">
-              <th className="px-6 py-4 font-medium text-fd-muted-foreground">Feature</th>
-              <th className="px-6 py-4 font-medium text-fd-muted-foreground">Real Cloud</th>
-              <th className="px-6 py-4 font-medium text-fd-muted-foreground">LocalStack / Emulators</th>
-              <th className="px-6 py-4 font-medium text-fd-primary border-x border-fd-border bg-fd-primary/5">
-                cloudemu
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-fd-border">
-            <Row
-              feature="Cost"
-              real="$$$"
-              emulator="$"
-              cloudemu="Free"
-              highlight
-            />
-            <Row
-              feature="Speed"
-              real="Seconds"
-              emulator="100ms+"
-              cloudemu="~10ms"
-              highlight
-            />
-            <Row
-              feature="Works Offline"
-              real={false}
-              emulator={true}
-              cloudemu={true}
-            />
-            <Row
-              feature="Docker Required"
-              real={false}
-              emulator={true}
-              cloudemu={false}
-              invertBool
-            />
-            <Row
-              feature="Setup"
-              real="Account + Credentials"
-              emulator="Docker + Config"
-              cloudemu="go get"
-              highlight
-            />
-            <Row
-              feature="Realistic Behavior"
-              real={true}
-              emulator="Partial"
-              cloudemu={true}
-            />
-            <Row
-              feature="Multi-Cloud"
-              real={false}
-              emulator={false}
-              cloudemu={true}
-            />
-            <Row
-              feature="Use real SDKs unchanged"
-              real={true}
-              emulator={true}
-              cloudemu={true}
-            />
-          </tbody>
-        </table>
+    <section className="w-full border-t border-line">
+      <div className="mx-auto w-full max-w-4xl px-6 py-20">
+        <Reveal>
+          <p className="u-eyebrow mb-3">
+            <span className="text-ink-3">02</span> · why cloudemu
+          </p>
+          <h2 className="text-3xl font-bold tracking-[-0.01em] text-ink">
+            Three ways to test cloud code. One is free and instant.
+          </h2>
+        </Reveal>
+
+        <Reveal delay={60} className="mt-8">
+          <div className="overflow-x-auto rounded-lg border border-line">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="border-b border-line-strong bg-surface">
+                  <th className="px-5 py-3 font-mono text-[11px] font-medium uppercase tracking-[0.08em] text-ink-muted">
+                    Feature
+                  </th>
+                  <th className="px-5 py-3 font-mono text-[11px] font-medium uppercase tracking-[0.08em] text-ink-muted">
+                    Real cloud
+                  </th>
+                  <th className="px-5 py-3 font-mono text-[11px] font-medium uppercase tracking-[0.08em] text-ink-muted">
+                    LocalStack / emulators
+                  </th>
+                  <th
+                    className="bg-accent/5 px-5 py-3 font-mono text-[11px] font-medium uppercase tracking-[0.08em] text-ink"
+                    style={{ boxShadow: 'inset 0 2px 0 var(--accent)' }}
+                  >
+                    cloudemu
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {ROWS.map((row) => (
+                  <tr
+                    key={row.feature}
+                    className="border-b border-line transition-colors last:border-b-0 hover:bg-surface"
+                  >
+                    <td className="px-5 py-3 text-sm font-medium text-ink">
+                      {row.feature}
+                    </td>
+                    <td className="px-5 py-3">
+                      <Glyph cell={row.cells[0]} />
+                    </td>
+                    <td className="px-5 py-3">
+                      <Glyph cell={row.cells[1]} />
+                    </td>
+                    <td className="bg-accent/5 px-5 py-3">
+                      <Glyph cell={row.cells[2]} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Reveal>
       </div>
     </section>
-  );
-}
-
-function Row({
-  feature,
-  real,
-  emulator,
-  cloudemu,
-  highlight,
-  invertBool,
-}: {
-  feature: string;
-  real: string | boolean;
-  emulator: string | boolean;
-  cloudemu: string | boolean;
-  highlight?: boolean;
-  invertBool?: boolean;
-}) {
-  const renderCell = (value: string | boolean, isCloudemu = false) => {
-    if (typeof value === 'boolean') {
-      const good = invertBool ? !value : value;
-      return good ? (
-        <Check className="w-5 h-5 text-green-500" />
-      ) : (
-        <X className="w-5 h-5 text-red-400" />
-      );
-    }
-    return (
-      <span className={isCloudemu && highlight ? 'font-semibold text-fd-primary' : ''}>
-        {value}
-      </span>
-    );
-  };
-
-  return (
-    <tr>
-      <td className="px-6 py-4 font-medium">{feature}</td>
-      <td className="px-6 py-4">{renderCell(real)}</td>
-      <td className="px-6 py-4">{renderCell(emulator)}</td>
-      <td className="px-6 py-4 border-x border-fd-border bg-fd-primary/5">
-        {renderCell(cloudemu, true)}
-      </td>
-    </tr>
   );
 }

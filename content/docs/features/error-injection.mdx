@@ -2,9 +2,6 @@
 title: Error Injection
 description: Simulate cloud failures deterministically
 ---
-
-# Error Injection
-
 Simulate various failure modes to test your error handling and resilience.
 
 ## Setup
@@ -19,9 +16,9 @@ bucket := storage.NewBucket(aws.S3,
 )
 ```
 
-## Failure Policies
+## Failure policies
 
-### Always Fail
+### Always fail
 
 ```go
 inj.SetPolicy("storage", "PutObject", inject.AlwaysFail(
@@ -29,7 +26,7 @@ inj.SetPolicy("storage", "PutObject", inject.AlwaysFail(
 ))
 ```
 
-### Every Nth Call
+### Every nth call
 
 ```go
 // Fail every 3rd call
@@ -47,7 +44,7 @@ inj.SetPolicy("storage", "PutObject", inject.Probabilistic(0.1,
 ))
 ```
 
-### First N Calls
+### First N calls
 
 ```go
 // First 2 calls fail, rest succeed
@@ -56,14 +53,14 @@ inj.SetPolicy("storage", "PutObject", inject.FirstN(2,
 ))
 ```
 
-## Clear Policies
+## Clear policies
 
 ```go
 inj.ClearPolicy("storage", "PutObject")
 inj.ClearAll()
 ```
 
-## Use Cases
+## Use cases
 
 - Test retry logic with intermittent failures
 - Verify timeout handling when services are unavailable

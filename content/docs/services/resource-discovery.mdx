@@ -1,11 +1,16 @@
 ---
 title: Resource Discovery
-description: A cross-service inventory engine that answers Resource Explorer, Resource Graph, and Cloud Asset Inventory queries over your emulated resources
+description: A cross-service inventory engine that answers Resource Explorer, Resource Graph, and Cloud Asset Inventory queries over emulated resources
+aws: Resource Explorer 2
+azure: Resource Graph
+gcp: Cloud Asset Inventory
 ---
 
-# Resource Discovery
+## Overview
 
 A cross-service **inventory engine** that walks your emulated compute, networking, storage, database, serverless, and Databricks resources and answers the real cloud discovery APIs: **Resource Explorer 2 + Resource Groups Tagging API** (AWS), **Resource Graph** (Azure), and **Cloud Asset Inventory** (GCP).
+
+Every provider auto-wires a `ResourceDiscovery` engine over its core drivers, so anything you create through those services is immediately discoverable — no separate registration step.
 
 | Provider | Service | SDK-compat | Driver |
 |----------|---------|:----------:|--------|
@@ -13,9 +18,9 @@ A cross-service **inventory engine** that walks your emulated compute, networkin
 | Azure | Resource Graph (`armresourcegraph`, KQL) | ✓ Live | `azure.ResourceDiscovery` |
 | GCP | Cloud Asset Inventory (`cloudasset/v1`) | ✓ Live | `gcp.ResourceDiscovery` |
 
-Every provider auto-wires a `ResourceDiscovery` engine over its core drivers, so anything you create through those services is immediately discoverable — no separate registration step.
+## Examples
 
-## Use the real SDK (recommended)
+Use the real SDK (recommended):
 
 ```go
 import (
@@ -43,30 +48,7 @@ client.Search(ctx, &resourceexplorer2.SearchInput{
 
 Wire the engine into `azureserver.Drivers{ResourceDiscovery: …, SubscriptionID: …}` or `gcpserver.Drivers{ResourceDiscovery: …, ProjectID: …}` for the Azure and GCP equivalents.
 
-### Operations supported via SDK-compat
-
-**AWS Resource Explorer 2:** CreateView, DeleteView, ListViews, GetView, Search, ListResources, ListIndexes, GetIndex. Query filters: `service:<name>`, `tag.<key>:<value>`, `region:<name>`.
-
-**AWS Resource Groups Tagging API:** GetResources (with `ResourceTypeFilters` + `TagFilters`), GetTagKeys, GetTagValues, TagResources, UntagResources.
-
-**Azure Resource Graph:** `POST /resources`, `POST /resourcesHistory`, `GET /operations`. A KQL subset over the `Resources` table: `where type == …` / `in~ (…)`, `where location == …`, `where tags['k'] == …`, and `| limit` / `| take`.
-
-**GCP Cloud Asset Inventory:** `searchAllResources`, `searchAllIamPolicies`, `exportAssets`, `batchGetAssetsHistory`, `assets.list`, and feed CRUD (Create/List/Get/Patch/Delete). Filters: `service:`, `assetType:`, `location:`, `labels.<k>:<v>`.
-
-## What it inventories
-
-The engine reads live state from the service drivers and emits normalized, cross-cloud resource records:
-
-| Portable service | Resource type | AWS · Azure · GCP |
-|------------------|---------------|-------------------|
-| `compute` | Instance | EC2 · VM · Compute Engine |
-| `networking` | VPC / Subnet / SecurityGroup | VPC · VNet · Network (+ NSG / Firewall) |
-| `storage` | Bucket | S3 · Storage · GCS |
-| `database` | Table | DynamoDB · Cosmos DB · Firestore |
-| `serverless` | Function | Lambda · Functions · Cloud Functions |
-| `databricks` | Workspace | — · Databricks · — |
-
-## Alternative: Portable Go API
+### Portable Go API
 
 Query the engine directly, without an SDK:
 
@@ -84,3 +66,28 @@ results, _ := aws.ResourceDiscovery.List(ctx, resourcediscovery.Query{
 
 keys, _ := aws.ResourceDiscovery.GetTagKeys(ctx)
 ```
+
+## Notes
+
+### Operations supported via SDK-compat
+
+**AWS Resource Explorer 2:** CreateView, DeleteView, ListViews, GetView, Search, ListResources, ListIndexes, GetIndex. Query filters: `service:<name>`, `tag.<key>:<value>`, `region:<name>`.
+
+**AWS Resource Groups Tagging API:** GetResources (with `ResourceTypeFilters` + `TagFilters`), GetTagKeys, GetTagValues, TagResources, UntagResources.
+
+**Azure Resource Graph:** `POST /resources`, `POST /resourcesHistory`, `GET /operations`. A KQL subset over the `Resources` table: `where type == …` / `in~ (…)`, `where location == …`, `where tags['k'] == …`, and `| limit` / `| take`.
+
+**GCP Cloud Asset Inventory:** `searchAllResources`, `searchAllIamPolicies`, `exportAssets`, `batchGetAssetsHistory`, `assets.list`, and feed CRUD (Create/List/Get/Patch/Delete). Filters: `service:`, `assetType:`, `location:`, `labels.<k>:<v>`.
+
+### What it inventories
+
+The engine reads live state from the service drivers and emits normalized, cross-cloud resource records:
+
+| Portable service | Resource type | AWS · Azure · GCP |
+|------------------|---------------|-------------------|
+| `compute` | Instance | EC2 · VM · Compute Engine |
+| `networking` | VPC / Subnet / SecurityGroup | VPC · VNet · Network (+ NSG / Firewall) |
+| `storage` | Bucket | S3 · Storage · GCS |
+| `database` | Table | DynamoDB · Cosmos DB · Firestore |
+| `serverless` | Function | Lambda · Functions · Cloud Functions |
+| `databricks` | Workspace | — · Databricks · — |
