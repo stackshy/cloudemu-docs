@@ -40,7 +40,7 @@ export function ChaosTimeline() {
   return (
     <div
       ref={ref}
-      className="not-prose my-6 overflow-hidden rounded-lg border border-line bg-surface p-4"
+      className="not-prose my-7"
     >
       <p className="u-eyebrow mb-2">chaos.Outage(sqs, 09:00 → 09:05)</p>
       <svg

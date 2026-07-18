@@ -16,7 +16,6 @@ import { PrevNext } from '@/components/docs/prev-next';
 import { PacketFlow } from '@/components/diagrams/packet-flow';
 import { ChaosTimeline } from '@/components/diagrams/chaos-timeline';
 import { RequestFlow } from '@/components/diagrams/request-flow';
-import { Chip } from '@/components/ui';
 
 export default async function Page(props: {
   params: Promise<{ slug?: string[] }>;
@@ -45,11 +44,23 @@ export default async function Page(props: {
         {data.description}
       </DocsDescription>
       {(data.aws || data.azure || data.gcp) && (
-        <div className="-mt-2 mb-4 flex flex-wrap gap-2">
-          {data.aws && <Chip provider="aws">AWS · {data.aws}</Chip>}
-          {data.azure && <Chip provider="azure">Azure · {data.azure}</Chip>}
-          {data.gcp && <Chip provider="gcp">GCP · {data.gcp}</Chip>}
-        </div>
+        <p className="-mt-2 mb-4 flex flex-wrap gap-x-5 gap-y-1 font-mono text-xs text-ink-2">
+          {data.aws && (
+            <span>
+              <span style={{ color: 'var(--aws)' }}>aws</span> {data.aws}
+            </span>
+          )}
+          {data.azure && (
+            <span>
+              <span style={{ color: 'var(--azure)' }}>azr</span> {data.azure}
+            </span>
+          )}
+          {data.gcp && (
+            <span>
+              <span style={{ color: 'var(--gcp)' }}>gcp</span> {data.gcp}
+            </span>
+          )}
+        </p>
       )}
       <DocsBody>
         <MDX

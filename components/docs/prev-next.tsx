@@ -3,27 +3,21 @@ import { findNeighbour } from 'fumadocs-core/page-tree';
 import { source } from '@/lib/source';
 
 /**
- * Prev/next page furniture: two bordered cards. Mono direction label with
- * arrow, page title in text-1. Hover strengthens the border and lifts 2px —
- * no color, no fill.
+ * Prev/next page furniture: two mono text links on a hairline-topped
+ * footer row — no cards. Hover goes accent.
  */
 export function PrevNext({ url }: { url: string }) {
   const { previous, next } = findNeighbour(source.pageTree, url);
   if (!previous && !next) return null;
 
   return (
-    <div className="not-prose mt-12 grid grid-cols-1 gap-3 border-t border-line pt-8 sm:grid-cols-2">
+    <div className="not-prose mt-12 flex items-center justify-between gap-4 border-t border-line pt-6 font-mono text-[13px]">
       {previous ? (
         <Link
           href={previous.url}
-          className="group rounded-lg border border-line p-4 transition-[border-color,transform] duration-150 hover:-translate-y-0.5 hover:border-line-2"
+          className="text-ink-2 transition-colors hover:text-accent"
         >
-          <span className="font-mono text-[11px] uppercase tracking-[0.06em] text-ink-3">
-            ← Previous
-          </span>
-          <span className="mt-1.5 block text-sm font-medium text-ink">
-            {previous.name}
-          </span>
+          ← {previous.name}
         </Link>
       ) : (
         <span aria-hidden />
@@ -31,14 +25,9 @@ export function PrevNext({ url }: { url: string }) {
       {next && (
         <Link
           href={next.url}
-          className="group rounded-lg border border-line p-4 text-right transition-[border-color,transform] duration-150 hover:-translate-y-0.5 hover:border-line-2"
+          className="text-right text-ink-2 transition-colors hover:text-accent"
         >
-          <span className="font-mono text-[11px] uppercase tracking-[0.06em] text-ink-3">
-            Next →
-          </span>
-          <span className="mt-1.5 block text-sm font-medium text-ink">
-            {next.name}
-          </span>
+          {next.name} →
         </Link>
       )}
     </div>

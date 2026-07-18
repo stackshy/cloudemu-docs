@@ -26,8 +26,8 @@ const VARIANT: Record<string, { label: string; rail: string }> = {
 };
 
 /**
- * Quiet callout: bg-2 surface, 3px semantic left rail, 13px mono label,
- * body in text-2. Replaces fumadocs' Callout via the MDX components map.
+ * De-boxed callout: no background, no border, no radius — a 3px semantic
+ * left rail, a mono label, and the body. Structure, not chrome.
  */
 export function Callout({
   type = 'info',
@@ -41,8 +41,8 @@ export function Callout({
   const v = VARIANT[type] ?? VARIANT.info;
   return (
     <div
-      className="not-prose relative my-5 overflow-hidden rounded-md border border-line bg-surface py-3 pl-4 pr-4 text-sm leading-relaxed"
-      style={{ boxShadow: `inset 3px 0 0 ${v.rail}` }}
+      className="not-prose my-6 py-0.5 pl-4 text-sm leading-relaxed"
+      style={{ borderLeft: `3px solid ${v.rail}` }}
     >
       <p className="mb-1.5 flex items-center gap-2 font-mono text-[13px] font-medium tracking-[0.06em] text-ink-3">
         {v.label}

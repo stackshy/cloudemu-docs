@@ -6,7 +6,7 @@ azure: Databricks
 
 ## Overview
 
-Emulates **Azure Databricks** in two layers: the **ARM workspace control plane** (`Microsoft.Databricks/workspaces`) and the **workspace data plane** (the Databricks REST API). The real `databricks-sdk-go`, pointed at the emulator, provisions a workspace over ARM, discovers the workspace URL, and then drives clusters, jobs, and more against the in-memory data plane.
+Drive both layers of **Azure Databricks** — the **ARM workspace control plane** (`Microsoft.Databricks/workspaces`) and the **workspace data plane** (Databricks REST API). The real `databricks-sdk-go`, pointed at the emulator, provisions a workspace over ARM, discovers the workspace URL, and then drives clusters, jobs, and more against the in-memory data plane.
 
 | Provider | Service | SDK-compat | Driver |
 |----------|---------|:----------:|--------|

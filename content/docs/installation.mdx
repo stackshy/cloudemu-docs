@@ -2,6 +2,8 @@
 title: Installation
 description: How to install cloudemu in your Go project
 ---
+Install cloudemu with one `go get`, verify it with one test, and migrate v1 imports if needed.
+
 <Callout type="warn" title="Migrating to v2">
   As of **v2.0.0**, the module path is <code>github.com/stackshy/cloudemu/v2</code> and the public
   packages are grouped by role. If you are upgrading from v1, see [Migrating to v2](#migrating-to-v2) below.
@@ -19,7 +21,7 @@ This installs the library and all service packages. There are no external depend
 
 ## Verify installation
 
-Create a simple test file to verify everything works:
+Create a test file to verify the install:
 
 ```go title="main_test.go"
 package main
