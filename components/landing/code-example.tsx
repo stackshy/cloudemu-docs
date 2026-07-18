@@ -67,7 +67,7 @@ cloud.CloudMonitoring.PutMetricData(ctx, []mondriver.MetricDatum{
 export function CodeExample() {
   return (
     <section className="w-full border-t border-line">
-      <div className="mx-auto w-full max-w-4xl px-6 py-20">
+      <div className="mx-auto w-full max-w-[1120px] px-6 py-20">
         <Reveal>
           <p className="u-eyebrow mb-3">
             <span className="text-ink-3">05</span> · portable go api
@@ -75,14 +75,14 @@ export function CodeExample() {
           <h2 className="text-3xl font-bold tracking-[-0.01em] text-ink">
             Or skip HTTP entirely.
           </h2>
-          <p className="mt-4 max-w-2xl text-base leading-relaxed text-ink-secondary">
+          <p className="mt-4 max-w-[60ch] text-base leading-relaxed text-ink-2">
             The same backend behind typed Go interfaces — one shape across all
             three providers. Switch tabs: the calls don&apos;t change, only the
             service names do.
           </p>
         </Reveal>
         <Reveal delay={60} className="mt-8">
-          <MorphCode snippets={SNIPPETS} />
+          <MorphCode snippets={SNIPPETS} className="max-w-[860px]" />
         </Reveal>
       </div>
     </section>

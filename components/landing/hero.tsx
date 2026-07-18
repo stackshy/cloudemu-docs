@@ -13,7 +13,7 @@ import { LatencyTicker } from './latency-ticker';
 export function Hero() {
   return (
     <section className="w-full">
-      <div className="mx-auto w-full max-w-6xl px-6 pb-14 pt-20">
+      <div className="mx-auto w-full max-w-[1120px] px-6 pb-14 pt-20">
         <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-[1.05fr_1fr] lg:gap-14">
           {/* Left: copy */}
           <div>
@@ -24,12 +24,10 @@ export function Hero() {
               <span className="text-ink-2">without a real cloud</span>.
             </h1>
 
-            <p className="mt-5 max-w-xl text-base leading-relaxed text-ink-secondary sm:text-lg">
-              Point <code className="u-chip-code">aws-sdk-go-v2</code>,{' '}
-              <code className="u-chip-code">azure-sdk-for-go</code>, or{' '}
-              <code className="u-chip-code">cloud.google.com/go</code> at a
-              local in-memory server that speaks their real wire protocols.
-              Your production code runs unchanged.
+            <p className="mt-5 max-w-xl text-base leading-relaxed text-ink-2 sm:text-lg">
+              Point the real AWS, Azure, and GCP Go SDKs at an in-memory
+              server that speaks their wire protocols. Production code,
+              unchanged. No mocks, no Docker, no bill.
             </p>
 
             <div className="mt-7 flex flex-wrap items-center gap-3">

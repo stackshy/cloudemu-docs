@@ -61,16 +61,16 @@ _ = client // production code from here on`,
 export function SDKCompatSection() {
   return (
     <section className="w-full border-t border-line">
-      <div className="mx-auto w-full max-w-6xl px-6 py-20">
+      <div className="mx-auto w-full max-w-[1120px] px-6 py-20">
         <Reveal>
           <p className="u-eyebrow mb-3">
             <span className="text-ink-3">01</span> · sdk-compat server
           </p>
-          <h2 className="max-w-2xl text-3xl font-bold tracking-[-0.01em] text-ink sm:text-4xl">
+          <h2 className="max-w-[60ch] text-3xl font-bold tracking-[-0.01em] text-ink sm:text-4xl">
             Don&apos;t rewrite your tests.{' '}
             <span className="text-ink">Repoint them.</span>
           </h2>
-          <p className="mt-4 max-w-2xl text-base leading-relaxed text-ink-secondary">
+          <p className="mt-4 max-w-[60ch] text-base leading-relaxed text-ink-2">
             cloudemu speaks the real wire protocols — AWS Query/JSON/Smithy,
             Azure ARM, GCP REST — over a local{' '}
             <code className="u-chip-code">httptest.NewServer</code>. Switch the
@@ -79,7 +79,7 @@ export function SDKCompatSection() {
         </Reveal>
 
         <Reveal delay={60} className="mt-8">
-          <MorphCode snippets={SNIPPETS} />
+          <MorphCode snippets={SNIPPETS} className="max-w-[860px]" />
         </Reveal>
 
         <div className="mt-6">

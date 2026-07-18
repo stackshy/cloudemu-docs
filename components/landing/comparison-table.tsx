@@ -1,8 +1,10 @@
 import { Reveal } from '@/components/reveal';
 
 /**
- * Comparison table with real mono glyphs: ✓ in --ok, ✗ in muted, ◐ for
- * partial. The cloudemu column gets an accent wash + accent top border.
+ * Open spec-sheet comparison: no outer box, no cell backgrounds. Mono
+ * uppercase header over a single hairline, hairlines between rows only.
+ * The cloudemu column is marked by a full-height 6% accent wash — the
+ * only enclosure this section gets.
  */
 
 type Cell =
@@ -31,19 +33,19 @@ function Glyph({ cell }: { cell: Cell }) {
   switch (cell.kind) {
     case 'yes':
       return (
-        <span className="font-mono text-sm text-ok" aria-label="yes">
+        <span className="font-mono text-[14px] text-ok" aria-label="yes">
           ✓
         </span>
       );
     case 'no':
       return (
-        <span className="font-mono text-sm text-ink-muted" aria-label="no">
+        <span className="font-mono text-[14px] text-ink-3" aria-label="no">
           ✗
         </span>
       );
     case 'partial':
       return (
-        <span className="font-mono text-sm text-warn" aria-label="partial">
+        <span className="font-mono text-[14px] text-ink-2" aria-label="partial">
           ◐
         </span>
       );
@@ -51,7 +53,9 @@ function Glyph({ cell }: { cell: Cell }) {
       return (
         <span
           className={
-            cell.strong ? 'font-mono text-sm font-semibold text-ink' : 'text-sm text-ink-secondary'
+            cell.strong
+              ? 'font-mono text-sm font-semibold text-ink'
+              : 'text-sm text-ink-2'
           }
         >
           {cell.value}
@@ -63,54 +67,48 @@ function Glyph({ cell }: { cell: Cell }) {
 export function ComparisonTable() {
   return (
     <section className="w-full border-t border-line">
-      <div className="mx-auto w-full max-w-4xl px-6 py-20">
+      <div className="mx-auto w-full max-w-[1120px] px-6 py-20">
         <Reveal>
           <p className="u-eyebrow mb-3">
             <span className="text-ink-3">02</span> · why cloudemu
           </p>
-          <h2 className="text-3xl font-bold tracking-[-0.01em] text-ink">
+          <h2 className="max-w-[60ch] text-3xl font-bold tracking-[-0.01em] text-ink">
             Three ways to test cloud code. One is free and instant.
           </h2>
         </Reveal>
 
-        <Reveal delay={60} className="mt-8">
-          <div className="overflow-x-auto rounded-lg border border-line">
+        <Reveal delay={60} className="mt-10">
+          <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead>
-                <tr className="border-b border-line-strong bg-surface">
-                  <th className="px-5 py-3 font-mono text-[11px] font-medium uppercase tracking-[0.08em] text-ink-muted">
+                <tr className="border-b border-line-2">
+                  <th className="py-3 pr-4 font-mono text-[11px] font-medium uppercase tracking-[0.06em] text-ink-3">
                     Feature
                   </th>
-                  <th className="px-5 py-3 font-mono text-[11px] font-medium uppercase tracking-[0.08em] text-ink-muted">
+                  <th className="px-4 py-3 font-mono text-[11px] font-medium uppercase tracking-[0.06em] text-ink-3">
                     Real cloud
                   </th>
-                  <th className="px-5 py-3 font-mono text-[11px] font-medium uppercase tracking-[0.08em] text-ink-muted">
+                  <th className="px-4 py-3 font-mono text-[11px] font-medium uppercase tracking-[0.06em] text-ink-3">
                     LocalStack / emulators
                   </th>
-                  <th
-                    className="bg-accent/5 px-5 py-3 font-mono text-[11px] font-medium uppercase tracking-[0.08em] text-ink"
-                    style={{ boxShadow: 'inset 0 2px 0 var(--accent)' }}
-                  >
+                  <th className="bg-accent/[0.06] px-4 py-3 font-mono text-[11px] font-medium uppercase tracking-[0.06em] text-ink">
                     cloudemu
                   </th>
                 </tr>
               </thead>
               <tbody>
                 {ROWS.map((row) => (
-                  <tr
-                    key={row.feature}
-                    className="border-b border-line transition-colors last:border-b-0 hover:bg-surface"
-                  >
-                    <td className="px-5 py-3 text-sm font-medium text-ink">
+                  <tr key={row.feature} className="border-b border-line last:border-b-0">
+                    <td className="py-4 pr-4 text-sm font-medium text-ink">
                       {row.feature}
                     </td>
-                    <td className="px-5 py-3">
+                    <td className="px-4 py-4">
                       <Glyph cell={row.cells[0]} />
                     </td>
-                    <td className="px-5 py-3">
+                    <td className="px-4 py-4">
                       <Glyph cell={row.cells[1]} />
                     </td>
-                    <td className="bg-accent/5 px-5 py-3">
+                    <td className="bg-accent/[0.06] px-4 py-4">
                       <Glyph cell={row.cells[2]} />
                     </td>
                   </tr>
