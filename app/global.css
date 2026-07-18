@@ -436,6 +436,31 @@ samp {
   color: var(--code-plain);
 }
 
+/* Heading anchors: accent link glyph on hover */
+.prose :is(h1, h2, h3, h4) svg {
+  color: var(--accent);
+}
+
+/* Keyboard chips everywhere (search footer, shortcuts) */
+kbd {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border-subtle);
+  border-radius: 3px;
+  padding: 1px 5px;
+  color: var(--text-secondary);
+}
+
+/* Search dialog: mono input, token shadow, scale-fade entrance */
+[role='dialog'] input {
+  font-family: var(--font-mono);
+  font-size: 14px;
+}
+[role='dialog'] input::placeholder {
+  color: var(--text-muted);
+}
+
 /* Provider tab tinting for fumadocs Tabs (groupId="provider") */
 .u-provider-tabs [role='tab'] {
   font-family: var(--font-mono);
