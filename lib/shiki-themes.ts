@@ -5,12 +5,12 @@ import type { ThemeRegistration } from 'shiki';
  * Values are literal because Shiki inlines them; they MUST stay in sync with
  * the --code-* tokens in app/tokens.css.
  *
- * Tuned for Go: keywords accent-adjacent (teal), strings warm, comments muted
+ * Tuned for Go: keywords accent-adjacent (coral), strings warm, comments muted
  * italic, function calls bright, types violet.
  */
 
 const dark = {
-  keyword: '#5eead4',
+  keyword: '#ff7759',
   string: '#e3b341',
   comment: '#7a8494',
   func: '#93c5fd',
@@ -22,7 +22,7 @@ const dark = {
 };
 
 const light = {
-  keyword: '#0f766e',
+  keyword: '#c2410c',
   string: '#a16207',
   comment: '#74808f',
   func: '#1d4ed8',
@@ -115,7 +115,7 @@ function makeTheme(
         settings: { foreground: c.func },
       },
       // Diff/patch languages
-      { scope: ['markup.inserted'], settings: { foreground: type === 'dark' ? '#4ade80' : '#047857' } },
+      { scope: ['markup.inserted'], settings: { foreground: type === 'dark' ? '#60a5fa' : '#1d4ed8' } },
       { scope: ['markup.deleted'], settings: { foreground: type === 'dark' ? '#f87171' : '#b91c1c' } },
     ],
   };

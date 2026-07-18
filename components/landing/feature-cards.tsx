@@ -53,7 +53,7 @@ function MiniChaos() {
             y1={failing ? 18 : 12}
             x2={x}
             y2={30}
-            stroke={failing ? 'var(--error)' : 'var(--accent)'}
+            stroke={failing ? 'var(--error)' : 'var(--ok)'}
             strokeWidth="2"
             strokeLinecap="round"
           />

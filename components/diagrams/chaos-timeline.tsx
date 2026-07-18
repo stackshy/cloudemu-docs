@@ -102,7 +102,7 @@ export function ChaosTimeline() {
                 y1={AXIS_Y - (failing ? 18 : 28)}
                 x2={x}
                 y2={AXIS_Y}
-                stroke={failing ? 'var(--error)' : 'var(--accent)'}
+                stroke={failing ? 'var(--error)' : 'var(--ok)'}
                 strokeWidth="2.5"
                 strokeLinecap="round"
               />
@@ -138,7 +138,7 @@ export function ChaosTimeline() {
 
         {/* legend */}
         <g fontSize="9" className="font-mono">
-          <line x1="24" y1={H - 14} x2="36" y2={H - 14} stroke="var(--accent)" strokeWidth="2.5" strokeLinecap="round" />
+          <line x1="24" y1={H - 14} x2="36" y2={H - 14} stroke="var(--ok)" strokeWidth="2.5" strokeLinecap="round" />
           <text x="42" y={H - 11} fill="var(--text-muted)">request OK</text>
           <line x1="128" y1={H - 14} x2="140" y2={H - 14} stroke="var(--error)" strokeWidth="2.5" strokeLinecap="round" />
           <text x="146" y={H - 11} fill="var(--text-muted)">ServiceUnavailable</text>

@@ -23,11 +23,11 @@
   --text-muted-on-inset: #8b95a7;
 
   /* ---- brand accent: one electric signal color ---- */
-  --accent: #047857;
-  --accent-bright: #059669; /* large text / glyphs only */
+  --accent: #c93a12;
+  --accent-bright: #ff4a1f; /* large text / rails / dots only */
   --accent-contrast: #ffffff; /* text on solid accent */
-  --accent-dim: rgba(4, 120, 87, 0.08);
-  --accent-rail: rgba(4, 120, 87, 0.55);
+  --accent-dim: rgba(255, 74, 31, 0.08);
+  --accent-rail: rgba(255, 74, 31, 0.55);
 
   /* ---- provider accents (semantic, never decorative) ---- */
   --aws: #9a5b00; /* text-safe on light */
@@ -41,11 +41,11 @@
   --gcp-dim: rgba(61, 190, 108, 0.1);
 
   /* ---- callout / status semantics ---- */
-  --ok: #047857;
+  --ok: #1d4ed8;
   --warn: #b45309;
   --error: #b91c1c;
   --info: #1d4ed8;
-  --ok-dim: rgba(4, 120, 87, 0.08);
+  --ok-dim: rgba(29, 78, 216, 0.08);
   --warn-dim: rgba(180, 83, 9, 0.08);
   --error-dim: rgba(185, 28, 28, 0.08);
   --info-dim: rgba(29, 78, 216, 0.08);
@@ -57,7 +57,7 @@
   --ease-signal: cubic-bezier(0.22, 1, 0.36, 1);
 
   /* ---- code syntax (light) ---- */
-  --code-keyword: #0f766e;
+  --code-keyword: #c2410c;
   --code-string: #a16207;
   --code-comment: #74808f;
   --code-function: #1d4ed8;
@@ -65,9 +65,9 @@
   --code-number: #b45309;
   --code-punct: #414c5c;
   --code-plain: #1f2733;
-  --code-diff-add: rgba(4, 120, 87, 0.1);
+  --code-diff-add: rgba(29, 78, 216, 0.08);
   --code-diff-del: rgba(185, 28, 28, 0.08);
-  --code-hl: rgba(4, 120, 87, 0.07);
+  --code-hl: rgba(255, 74, 31, 0.06);
 }
 
 .dark {
@@ -87,11 +87,11 @@
   --text-muted-on-inset: #8b95a7;
 
   /* ---- brand accent ---- */
-  --accent: #4ade80;
-  --accent-bright: #4ade80;
-  --accent-contrast: #052e16;
-  --accent-dim: rgba(74, 222, 128, 0.12);
-  --accent-rail: rgba(74, 222, 128, 0.6);
+  --accent: #ff4a1f;
+  --accent-bright: #ff6b47;
+  --accent-contrast: #0a0c10;
+  --accent-dim: rgba(255, 74, 31, 0.13);
+  --accent-rail: rgba(255, 74, 31, 0.6);
 
   /* ---- provider accents ---- */
   --aws: #f5a623;
@@ -105,11 +105,11 @@
   --gcp-dim: rgba(61, 190, 108, 0.12);
 
   /* ---- callout / status semantics ---- */
-  --ok: #4ade80;
+  --ok: #60a5fa;
   --warn: #fbbf24;
   --error: #f87171;
   --info: #60a5fa;
-  --ok-dim: rgba(74, 222, 128, 0.1);
+  --ok-dim: rgba(96, 165, 250, 0.1);
   --warn-dim: rgba(251, 191, 36, 0.1);
   --error-dim: rgba(248, 113, 113, 0.1);
   --info-dim: rgba(96, 165, 250, 0.1);
@@ -117,7 +117,7 @@
   --shadow-popover: 0 16px 40px -12px rgba(0, 0, 0, 0.6);
 
   /* ---- code syntax (dark) ---- */
-  --code-keyword: #5eead4;
+  --code-keyword: #ff7759;
   --code-string: #e3b341;
   --code-comment: #7a8494;
   --code-function: #93c5fd;
@@ -125,7 +125,7 @@
   --code-number: #fdba74;
   --code-punct: #9aa3b2;
   --code-plain: #dce1e8;
-  --code-diff-add: rgba(74, 222, 128, 0.12);
+  --code-diff-add: rgba(96, 165, 250, 0.1);
   --code-diff-del: rgba(248, 113, 113, 0.1);
-  --code-hl: rgba(74, 222, 128, 0.08);
+  --code-hl: rgba(255, 74, 31, 0.08);
 }
