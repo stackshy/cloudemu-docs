@@ -3,7 +3,7 @@ import { SDKCompatSection } from '@/components/landing/sdk-compat-section';
 import { ComparisonTable } from '@/components/landing/comparison-table';
 import { FeatureCards } from '@/components/landing/feature-cards';
 import { CoverageMatrix } from '@/components/landing/coverage-matrix';
-import { CodeExample } from '@/components/landing/code-example';
+import { TwoSurfaces } from '@/components/landing/two-surfaces';
 import { CTASection } from '@/components/landing/cta-section';
 
 export default function HomePage() {
@@ -14,7 +14,7 @@ export default function HomePage() {
       <ComparisonTable />
       <FeatureCards />
       <CoverageMatrix />
-      <CodeExample />
+      <TwoSurfaces />
       <CTASection />
     </main>
   );

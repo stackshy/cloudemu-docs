@@ -58,38 +58,68 @@ _ = client // production code from here on`,
   },
 };
 
+const CHECKLIST = [
+  'no mocks to maintain',
+  'no Docker to babysit',
+  'no cloud accounts, no bill',
+];
+
+/**
+ * Two-column code showcase: the pitch and checklist on the left, the
+ * provider-tabbed code on the right with a test-run proof line beneath.
+ * The claim and the evidence share one viewport.
+ */
 export function SDKCompatSection() {
   return (
     <section className="w-full border-t border-line">
       <div className="mx-auto w-full max-w-[1120px] px-6 py-20">
-        <Reveal>
-          <p className="u-eyebrow mb-3">
-            <span className="text-ink-3">01</span> · sdk-compat server
-          </p>
-          <h2 className="max-w-[60ch] text-3xl font-bold tracking-[-0.01em] text-ink sm:text-4xl">
-            Don&apos;t rewrite your tests.{' '}
-            <span className="text-ink">Repoint them.</span>
-          </h2>
-          <p className="mt-4 max-w-[60ch] text-base leading-relaxed text-ink-2">
-            cloudemu speaks the real wire protocols — AWS Query/JSON/Smithy,
-            Azure ARM, GCP REST — over a local{' '}
-            <code className="u-chip-code">httptest.NewServer</code>. Switch the
-            provider tab below and watch: the shape stays, one line changes.
-          </p>
-        </Reveal>
+        <div className="grid grid-cols-1 items-start gap-x-14 gap-y-10 lg:grid-cols-[minmax(0,4fr)_minmax(0,7fr)]">
+          {/* Left: the pitch */}
+          <Reveal>
+            <p className="u-eyebrow mb-3">
+              <span className="text-ink-3">01</span> · sdk-compat server
+            </p>
+            <h2 className="text-3xl font-bold tracking-[-0.01em] text-ink">
+              Don&apos;t rewrite your tests. Repoint them.
+            </h2>
+            <p className="mt-4 text-base leading-relaxed text-ink-2">
+              cloudemu speaks the real wire protocols — AWS Query/JSON/Smithy,
+              Azure ARM, GCP REST — over a local{' '}
+              <code className="u-chip-code">httptest.NewServer</code>. Switch
+              the provider tab: the shape stays, one line changes.
+            </p>
 
-        <Reveal delay={60} className="mt-8">
-          <MorphCode snippets={SNIPPETS} className="max-w-[860px]" />
-        </Reveal>
+            <ul className="mt-6 flex flex-col gap-2.5">
+              {CHECKLIST.map((item) => (
+                <li
+                  key={item}
+                  className="flex items-center gap-2.5 text-sm text-ink-2"
+                >
+                  <span aria-hidden className="font-mono text-[14px] text-ok">
+                    ✓
+                  </span>
+                  {item}
+                </li>
+              ))}
+            </ul>
 
-        <div className="mt-6">
-          <Link
-            href="/docs/sdk-compat"
-            className="inline-flex items-center gap-1.5 font-mono text-xs uppercase tracking-[0.08em] text-ink underline decoration-line-2 underline-offset-4 hover:text-accent hover:decoration-accent"
-          >
-            Full coverage tables
-            <ArrowRight className="size-3.5" />
-          </Link>
+            <Link
+              href="/docs/sdk-compat"
+              className="mt-8 inline-flex items-center gap-1.5 font-mono text-xs uppercase tracking-[0.06em] text-ink underline decoration-line-2 underline-offset-4 hover:text-accent hover:decoration-accent"
+            >
+              Full coverage tables
+              <ArrowRight className="size-3.5" />
+            </Link>
+          </Reveal>
+
+          {/* Right: the evidence */}
+          <Reveal delay={60}>
+            <MorphCode snippets={SNIPPETS} />
+            <p className="mt-3 font-mono text-xs text-ink-3">
+              <span className="select-none">$ </span>go test ./storage{'  '}
+              <span className="text-ok">ok</span> 0.04s · real SDK, no network
+            </p>
+          </Reveal>
         </div>
       </div>
     </section>
