@@ -4,6 +4,8 @@ description: Point real aws-sdk-go-v2, azure-sdk-for-go, and Google Cloud SDKs a
 ---
 Point a real `aws-sdk-go-v2`, `azure-sdk-for-go`, or `cloud.google.com/go` client at cloudemu and run production code unchanged. The HTTP servers speak each provider's actual wire protocol; the custom endpoint is the only change.
 
+<WireProtocols />
+
 Nothing to mock. No Docker. No accounts. The same SDK calls you'd run against real cloud APIs hit a local `httptest.NewServer` and get back SDK-decodable responses.
 
 ## Why
