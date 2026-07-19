@@ -1,7 +1,10 @@
+'use client';
+
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import { HighlightedGo } from '@/components/landing/highlighted-go';
 import { Reveal } from '@/components/reveal';
+import { useInView } from '@/components/diagrams/use-in-view';
 
 /**
  * Two surfaces, one honest comparison: SDK-compat server vs Portable Go API,
@@ -36,6 +39,8 @@ cloud.S3.PutObject(ctx, "app-data", "cfg.yaml",
 ];
 
 export function TwoSurfaces() {
+  const [ref, on] = useInView<HTMLDivElement>(0.15);
+
   return (
     <section className="w-full border-t border-line">
       <div className="mx-auto w-full max-w-[1120px] px-6 py-20">
@@ -49,9 +54,32 @@ export function TwoSurfaces() {
         </Reveal>
 
         <Reveal delay={60} className="mt-10">
-          <div className="grid grid-cols-1 gap-y-12 lg:grid-cols-2 lg:divide-x lg:divide-line lg:gap-y-0">
+          <div
+            ref={ref}
+            className="relative grid grid-cols-1 gap-y-12 lg:grid-cols-2 lg:gap-y-0"
+          >
+            {/* vertical hairline grows in from the top; lg+ only */}
+            <span
+              aria-hidden
+              className="absolute inset-y-0 left-1/2 hidden w-px bg-line lg:block"
+              style={{
+                transform: on ? 'scaleY(1)' : 'scaleY(0)',
+                transformOrigin: 'top',
+                transition: 'transform 400ms var(--ease-out)',
+              }}
+            />
             {SURFACES.map((s, i) => (
-              <div key={s.label} className={i === 0 ? 'lg:pr-12' : 'lg:pl-12'}>
+              <div
+                key={s.label}
+                className={i === 0 ? 'lg:pr-12' : 'lg:pl-12'}
+                style={{
+                  opacity: on ? 1 : 0,
+                  transform: on
+                    ? 'translateX(0)'
+                    : `translateX(${i === 0 ? -8 : 8}px)`,
+                  transition: `opacity 300ms var(--ease-out), transform 300ms var(--ease-out)`,
+                }}
+              >
                 <p className="font-mono text-xs font-medium tracking-[0.06em] text-ink">
                   {s.label}
                 </p>
