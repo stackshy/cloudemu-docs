@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import { MorphCode } from '@/components/code/morph-code';
 import { Reveal } from '@/components/reveal';
+import { TestProof } from '@/components/landing/test-proof';
 
 const SNIPPETS = {
   aws: {
@@ -115,10 +116,7 @@ export function SDKCompatSection() {
           {/* Right: the evidence */}
           <Reveal delay={60}>
             <MorphCode snippets={SNIPPETS} />
-            <p className="mt-3 font-mono text-xs text-ink-3">
-              <span className="select-none">$ </span>go test ./storage{'  '}
-              <span className="text-ok">ok</span> 0.04s · real SDK, no network
-            </p>
+            <TestProof />
           </Reveal>
         </div>
       </div>

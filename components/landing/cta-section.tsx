@@ -21,11 +21,15 @@ export function CTASection() {
           <p className="u-eyebrow mb-3">
             <span aria-hidden>$</span> get started
           </p>
+        </Reveal>
+        <Reveal delay={70}>
           <h2 className="max-w-[60ch] text-3xl font-bold tracking-[-0.01em] text-ink">
             One <code className="font-mono font-semibold">go get</code> from
             now, your tests stop needing the internet.
           </h2>
+        </Reveal>
 
+        <Reveal delay={140}>
           <div className="mt-8 flex max-w-xl items-center gap-3 rounded-lg border border-line bg-inset px-4 py-3.5 font-mono text-sm text-ink-inset">
             <span aria-hidden className="select-none text-ink-inset-muted">
               $
@@ -48,7 +52,9 @@ export function CTASection() {
               )}
             </button>
           </div>
+        </Reveal>
 
+        <Reveal delay={210}>
           <div className="mt-8 flex flex-wrap items-center gap-3">
             <Link href="/docs" className="u-btn u-btn-primary group">
               Read the docs
@@ -58,7 +64,9 @@ export function CTASection() {
               Quick Start
             </Link>
           </div>
+        </Reveal>
 
+        <Reveal delay={280}>
           <p className="mt-10 font-mono text-xs uppercase tracking-[0.06em] text-ink-3">
             MIT license · Go 1.25+ · zero dependencies
           </p>
