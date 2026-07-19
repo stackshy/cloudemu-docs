@@ -18,7 +18,7 @@ export const services: ServiceMapping[] = [
   { category: 'Compute', aws: 'EC2', azure: 'VirtualMachines', gcp: 'GCE', slug: 'compute', description: 'Virtual machine instances with lifecycle state machines' },
   { category: 'Storage', aws: 'S3', azure: 'BlobStorage', gcp: 'GCS', slug: 'storage', description: 'Object storage with buckets, versioning, and multipart upload' },
   { category: 'Database', aws: 'DynamoDB', azure: 'CosmosDB', gcp: 'Firestore', slug: 'database', description: 'NoSQL database with queries, TTL, and streams' },
-  { category: 'Relational DB', aws: 'RDS · Redshift', azure: 'SQL · Flex', gcp: 'CloudSQL', slug: 'relationaldb', description: 'Managed relational database control planes' },
+  { category: 'Relational DB', aws: 'RDS·Redshift', azure: 'SQL·Flex', gcp: 'CloudSQL', slug: 'relationaldb', description: 'Managed relational database control planes' },
   { category: 'Serverless', aws: 'Lambda', azure: 'Functions', gcp: 'CloudFunctions', slug: 'serverless', description: 'Function-as-a-service with versions and aliases' },
   { category: 'Kubernetes', aws: 'EKS', azure: 'AKS', gcp: 'GKE', slug: 'kubernetes', description: 'Managed clusters with a shared in-memory data plane' },
   { category: 'Networking', aws: 'VPC', azure: 'VNet', gcp: 'VPC', slug: 'networking', description: 'Virtual networks, subnets, and security groups' },
@@ -34,6 +34,6 @@ export const services: ServiceMapping[] = [
   { category: 'Secrets', aws: 'SecretsManager', azure: 'KeyVault', gcp: 'SecretManager', slug: 'secrets', description: 'Secret storage and versioning' },
   { category: 'Logging', aws: 'CloudWatchLogs', azure: 'LogAnalytics', gcp: 'CloudLogging', slug: 'logging', description: 'Log groups and log streams' },
   { category: 'Resource Discovery', aws: 'ResourceExplorer', azure: 'ResourceGraph', gcp: 'AssetInventory', slug: 'resource-discovery', description: 'Query resources across services and tags' },
-  { category: 'Generative AI', aws: 'Bedrock · SageMaker', azure: '—', gcp: 'VertexAI', slug: 'ai', description: 'Model control planes with deterministic inference' },
+  { category: 'Generative AI', aws: 'Bedrock·SageMaker', azure: '—', gcp: 'VertexAI', slug: 'ai', description: 'Model control planes with deterministic inference' },
   { category: 'Databricks', aws: '—', azure: 'Databricks', gcp: '—', slug: 'databricks', description: 'ARM workspace control plane and data plane' },
 ];
