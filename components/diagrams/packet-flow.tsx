@@ -65,6 +65,7 @@ export function PacketFlow({ once = false }: { once?: boolean }) {
   const [reduced, setReduced] = useState(false);
   const [entered, setEntered] = useState(false);
   const [logN, setLogN] = useState(0);
+  const [hovered, setHovered] = useState<string | null>(null);
   const playedRef = useRef(false);
 
   useEffect(() => {
@@ -136,19 +137,21 @@ export function PacketFlow({ once = false }: { once?: boolean }) {
 
           return (
             <g key={w.id}>
-              {/* wire — draws in on first view */}
+              {/* wire — draws in on first view; brightens when its SDK is hovered */}
               <path
                 d={path}
                 stroke={w.vivid}
-                strokeOpacity="0.3"
-                strokeWidth="1.2"
+                strokeOpacity={
+                  hovered ? (hovered === w.id ? 0.65 : 0.12) : 0.3
+                }
+                strokeWidth={hovered === w.id ? 1.6 : 1.2}
                 fill="none"
                 strokeLinecap="round"
                 pathLength={1}
                 strokeDasharray={1}
                 strokeDashoffset={running || reduced ? 0 : 1}
                 style={{
-                  transition: `stroke-dashoffset 600ms var(--ease-out) ${150 + i * 150}ms`,
+                  transition: `stroke-dashoffset 600ms var(--ease-out) ${150 + i * 150}ms, stroke-opacity 200ms var(--ease-out), stroke-width 200ms var(--ease-out)`,
                 }}
               />
 
@@ -229,8 +232,10 @@ export function PacketFlow({ once = false }: { once?: boolean }) {
                 </>
               )}
 
-              {/* SDK node — rises in with the entrance */}
+              {/* SDK node — rises in with the entrance; hover brightens its wire */}
               <g
+                onMouseEnter={() => setHovered(w.id)}
+                onMouseLeave={() => setHovered(null)}
                 style={{
                   opacity: running || reduced ? 1 : 0,
                   transform: running || reduced ? 'none' : 'translateY(6px)',
