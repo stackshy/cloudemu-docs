@@ -49,10 +49,22 @@ const NODE_Y = 150;
 const NODE_R = 40;
 const DUR = 3.6;
 
+/** Rotating request log rendered under the diagram — the round-trips, receipted. */
+const LOG_LINES = [
+  { p: 'aws', tint: 'var(--aws)', line: 'PUT /app-data/config.yaml', code: 200, ms: 9 },
+  { p: 'azr', tint: 'var(--azure)', line: 'PUT …/virtualMachines/vm-1', code: 201, ms: 11 },
+  { p: 'gcp', tint: 'var(--gcp)', line: 'POST /compute/v1/…/instances', code: 200, ms: 10 },
+  { p: 'aws', tint: 'var(--aws)', line: 'GET /app-data/config.yaml', code: 200, ms: 8 },
+  { p: 'azr', tint: 'var(--azure)', line: 'POST …/namespaces/q1/messages', code: 201, ms: 9 },
+  { p: 'gcp', tint: 'var(--gcp)', line: 'POST /v1/…/topics/events:publish', code: 200, ms: 10 },
+] as const;
+
 export function PacketFlow({ once = false }: { once?: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
   const [running, setRunning] = useState(false);
   const [reduced, setReduced] = useState(false);
+  const [entered, setEntered] = useState(false);
+  const [logN, setLogN] = useState(0);
   const playedRef = useRef(false);
 
   useEffect(() => {
@@ -87,7 +99,25 @@ export function PacketFlow({ once = false }: { once?: boolean }) {
     return () => io.disconnect();
   }, [once]);
 
-  const animate = running && !reduced;
+  // entrance: wires draw + nodes rise, then traffic starts
+  useEffect(() => {
+    if (!running) return;
+    if (reduced) {
+      setEntered(true);
+      return;
+    }
+    const t = setTimeout(() => setEntered(true), 950);
+    return () => clearTimeout(t);
+  }, [running, reduced]);
+
+  const animate = running && !reduced && entered;
+
+  // request log: one receipt per beat while traffic flows
+  useEffect(() => {
+    if (!animate) return;
+    const iv = setInterval(() => setLogN((n) => n + 1), 1400);
+    return () => clearInterval(iv);
+  }, [animate]);
 
   return (
     <div ref={ref} className="w-full select-none">
@@ -106,7 +136,7 @@ export function PacketFlow({ once = false }: { once?: boolean }) {
 
           return (
             <g key={w.id}>
-              {/* wire */}
+              {/* wire — draws in on first view */}
               <path
                 d={path}
                 stroke={w.vivid}
@@ -114,6 +144,12 @@ export function PacketFlow({ once = false }: { once?: boolean }) {
                 strokeWidth="1.2"
                 fill="none"
                 strokeLinecap="round"
+                pathLength={1}
+                strokeDasharray={1}
+                strokeDashoffset={running || reduced ? 0 : 1}
+                style={{
+                  transition: `stroke-dashoffset 600ms var(--ease-out) ${150 + i * 150}ms`,
+                }}
               />
 
               {animate && (
@@ -193,7 +229,14 @@ export function PacketFlow({ once = false }: { once?: boolean }) {
                 </>
               )}
 
-              {/* SDK node */}
+              {/* SDK node — rises in with the entrance */}
+              <g
+                style={{
+                  opacity: running || reduced ? 1 : 0,
+                  transform: running || reduced ? 'none' : 'translateY(6px)',
+                  transition: `opacity 400ms var(--ease-out) ${i * 130}ms, transform 400ms var(--ease-out) ${i * 130}ms`,
+                }}
+              >
               <rect
                 x={BOX_X}
                 y={w.y - BOX_H / 2}
@@ -231,6 +274,7 @@ export function PacketFlow({ once = false }: { once?: boolean }) {
               >
                 {w.sub}
               </text>
+              </g>
             </g>
           );
         })}
@@ -268,6 +312,12 @@ export function PacketFlow({ once = false }: { once?: boolean }) {
                 />
               </circle>
             ))}
+          <g
+            style={{
+              opacity: running || reduced ? 1 : 0,
+              transition: 'opacity 500ms var(--ease-out) 550ms',
+            }}
+          >
           <circle
             cx={NODE_X}
             cy={NODE_Y}
@@ -306,8 +356,39 @@ export function PacketFlow({ once = false }: { once?: boolean }) {
           >
             ~10ms
           </text>
+          </g>
         </g>
       </svg>
+
+      {/* request log: receipts for the round-trips above */}
+      {!once && (
+        <div
+          aria-hidden
+          className="mt-3 flex h-[54px] flex-col justify-end overflow-hidden font-mono text-[10px] leading-[18px]"
+          style={{
+            opacity: running || reduced ? 1 : 0,
+            transition: 'opacity 500ms var(--ease-out) 900ms',
+          }}
+        >
+          {[2, 1, 0].map((back) => {
+            const idx = logN - back;
+            if (idx < 0) return <div key={back} className="h-[18px]" />;
+            const l = LOG_LINES[idx % LOG_LINES.length];
+            return (
+              <div
+                key={idx}
+                className="flex items-baseline gap-2 whitespace-nowrap"
+                style={{ opacity: back === 0 ? 1 : back === 1 ? 0.55 : 0.3 }}
+              >
+                <span style={{ color: l.tint }}>{l.p}</span>
+                <span className="truncate text-ink-3">{l.line}</span>
+                <span className="text-ok">{l.code}</span>
+                <span className="text-ink-3">{l.ms}ms</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

@@ -16,6 +16,10 @@ import { PrevNext } from '@/components/docs/prev-next';
 import { PacketFlow } from '@/components/diagrams/packet-flow';
 import { ChaosTimeline } from '@/components/diagrams/chaos-timeline';
 import { RequestFlow } from '@/components/diagrams/request-flow';
+import { PortableFlow } from '@/components/diagrams/portable-flow';
+import { WireProtocols } from '@/components/diagrams/wire-protocols';
+import { TopologyGraph } from '@/components/diagrams/topology-graph';
+import { FeatureGlyph } from '@/components/diagrams/feature-glyph';
 
 export default async function Page(props: {
   params: Promise<{ slug?: string[] }>;
@@ -74,6 +78,10 @@ export default async function Page(props: {
             PacketFlow,
             ChaosTimeline,
             RequestFlow,
+            PortableFlow,
+            WireProtocols,
+            TopologyGraph,
+            FeatureGlyph,
           }}
         />
         <PrevNext url={page.url} />

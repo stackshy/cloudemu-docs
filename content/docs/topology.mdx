@@ -4,6 +4,8 @@ description: Simulate real network reachability across VPCs, peering, security g
 ---
 Test whether two emulated instances can actually talk — across VPCs, peering, security groups, ACLs, and routes. The topology engine reads the compute, networking, and DNS drivers and answers three questions the way a real cloud network would: *can these two instances talk?*, *what path does traffic take?*, and *what does this hostname resolve to?*
 
+<TopologyGraph />
+
 This lets you unit-test firewall rules, security-group changes, routing, and DNS wiring deterministically — no VPCs to stand up, no cloud account.
 
 ```go
