@@ -1,4 +1,8 @@
+'use client';
+
+import type { CSSProperties } from 'react';
 import { Reveal } from '@/components/reveal';
+import { useInView } from '@/components/diagrams/use-in-view';
 
 /**
  * Open spec-sheet comparison: no outer box, no cell backgrounds. Mono
@@ -29,23 +33,23 @@ const ROWS: { feature: string; cells: [Cell, Cell, Cell] }[] = [
   { feature: 'Real SDKs unchanged', cells: [yes, yes, yes] },
 ];
 
-function Glyph({ cell }: { cell: Cell }) {
+function Glyph({ cell, style }: { cell: Cell; style?: CSSProperties }) {
   switch (cell.kind) {
     case 'yes':
       return (
-        <span className="font-mono text-[14px] text-ok" aria-label="yes">
+        <span className="font-mono text-[14px] text-ok" aria-label="yes" style={style}>
           ✓
         </span>
       );
     case 'no':
       return (
-        <span className="font-mono text-[14px] text-ink-3" aria-label="no">
+        <span className="font-mono text-[14px] text-ink-3" aria-label="no" style={style}>
           ✗
         </span>
       );
     case 'partial':
       return (
-        <span className="font-mono text-[14px] text-ink-2" aria-label="partial">
+        <span className="font-mono text-[14px] text-ink-2" aria-label="partial" style={style}>
           ◐
         </span>
       );
@@ -57,6 +61,7 @@ function Glyph({ cell }: { cell: Cell }) {
               ? 'font-mono text-sm font-semibold text-ink'
               : 'text-sm text-ink-2'
           }
+          style={style}
         >
           {cell.value}
         </span>
@@ -65,6 +70,8 @@ function Glyph({ cell }: { cell: Cell }) {
 }
 
 export function ComparisonTable() {
+  const [ref, on] = useInView<HTMLDivElement>(0.15);
+
   return (
     <section className="w-full border-t border-line">
       <div className="mx-auto w-full max-w-[1120px] px-6 py-20">
@@ -78,7 +85,7 @@ export function ComparisonTable() {
         </Reveal>
 
         <Reveal delay={60} className="mt-10">
-          <div className="overflow-x-auto">
+          <div ref={ref} className="overflow-x-auto">
             <table className="w-full text-left">
               <thead>
                 <tr className="border-b border-line-2">
@@ -97,8 +104,16 @@ export function ComparisonTable() {
                 </tr>
               </thead>
               <tbody>
-                {ROWS.map((row) => (
-                  <tr key={row.feature} className="border-b border-line last:border-b-0">
+                {ROWS.map((row, i) => (
+                  <tr
+                    key={row.feature}
+                    className="border-b border-line last:border-b-0"
+                    style={{
+                      opacity: on ? 1 : 0,
+                      transform: on ? 'translateY(0)' : 'translateY(4px)',
+                      transition: `opacity 250ms var(--ease-out) ${i * 45}ms, transform 250ms var(--ease-out) ${i * 45}ms`,
+                    }}
+                  >
                     <td className="py-4 pr-4 text-sm font-medium text-ink">
                       {row.feature}
                     </td>
@@ -109,7 +124,14 @@ export function ComparisonTable() {
                       <Glyph cell={row.cells[1]} />
                     </td>
                     <td className="bg-accent/[0.06] px-4 py-4">
-                      <Glyph cell={row.cells[2]} />
+                      {/* cloudemu column lands last: same fade, +200ms after its row */}
+                      <Glyph
+                        cell={row.cells[2]}
+                        style={{
+                          opacity: on ? 1 : 0,
+                          transition: `opacity 250ms var(--ease-out) ${i * 45 + 200}ms`,
+                        }}
+                      />
                     </td>
                   </tr>
                 ))}
