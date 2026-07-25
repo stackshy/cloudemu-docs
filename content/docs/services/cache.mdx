@@ -1,46 +1,53 @@
 ---
 title: Cache
-description: In-memory cache with TTL support
+description: In-memory key-value cache with TTL, modelled on ElastiCache, Azure Cache for Redis, and Memorystore
 aws: ElastiCache
 azure: Cache for Redis
 gcp: Memorystore
 ---
 
-## Overview
+Emulates a managed in-memory cache — the Redis/Memcached instance you'd put in front of a database for sessions, rate counters, or hot lookups. You create a named cache instance, then store, read, and expire keys against it.
 
-Set, get, and expire values in emulated **ElastiCache** (AWS), **Cache** (Azure), and **Memorystore** (GCP) instances. The full driver semantics — Get/Set, TTL expiry, eviction — are available through the Portable Go API.
+Reach for it in tests when your code does cache-aside reads, sets values with a TTL, or depends on eviction — so you can exercise those paths without standing up a real Redis. Under the hood each instance is a plain key-value store: keys map to byte values, each with an optional expiry.
 
-| Provider | Service | SDK-compat | Driver |
-|----------|---------|:----------:|--------|
-| AWS | ElastiCache | — | `aws.ElastiCache` |
-| Azure | Cache for Redis | — | `azure.Cache` |
-| GCP | Memorystore | — | `gcp.Memorystore` |
+| Provider | Service | Driver |
+|----------|---------|--------|
+| AWS | ElastiCache | `aws.ElastiCache` |
+| Azure | Cache for Redis | `azure.Cache` |
+| GCP | Memorystore | `gcp.Memorystore` |
 
-## Examples
+## Create an instance
 
-Create a cache instance, then set, get, and delete values:
+A cache instance is the container your keys live in — the equivalent of provisioning an ElastiCache cluster or a Memorystore instance. Create one before storing anything:
 
 ```go
 import cachedriver "github.com/stackshy/cloudemu/v2/services/cache/driver"
 
-// Create a cache instance
 aws.ElastiCache.CreateCacheInstance(ctx, cachedriver.CacheConfig{
     Name:     "session-cache",
     NodeType: "cache.t3.micro",
 })
+```
 
-// Set a value with TTL
+## Store, read, and expire keys
+
+`Set` takes a TTL — once it elapses the key is gone, which is how you model session timeouts or short-lived caches. A `Get` on a missing or expired key returns no value:
+
+```go
+// Store a value that lives for 30 minutes
 aws.ElastiCache.Set(ctx, "session-cache", "user:123", []byte("session-data"), 30*time.Minute)
 
-// Get a value
+// Read it back
 data, _ := aws.ElastiCache.Get(ctx, "session-cache", "user:123")
 
-// Delete
+// Remove it early
 aws.ElastiCache.Delete(ctx, "session-cache", "user:123")
 ```
 
-## Notes
+To test expiry without an actual 30-minute wait, drive time with the [fake clock](/docs/features/fake-clock): advance past the TTL and the next `Get` sees the key as gone.
 
-- **SDK-compat status:** Portable Go API only. ElastiCache / Azure Cache for Redis / Memorystore expose Redis or Memcached _wire_ protocols, which are out of scope for HTTP-based SDK-compat. The cache management APIs may get SDK-compat handlers in a future phase.
-- **TTL expiry:** cached items are automatically expired after their TTL, with lazy cleanup on read.
-- **Thread-safe:** all cache operations are safe for concurrent access.
+## Behavior & fidelity
+
+- **TTL expiry is lazy.** An item past its TTL is treated as absent on the next read and cleaned up then — so a `Get` never returns stale data, and expiry costs nothing until you touch the key.
+- **Thread-safe.** Every operation is safe for concurrent use across goroutines and providers.
+- **SDK-compat status — Portable Go API only.** ElastiCache, Azure Cache for Redis, and Memorystore expose the Redis/Memcached *wire* protocols, which sit outside cloudemu's HTTP-based SDK-compat scope. The cache *management* APIs may get SDK-compat handlers in a later phase; the full driver semantics above are available today through the Portable Go API.
