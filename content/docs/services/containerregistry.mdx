@@ -1,14 +1,14 @@
 ---
 title: Container Registry
-description: Container image storage, lifecycle policies, and scanning
+description: Container image storage with tags, lifecycle policies, and vulnerability scanning, modelled on ECR, ACR, and Artifact Registry
 aws: ECR
 azure: ACR
 gcp: Artifact Registry
 ---
 
-## Overview
+Emulates a managed container registry — the ECR, ACR, or Artifact Registry you push images to before a deploy. You create named repositories, put image manifests into them under tags or digests, and manage their lifecycle; each repository tracks its images the way the real registries do, down to tag mutability and scan-on-push settings.
 
-Create repositories and push images to emulated **ECR** (AWS), **ACR** (Azure), and **Artifact Registry** (GCP). Repositories, images, and tags are available through the SDK-compat server and the Portable Go API.
+Reach for it in tests when your code creates repositories, pushes or lists images, or depends on lifecycle cleanup or scan results — so you can exercise those paths without a real registry or real image layers. You store a manifest (digest, tags, size), not actual bytes, which is all a test double needs.
 
 | Provider | Service | SDK-compat | Driver |
 |----------|---------|:----------:|--------|
@@ -16,35 +16,69 @@ Create repositories and push images to emulated **ECR** (AWS), **ACR** (Azure), 
 | Azure | ACR (registries + repositories + tags) | ✓ Live | `azure.ACR` |
 | GCP | Artifact Registry (repositories + Docker images) | ✓ Live | `gcp.ArtifactRegistry` |
 
-## Examples
+## Create repositories
 
-Create and list repositories through the Portable Go API:
+A repository is the container your images live in — the equivalent of an ECR repository or an Artifact Registry repo. `ImageScanOnPush` and `ImageTagMutability` mirror the real create-time knobs, so a test can assert your provisioning sets them:
 
 ```go
 import crdriver "github.com/stackshy/cloudemu/v2/services/containerregistry/driver"
 
 aws.ECR.CreateRepository(ctx, crdriver.RepositoryConfig{
-    Name: "my-app",
-    Tags: map[string]string{"team": "platform"},
+    Name:            "my-app",
+    ImageScanOnPush: true,
+    Tags:            map[string]string{"team": "platform"},
 })
 
 repos, _ := aws.ECR.ListRepositories(ctx)
 ```
 
-Push and list images:
+## Push and list images
+
+`PutImage` records a manifest — digest, tag, size, and layers — against a repository, the way `docker push` registers an image without you shipping real bytes. `ListImages` returns everything in the repo so a test can assert what landed:
 
 ```go
-aws.ECR.PushImage(ctx, crdriver.PushImageInput{
+aws.ECR.PutImage(ctx, &crdriver.ImageManifest{
     Repository: "my-app",
     Tag:        "v1.0.0",
     Digest:     "sha256:abc123...",
+    SizeBytes:  10 << 20,
 })
 
 images, _ := aws.ECR.ListImages(ctx, "my-app")
 ```
 
-## Notes
+## Configure lifecycle policies
 
-- **SDK-compat status:** Live. Real `aws-sdk-go-v2/service/ecr`, `armcontainerregistry`, and Artifact Registry clients can point at the [SDK-compat server](/docs/sdk-compat).
-- **Lifecycle policies:** configure policies to automatically clean up old or untagged images.
-- **Image scanning:** trigger vulnerability scans on pushed images.
+Lifecycle policies model the automatic cleanup real registries run — expiring untagged or over-quota images. `PutLifecyclePolicy` stores the rules, and `EvaluateLifecyclePolicy` returns the image references that *would* be expired, so a test can assert the policy prunes what you expect without waiting on a background sweep:
+
+```go
+aws.ECR.PutLifecyclePolicy(ctx, "my-app", crdriver.LifecyclePolicy{
+    Rules: []crdriver.LifecycleRule{{
+        Priority:   1,
+        TagStatus:  "untagged",
+        CountType:  "imageCountMoreThan",
+        CountValue: 10,
+        Action:     "expire",
+    }},
+})
+
+expired, _ := aws.ECR.EvaluateLifecyclePolicy(ctx, "my-app")
+```
+
+## Scan images
+
+`StartImageScan` kicks off a vulnerability scan and `GetImageScanResults` reads it back — the same scan-on-push / scan-on-demand flow ECR exposes. The result carries a status and per-severity finding counts, so your code can gate a deploy on scan output:
+
+```go
+aws.ECR.StartImageScan(ctx, "my-app", "v1.0.0")
+
+result, _ := aws.ECR.GetImageScanResults(ctx, "my-app", "v1.0.0")
+fmt.Println(result.Status, result.FindingCounts["CRITICAL"])
+```
+
+## Behavior & fidelity
+
+- **References resolve by tag or digest.** `GetImage`, `TagImage`, and the scan calls accept either a tag or a `sha256:` digest, matching how the real registries address images.
+- **Lifecycle evaluation is explicit.** `EvaluateLifecyclePolicy` computes the expiry set on demand and returns it rather than deleting in the background — so tests are deterministic and you see exactly what a rule matches.
+- **Manifests, not bytes.** Images are stored as manifests (digest, tags, size, layers); there's no layer blob storage, which is all a control-plane test double needs.
+- **SDK-compat status — Live.** Real `aws-sdk-go-v2/service/ecr`, `armcontainerregistry`, and Artifact Registry clients can point at the [SDK-compat server](/docs/sdk-compat) for the repository, image, and tag operations above.
