@@ -16,6 +16,7 @@
     "---Advanced---",
     "portable-api",
     "sdk-compat",
+    "standalone-server",
     "chaos",
     "topology"
   ]

@@ -20,6 +20,7 @@ import { PortableFlow } from '@/components/diagrams/portable-flow';
 import { WireProtocols } from '@/components/diagrams/wire-protocols';
 import { TopologyGraph } from '@/components/diagrams/topology-graph';
 import { FeatureGlyph } from '@/components/diagrams/feature-glyph';
+import { ServePorts } from '@/components/diagrams/serve-ports';
 
 export default async function Page(props: {
   params: Promise<{ slug?: string[] }>;
@@ -82,6 +83,7 @@ export default async function Page(props: {
             WireProtocols,
             TopologyGraph,
             FeatureGlyph,
+            ServePorts,
           }}
         />
         <PrevNext url={page.url} />
