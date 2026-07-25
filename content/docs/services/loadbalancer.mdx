@@ -1,24 +1,24 @@
 ---
 title: Load Balancer
-description: Emulated load balancers, target groups, listeners, and health checks
+description: Emulated load balancers, target groups, listeners, and health checks, modelled on ELB and cloud LBs
 aws: ELB
 azure: LB
 gcp: LB
 ---
 
-## Overview
+Emulates a managed load balancer — the ELB-style front door that spreads traffic across a pool of backends. You create a load balancer, register targets in a target group, and attach a listener that routes a port to that group.
 
-Create load balancers, target groups, and listeners in emulated **ELB** (AWS), **LB** (Azure), and **LB** (GCP).
+Reach for it in tests when your code provisions load balancers, registers or deregisters targets, or reacts to target health — so you can exercise those paths without a live LB. Under the hood a load balancer, its target groups, and its listeners are plain named records wired together by ID.
 
-| Provider | Service | Access |
+| Provider | Service | Driver |
 |----------|---------|--------|
 | AWS | ELB | `aws.ELB` |
 | Azure | LB | `azure.LB` |
 | GCP | LB | `gcp.LB` |
 
-## Examples
+## Create a load balancer
 
-### Load Balancers
+The load balancer is the entry point clients connect to — the equivalent of provisioning an Application Load Balancer. Create one before wiring up targets or listeners:
 
 ```go
 import lbdriver "github.com/stackshy/cloudemu/v2/services/loadbalancer/driver"
@@ -30,7 +30,9 @@ lb, _ := aws.ELB.CreateLoadBalancer(ctx, lbdriver.LoadBalancerConfig{
 })
 ```
 
-### Target Groups
+## Create a target group and register targets
+
+A target group is the pool of backends the load balancer sends traffic to, along with the health check that decides which are eligible. Register your instances into it:
 
 ```go
 tg, _ := aws.ELB.CreateTargetGroup(ctx, lbdriver.TargetGroupConfig{
@@ -42,7 +44,9 @@ tg, _ := aws.ELB.CreateTargetGroup(ctx, lbdriver.TargetGroupConfig{
 aws.ELB.RegisterTargets(ctx, tg.ID, []string{"i-00000001", "i-00000002"})
 ```
 
-### Listeners
+## Attach a listener
+
+A listener binds a port and protocol on the load balancer to a target group — this is what actually forwards incoming requests to your backends:
 
 ```go
 aws.ELB.CreateListener(ctx, lbdriver.ListenerConfig{
@@ -53,10 +57,8 @@ aws.ELB.CreateListener(ctx, lbdriver.ListenerConfig{
 })
 ```
 
-## Notes
+## Behavior & fidelity
 
-> **SDK-compat status:** _Portable Go API only._ Real `elbv2`, `armnetwork.LoadBalancers`, and GCP LB clients can't talk to cloudemu yet — load balancer SDK-compat handlers will ship in lockstep across all 3 providers in a future phase. Targets, listeners, and health checks are already available through the Portable Go API shown above.
-
-### Health Checks
-
-Target groups include health check configuration that determines target health status.
+- **Target groups carry health-check configuration.** Each group's health check determines the health status of its registered targets, so you can test how your code responds to a target going unhealthy.
+- **Objects are wired by ID.** Listeners reference a load balancer and a target group by ID, mirroring how ELB resources compose; a target group can back more than one listener.
+- **SDK-compat status — Portable Go API only.** Real `elbv2`, `armnetwork.LoadBalancers`, and GCP LB clients can't talk to cloudemu yet — load balancer SDK-compat handlers will ship in lockstep across all three providers in a future phase. Targets, listeners, and health checks are available today through the Portable Go API shown above.
