@@ -1,14 +1,14 @@
 ---
 title: IAM
-description: Emulated identity, roles, and policy evaluation with wildcard matching
+description: Emulated identity, roles, and JSON policy evaluation with wildcard matching, modelled on AWS IAM, Azure RBAC, and GCP IAM
 aws: IAM
 azure: RBAC
 gcp: IAM
 ---
 
-## Overview
+Emulates managed identity and access control — the users, roles, and policies you attach to principals, plus the evaluator that decides whether a given action on a given resource is allowed. You create identities, attach JSON policy documents, then ask "can this principal do this?" and get the same allow/deny answer real IAM would give.
 
-Create users, roles, and policies, then check permissions — AWS IAM, Azure RBAC, and GCP IAM, in memory.
+Reach for it in tests when your code provisions principals, wires up policies, or gates behaviour on a permission check — so you can exercise those paths without a live cloud account. Under the hood it's an in-memory identity store with a policy engine that parses JSON documents, expands wildcards, and applies explicit-deny precedence.
 
 | Provider | Service | SDK-compat | Access |
 |----------|---------|:----------:|--------|
@@ -16,9 +16,9 @@ Create users, roles, and policies, then check permissions — AWS IAM, Azure RBA
 | Azure | RBAC (`Microsoft.Authorization` role assignments + definitions) | ✓ Live | `azure.IAM` |
 | GCP | IAM (service accounts, roles, policy bindings) | ✓ Live | `gcp.IAM` |
 
-## Examples
+## Create users and roles
 
-### Users and Roles
+Users and roles are the principals you attach policies to — the equivalent of the identities you'd create before granting any access. Create them first:
 
 ```go
 import iamdriver "github.com/stackshy/cloudemu/v2/services/iam/driver"
@@ -28,20 +28,20 @@ aws.IAM.CreateUser(ctx, iamdriver.UserConfig{
     Name: "alice", Tags: map[string]string{"team": "backend"},
 })
 
-// Create a role
+// Create a role with a trust policy
 aws.IAM.CreateRole(ctx, iamdriver.RoleConfig{
-    Name:             "s3-reader",
-    AssumeRolePolicy: `{"Version":"2012-10-17","Statement":[...]}`,
+    Name:                "s3-reader",
+    AssumeRolePolicyDoc: `{"Version":"2012-10-17","Statement":[...]}`,
 })
 ```
 
-### Policies
+## Attach a policy
+
+A policy is a JSON document; attaching it to a principal is what grants the permissions inside. Create the managed policy, then attach it by ARN — this is how you model "alice can read this bucket":
 
 ```go
-// Attach a policy
-aws.IAM.AttachPolicy(ctx, iamdriver.AttachPolicyInput{
-    TargetType: "user",
-    TargetName: "alice",
+policy, _ := aws.IAM.CreatePolicy(ctx, iamdriver.PolicyConfig{
+    Name: "read-my-bucket",
     PolicyDocument: `{
         "Version": "2012-10-17",
         "Statement": [{
@@ -51,26 +51,24 @@ aws.IAM.AttachPolicy(ctx, iamdriver.AttachPolicyInput{
         }]
     }`,
 })
+
+aws.IAM.AttachUserPolicy(ctx, "alice", policy.ARN)
 ```
 
-### Permission Checking
+## Check a permission
+
+This is the evaluator the rest of your code gates on — it runs the same allow/deny logic as real IAM over everything the principal has attached, so you assert on authorization decisions directly:
 
 ```go
-allowed, _ := aws.IAM.CheckPermission(ctx, iamdriver.PermissionCheck{
-    Principal: "alice",
-    Action:    "s3:GetObject",
-    Resource:  "arn:aws:s3:::my-bucket/file.txt",
-})
+allowed, _ := aws.IAM.CheckPermission(ctx, "alice",
+    "s3:GetObject", "arn:aws:s3:::my-bucket/file.txt")
 // allowed == true
 ```
 
-## Notes
+The wildcard in the policy's `Resource` (`my-bucket/*`) matches the concrete object key, so the check returns `true`.
 
-> **SDK-compat status:** _Live._ Real `aws-sdk-go-v2/service/iam`, Azure `Microsoft.Authorization` (RBAC), and GCP IAM clients can point at the [SDK-compat server](/docs/sdk-compat). The full driver semantics (JSON policy evaluation, wildcards, explicit-deny override, instance profiles) are also available through the Portable Go API shown above.
+## Behavior & fidelity
 
-### Policy Evaluation
-
-cloudemu parses JSON policy documents with support for:
-- **Wildcard matching** in actions and resources (`s3:*`, `arn:aws:s3:::*`)
-- **Explicit Deny overrides Allow** — matching real IAM behavior
-- **Multiple statements** with different effects
+- **JSON policy evaluation.** Documents are parsed with wildcard matching in actions and resources (`s3:*`, `arn:aws:s3:::*`), support for multiple statements with differing effects, and **explicit Deny overriding Allow** — matching real IAM precedence.
+- **Thread-safe.** Every operation is safe for concurrent use across goroutines and providers.
+- **SDK-compat status — Live.** Real `aws-sdk-go-v2/service/iam`, Azure `Microsoft.Authorization` (RBAC), and GCP IAM clients can point at the [SDK-compat server](/docs/sdk-compat). The full driver semantics (policy evaluation, wildcards, explicit-deny override, instance profiles) are also available today through the Portable Go API shown above.
