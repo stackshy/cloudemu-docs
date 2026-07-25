@@ -8,6 +8,10 @@ Point a real `aws-sdk-go-v2`, `azure-sdk-for-go`, or `cloud.google.com/go` clien
 
 Nothing to mock. No Docker. No accounts. The same SDK calls you'd run against real cloud APIs hit a local `httptest.NewServer` and get back SDK-decodable responses.
 
+<Callout type="info">
+Want a long-lived, out-of-process server that any language's SDK can point at? See [Standalone Server](/docs/standalone-server).
+</Callout>
+
 ## Why
 
 cloudemu's [Portable API](/docs/portable-api) works well for new code you write for testing. But most real apps already use the official cloud SDKs directly. Rewriting those call sites just to test against an emulator is friction. The SDK-compat server removes that friction — change the endpoint, done.
