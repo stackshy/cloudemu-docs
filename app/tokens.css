@@ -38,10 +38,10 @@
   --warn: #92600e;
   --danger: #bd3934;
 
-  /* ---- terminal pane: dark instrument screen in both themes ---- */
-  --terminal-bg: #08090b;
-  --terminal-ink: #d6dade;
-  --terminal-muted: #6b7482;
+  /* ---- terminal / inset pane (adapts per theme; light values here) ---- */
+  --terminal-bg: #ecece9;
+  --terminal-ink: #24272c;
+  --terminal-muted: #6c7178;
 
   /* ---- one shadow token, modals/popovers only ---- */
   --shadow-popover: 0 12px 32px -8px rgba(10, 14, 22, 0.16);
@@ -70,6 +70,11 @@
   --bg-3: #171b21;
   --border: #21262e;
   --border-2: #2e3540;
+
+  /* ---- terminal / inset pane (dark instrument screen) ---- */
+  --terminal-bg: #08090b;
+  --terminal-ink: #d6dade;
+  --terminal-muted: #6b7482;
 
   /* ---- text (dark) ---- */
   --text-1: #f2f4f6;
