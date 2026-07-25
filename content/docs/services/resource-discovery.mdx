@@ -1,16 +1,14 @@
 ---
 title: Resource Discovery
-description: A cross-service inventory engine that answers Resource Explorer, Resource Graph, and Cloud Asset Inventory queries over emulated resources
+description: A cross-service inventory engine that answers Resource Explorer, Resource Graph, and Cloud Asset Inventory queries over your emulated resources
 aws: Resource Explorer 2
 azure: Resource Graph
 gcp: Cloud Asset Inventory
 ---
 
-## Overview
+Emulates the cross-service inventory APIs — the "list everything I have, filtered by service, type, region, or tag" layer that Resource Explorer, Resource Graph, and Cloud Asset Inventory provide. An engine walks your emulated compute, networking, storage, database, serverless, and Databricks resources and answers those queries over normalized, cross-cloud records.
 
-Query every emulated resource through **Resource Explorer 2**, **Resource Graph**, and **Cloud Asset Inventory** — the real discovery APIs. A cross-service **inventory engine** walks your emulated compute, networking, storage, database, serverless, and Databricks resources and answers **Resource Explorer 2 + Resource Groups Tagging API** (AWS), **Resource Graph** (Azure), and **Cloud Asset Inventory** (GCP) queries.
-
-Every provider auto-wires a `ResourceDiscovery` engine over its core drivers, so anything you create through those services is immediately discoverable — no separate registration step.
+Reach for it in tests when your code enumerates resources, reconciles inventory, or drives tag-based automation — so you can assert on what's discoverable without a real account. Every provider auto-wires a `ResourceDiscovery` engine over its core drivers, so anything you create through those services is immediately discoverable, with no separate registration step.
 
 | Provider | Service | SDK-compat | Driver |
 |----------|---------|:----------:|--------|
@@ -18,9 +16,9 @@ Every provider auto-wires a `ResourceDiscovery` engine over its core drivers, so
 | Azure | Resource Graph (`armresourcegraph`, KQL) | ✓ Live | `azure.ResourceDiscovery` |
 | GCP | Cloud Asset Inventory (`cloudasset/v1`) | ✓ Live | `gcp.ResourceDiscovery` |
 
-## Examples
+## Query with the real SDK
 
-Use the real SDK (recommended):
+Wire the engine into the server alongside your other drivers, then point the real Resource Explorer client at it — this is the path that exercises the actual discovery API and its query-string filters:
 
 ```go
 import (
@@ -48,9 +46,9 @@ client.Search(ctx, &resourceexplorer2.SearchInput{
 
 Wire the engine into `azureserver.Drivers{ResourceDiscovery: …, SubscriptionID: …}` or `gcpserver.Drivers{ResourceDiscovery: …, ProjectID: …}` for the Azure and GCP equivalents.
 
-### Portable Go API
+## Query with the Portable Go API
 
-Query the engine directly, without an SDK:
+When you don't need the SDK round-trip, query the engine directly — `ListAll` returns everything, `List` applies structured filters, and `GetTagKeys` surfaces the tag namespace for tag-driven tests:
 
 ```go
 import "github.com/stackshy/cloudemu/v2/services/resourcediscovery"
@@ -67,19 +65,7 @@ results, _ := aws.ResourceDiscovery.List(ctx, resourcediscovery.Query{
 keys, _ := aws.ResourceDiscovery.GetTagKeys(ctx)
 ```
 
-## Notes
-
-### Operations supported via SDK-compat
-
-**AWS Resource Explorer 2:** CreateView, DeleteView, ListViews, GetView, Search, ListResources, ListIndexes, GetIndex. Query filters: `service:<name>`, `tag.<key>:<value>`, `region:<name>`.
-
-**AWS Resource Groups Tagging API:** GetResources (with `ResourceTypeFilters` + `TagFilters`), GetTagKeys, GetTagValues, TagResources, UntagResources.
-
-**Azure Resource Graph:** `POST /resources`, `POST /resourcesHistory`, `GET /operations`. A KQL subset over the `Resources` table: `where type == …` / `in~ (…)`, `where location == …`, `where tags['k'] == …`, and `| limit` / `| take`.
-
-**GCP Cloud Asset Inventory:** `searchAllResources`, `searchAllIamPolicies`, `exportAssets`, `batchGetAssetsHistory`, `assets.list`, and feed CRUD (Create/List/Get/Patch/Delete). Filters: `service:`, `assetType:`, `location:`, `labels.<k>:<v>`.
-
-### What it inventories
+## What it inventories
 
 The engine reads live state from the service drivers and emits normalized, cross-cloud resource records:
 
@@ -91,3 +77,9 @@ The engine reads live state from the service drivers and emits normalized, cross
 | `database` | Table | DynamoDB · Cosmos DB · Firestore |
 | `serverless` | Function | Lambda · Functions · Cloud Functions |
 | `databricks` | Workspace | — · Databricks · — |
+
+## Behavior & fidelity
+
+- **Live, not cached.** The engine reads current driver state on every query, so a resource is discoverable the moment you create it and gone the moment you delete it — no reindex step.
+- **Provider-native query surfaces.** Each provider maps to its own dialect: AWS query filters (`service:`, `tag.<key>:<value>`, `region:`) across Resource Explorer 2 and the Resource Groups Tagging API; a KQL subset over Azure Resource Graph's `Resources` table (`where type ==`/`in~ (…)`, `where location ==`, `where tags['k'] ==`, `| limit`/`| take`); and GCP Cloud Asset Inventory filters (`service:`, `assetType:`, `location:`, `labels.<k>:<v>`).
+- **SDK-compat status — Live.** Real Resource Explorer 2 + Resource Groups Tagging API clients (CreateView/DeleteView/ListViews/GetView/Search/ListResources/ListIndexes/GetIndex; GetResources/GetTagKeys/GetTagValues/TagResources/UntagResources), Azure Resource Graph (`POST /resources`, `/resourcesHistory`, `GET /operations`), and GCP Cloud Asset Inventory (`searchAllResources`, `searchAllIamPolicies`, `exportAssets`, `batchGetAssetsHistory`, `assets.list`, feed CRUD) point at the [SDK-compat server](/docs/sdk-compat); the same queries are available through the Portable Go API above.
