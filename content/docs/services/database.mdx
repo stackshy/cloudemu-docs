@@ -1,14 +1,14 @@
 ---
 title: Database
-description: NoSQL database emulation for DynamoDB, Cosmos DB, and Firestore, driven with the real cloud SDKs.
+description: In-memory NoSQL document/key-value store modelled on DynamoDB, Cosmos DB, and Firestore, driven with the real cloud SDKs
 aws: DynamoDB
 azure: Cosmos DB
 gcp: Firestore
 ---
 
-## Overview
+Emulates a managed NoSQL store — the DynamoDB/Cosmos/Firestore table your app writes items to and queries by key. You create a table with a partition key (and optional sort key), then put, get, update, query, and scan schemaless items. Each item is just a map of attributes; the table indexes them by their key so lookups and range queries stay fast.
 
-Create tables, put and query items against **DynamoDB** (AWS), **Cosmos DB** (Azure), and **Firestore** (GCP) with the real SDKs.
+Reach for it in tests when your code puts an item and reads it back by key, runs a query with a key condition, or scans with a filter — so you can exercise those paths without a real DynamoDB account. For managed *relational* databases (RDS/Aurora, Azure SQL, Cloud SQL), see [Relational Database](/docs/services/relationaldb) instead.
 
 | Provider | Service | SDK-compat | Driver |
 |----------|---------|:----------:|--------|
@@ -16,9 +16,9 @@ Create tables, put and query items against **DynamoDB** (AWS), **Cosmos DB** (Az
 | Azure | Cosmos DB | ✓ Live | `azure.CosmosDB` |
 | GCP | Firestore | ✓ Live | `gcp.Firestore` |
 
-## Examples
+## Drive it with the real SDK
 
-The recommended path is to point the real SDK at the SDK-compat server:
+The recommended path is to point the real SDK at the SDK-compat server, so your production data-access code runs unchanged. This creates a table keyed on `id` and writes one item — the client is the stock AWS SDK, only the endpoint is redirected:
 
 ```go
 import (
@@ -57,9 +57,9 @@ client.PutItem(ctx, &dynamodb.PutItemInput{
 
 Same shape with `azcosmos` (Azure) and `cloud.google.com/go/firestore` (GCP). See the [SDK-Compat Server page](/docs/sdk-compat) for the full quick starts.
 
-### Portable Go API
+## Call the driver directly
 
-For direct in-process calls without the HTTP hop:
+For in-process setup or assertions you can skip the HTTP hop and call the driver. Items are plain `map[string]any`, so there's no attribute-value wrapping to deal with:
 
 ```go
 import dbdriver "github.com/stackshy/cloudemu/v2/services/database/driver"
@@ -71,21 +71,13 @@ aws.DynamoDB.PutItem(ctx, "Users", map[string]any{"id": "u1", "name": "Alice"})
 item, _ := aws.DynamoDB.GetItem(ctx, "Users", map[string]any{"id": "u1"})
 ```
 
-## Notes
+`GetItem` takes just the key attributes and returns the full item (or nil if absent). `Query`, `Scan`, `UpdateItem`, and batch/transactional writes take the same shape via `dbdriver` input structs.
 
-For managed relational databases (RDS/Aurora, Redshift, Azure SQL, PostgreSQL/MySQL Flexible Server, Cloud SQL), see [Relational Database](/docs/services/relationaldb).
+## Behavior & fidelity
 
-### Operations supported via SDK-compat
-
-**DynamoDB:** CreateTable, DeleteTable, DescribeTable, ListTables, PutItem, GetItem, DeleteItem, UpdateItem (SET/REMOVE), Query, Scan (with FilterExpression), BatchWriteItem, BatchGetItem, TransactWriteItems.
-
-**Cosmos DB:** Databases, Containers, Documents — full CRUD with `x-ms-documentdb-*` headers + query.
-
-**Firestore:** `:commit`, `:batchGet`, `:runQuery`, document CRUD via the REST data plane.
-
-### Realistic behaviors
-
-- **TTL expiry**: items with TTL attributes expire on read.
-- **Numeric-aware comparisons**: filters compare `"10" > "9"` correctly using numeric ordering, not string ordering.
-- **Stream / change feed**: `PutItem` / `UpdateItem` / `DeleteItem` produce stream records (INSERT / MODIFY / REMOVE) when streams are enabled.
-- **Global Secondary Indexes**: `CreateIndex`, `DescribeIndex`, `DeleteIndex`; queries can target a GSI via `QueryInput.IndexName`.
+- **Query and scan paginate.** Results come back in a stable key order; pass a `Limit` and continue with either an offset `PageToken` or a DynamoDB-style `ExclusiveStartKey`/`LastEvaluatedKey`. Queries can also sort descending. Because ordering is stable, page tokens stay valid across calls.
+- **Comparisons are numeric-aware.** Key conditions and filters order numbers numerically (`"10" > "9"`), strings lexically, and bools `false < true` — matching the real services rather than naive string compare.
+- **TTL expiry on read.** Items whose TTL attribute is past due are treated as absent on the next read, so a `Get`/`Query` never returns expired data.
+- **Streams / change feed.** With streams enabled, `PutItem` / `UpdateItem` / `DeleteItem` emit INSERT / MODIFY / REMOVE records you can read back — useful for testing change-driven pipelines.
+- **Global Secondary Indexes.** `CreateIndex` / `DescribeIndex` / `DeleteIndex` are supported, and a `Query` can target a GSI via its `IndexName`.
+- **SDK-compat status — Live.** DynamoDB (CreateTable, PutItem, GetItem, UpdateItem, Query, Scan with FilterExpression, Batch*, TransactWriteItems, …), Cosmos DB (databases/containers/documents CRUD + query), and Firestore (`:commit`, `:batchGet`, `:runQuery`, document CRUD) all work through the real SDKs. See [SDK-Compat](/docs/sdk-compat) for the full surface.

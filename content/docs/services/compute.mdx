@@ -1,14 +1,14 @@
 ---
 title: Compute
-description: VM and instance emulation for EC2, Azure Virtual Machines, and Compute Engine, driven with the real cloud SDKs.
+description: Run, stop, and terminate VMs on EC2, Azure Virtual Machines, and Compute Engine, driven with the real cloud SDKs
 aws: EC2
 azure: Virtual Machines
 gcp: Compute Engine
 ---
 
-## Overview
+Emulates managed virtual machines — the EC2 instance, Azure VM, or Compute Engine instance you'd launch to run a workload. You run instances from an image, then start, stop, reboot, and terminate them; the full VPC networking stack (subnets, security groups, gateways, volumes) is available alongside so instances have somewhere to live.
 
-Run, stop, and terminate instances on **EC2** (AWS), **Virtual Machines** (Azure), and **Compute Engine** (GCP) with real SDKs.
+Reach for it in tests when your code provisions capacity, waits on instance state, or reacts to lifecycle events — so you can exercise those paths without paying for real VMs or waiting on real boot times. Under the hood each instance is a state machine that walks the same `pending → running → stopped → terminated` transitions the real services enforce.
 
 | Provider | Service | SDK-compat | Driver |
 |----------|---------|:----------:|--------|
@@ -16,9 +16,9 @@ Run, stop, and terminate instances on **EC2** (AWS), **Virtual Machines** (Azure
 | Azure | Virtual Machines + Disks/Snapshots/Images/SSH Keys | ✓ Live | `azure.VirtualMachines` |
 | GCP | Compute Engine + Disks/Snapshots/Images | ✓ Live | `gcp.GCE` |
 
-## Examples
+## Run and manage instances
 
-The recommended path is to point the real SDK at the SDK-compat server:
+The recommended path points the real SDK at the SDK-compat server, so the same client code you ship in production talks to the emulator. `RunInstances` launches capacity from an AMI; `StopInstances` moves them out of `running` without terminating, mirroring how EC2 lets you pause billing while keeping the instance:
 
 ```go
 import (
@@ -49,34 +49,25 @@ client.StopInstances(ctx, &ec2.StopInstancesInput{
 })
 ```
 
-Same pattern with `armcompute` for Azure and `cloud.google.com/go/compute/apiv1` for GCP — see [SDK-Compat Server](/docs/sdk-compat).
+The same pattern works with `armcompute` for Azure and `cloud.google.com/go/compute/apiv1` for GCP — only the endpoint changes. See the [SDK-Compat Server](/docs/sdk-compat).
 
-### Portable Go API
+## Portable Go API
 
-Use the Portable API when you want direct in-process calls without the HTTP hop:
+Use the Portable API when you want direct in-process calls without the HTTP hop — handy for setting up fixtures fast. `RunInstances` takes a count as its last argument and returns the created instances; stop and terminate take instance IDs:
 
 ```go
-aws.EC2.RunInstances(ctx, computedriver.InstanceConfig{
+import computedriver "github.com/stackshy/cloudemu/v2/services/compute/driver"
+
+instances, _ := aws.EC2.RunInstances(ctx, computedriver.InstanceConfig{
     ImageID: "ami-0abcdef1234", InstanceType: "t3.large",
 }, 3)
-aws.EC2.StopInstances(ctx, []string{instanceID})
-aws.EC2.TerminateInstances(ctx, []string{instanceID})
+aws.EC2.StopInstances(ctx, []string{instances[0].ID})
+aws.EC2.TerminateInstances(ctx, []string{instances[0].ID})
 ```
 
-## Notes
+## Behavior & fidelity
 
-### Operations supported via SDK-compat
-
-**EC2:** RunInstances, DescribeInstances (filters: `instance-id`, `instance-type`, `instance-state-name`, `tag:*`), Start/Stop/Reboot/TerminateInstances, ModifyInstanceAttribute.
-
-**EC2 — VPC stack:** VPCs, Subnets, Security Groups + ingress/egress rules, Internet Gateways, Route Tables + Routes, NAT Gateways, VPC Peering, Flow Logs, Network ACLs, EBS Volumes, Key Pairs, Snapshots, AMIs, Spot Instances, Launch Templates, Auto Scaling Groups + scaling policies.
-
-**Azure VMs:** CreateOrUpdate, Get, List, Delete, start/powerOff/restart actions; full Disks/Snapshots/Images/SSHPublicKeys CRUD.
-
-**GCP Compute Engine:** Instances + Disks + Snapshots + Images insert/get/list/delete with LRO envelopes.
-
-### Realistic behaviors
-
-- **State machine** enforces valid lifecycle transitions (`pending → running → stopped → terminated`). Illegal transitions return errors — same as real EC2.
-- **Auto-metrics**: `RunInstances` automatically pushes CPU, Network, and Disk metrics to the monitoring service. Stop/start/terminate emit matching values.
-- **Lifecycle metric emission**: every `StartInstances` / `StopInstances` / `RebootInstances` / `TerminateInstances` call writes corresponding metric values too.
+- **State machine enforces valid transitions.** Instances walk `pending → running → stopped → terminated`; illegal transitions return errors, so a test that stops a terminated instance fails the same way real EC2 would.
+- **Lifecycle metrics are emitted automatically.** `RunInstances` pushes CPU, Network, and Disk metrics to the [monitoring service](/docs/services/monitoring), and every Start/Stop/Reboot/Terminate writes matching values — so you can assert on metric-driven alarms end-to-end.
+- **Full VPC stack alongside compute.** Subnets, Security Groups, Internet/NAT Gateways, Route Tables, Peering, Flow Logs, ACLs, EBS Volumes, Key Pairs, Snapshots, AMIs, Spot Instances, Launch Templates, and Auto Scaling Groups are all available on `aws.EC2` / `aws.VPC` — see [Networking](/docs/services/networking).
+- **SDK-compat status — Live.** Real `ec2`, `armcompute`, and `compute/apiv1` clients drive the emulator. EC2 covers RunInstances, DescribeInstances (filters: `instance-id`, `instance-type`, `instance-state-name`, `tag:*`), Start/Stop/Reboot/Terminate, and ModifyInstanceAttribute; Azure covers VM CreateOrUpdate/Get/List/Delete plus start/powerOff/restart and full Disks/Snapshots/Images/SSHPublicKeys CRUD; GCP covers Instances/Disks/Snapshots/Images insert/get/list/delete with LRO envelopes.

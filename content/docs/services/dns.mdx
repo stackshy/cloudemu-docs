@@ -1,36 +1,43 @@
 ---
 title: DNS
-description: Emulated DNS zones and records with weighted routing
+description: Emulated DNS zones and records, including weighted routing, modelled on Route53, Azure DNS, and Cloud DNS
 aws: Route53
 azure: DNS
 gcp: Cloud DNS
 ---
 
-## Overview
+Emulates managed DNS — the hosted zones and resource records you'd create in Route53 to point a name at an address. You create a zone for a domain, then add records (A, CNAME, MX, TXT, and so on) that resolve names within it.
 
-Create zones and records in emulated **Route53** (AWS), **DNS** (Azure), and **CloudDNS** (GCP).
+Reach for it in tests when your code provisions zones, writes records, or depends on weighted routing to split traffic across endpoints — so you can exercise those paths without a live DNS provider. Under the hood a zone is a named container and each record is a name/type/value set with an optional TTL.
 
-| Provider | Service | Access |
+| Provider | Service | Driver |
 |----------|---------|--------|
 | AWS | Route53 | `aws.Route53` |
 | Azure | DNS | `azure.DNS` |
 | GCP | Cloud DNS | `gcp.CloudDNS` |
 
-## Examples
+## Create a zone
 
-### Zones
+A zone is the container your records live in — the equivalent of a Route53 hosted zone for a domain. Create one before adding any records:
 
 ```go
-import dnsdriver "github.com/stackshy/cloudemu/v2/services/dns/driver"
+import (
+    dnsdriver "github.com/stackshy/cloudemu/v2/services/dns/driver"
+    "github.com/stackshy/cloudemu/v2/services/scope"
+)
 
 zone, _ := aws.Route53.CreateZone(ctx, dnsdriver.ZoneConfig{
     Name: "example.com",
 })
 
-zones, _ := aws.Route53.ListZones(ctx)
+// scope.Scope{} lists every zone; pass a subscription/resource group or
+// project to narrow the results.
+zones, _ := aws.Route53.ListZones(ctx, scope.Scope{})
 ```
 
-### Records
+## Create and list records
+
+A record maps a name and type to one or more values, mirroring a Route53 resource record set. `ListRecords` returns them in a stable order for the zone:
 
 ```go
 aws.Route53.CreateRecord(ctx, dnsdriver.RecordConfig{
@@ -44,10 +51,39 @@ aws.Route53.CreateRecord(ctx, dnsdriver.RecordConfig{
 records, _ := aws.Route53.ListRecords(ctx, zone.ID)
 ```
 
-## Notes
+## Weighted routing
 
-> **SDK-compat status:** _Portable Go API only._ Real `aws-sdk-go-v2/service/route53`, `armdns`, and Cloud DNS REST clients can't talk to cloudemu yet — DNS SDK-compat handlers will ship in lockstep across all 3 providers in a future phase. The full driver semantics (zones, records, weighted routing, hostname resolution) are already available through the Portable Go API shown above.
+Weighted routing splits traffic across endpoints by giving several records the same name and type but a different `Weight` and a unique `SetID` — the Route53 pattern where each record's share of traffic is its weight over the total. Here `www.example.com` sends roughly 70% of resolutions to one address and 30% to the other:
 
-### Weighted Routing
+```go
+w70 := 70
+w30 := 30
 
-DNS records support weighted routing for load distribution across multiple endpoints.
+aws.Route53.CreateRecord(ctx, dnsdriver.RecordConfig{
+    ZoneID: zone.ID,
+    Name:   "www.example.com",
+    Type:   "A",
+    TTL:    300,
+    Values: []string{"1.1.1.1"},
+    Weight: &w70,
+    SetID:  "primary",
+})
+
+aws.Route53.CreateRecord(ctx, dnsdriver.RecordConfig{
+    ZoneID: zone.ID,
+    Name:   "www.example.com",
+    Type:   "A",
+    TTL:    300,
+    Values: []string{"2.2.2.2"},
+    Weight: &w30,
+    SetID:  "secondary",
+})
+```
+
+`Weight` is a `*int`, so leaving it `nil` marks a record as unweighted; the `SetID` is what keeps two records at the same name from colliding.
+
+## Behavior & fidelity
+
+- **Records key on name, type, and set ID.** An unweighted record is a single entry per name+type; weighted records sharing a name+type each carry a distinct `SetID`, and a plain `GetRecord` resolves to a stable one of them rather than a random pick.
+- **Deleting a name+type removes its whole set.** Removing a record by name and type clears every weighted variant under it, matching how a resource record set is a single unit.
+- **SDK-compat status — Portable Go API only.** Real `aws-sdk-go-v2/service/route53`, `armdns`, and Cloud DNS REST clients can't talk to cloudemu yet — DNS SDK-compat handlers will ship in lockstep across all three providers in a future phase. The full driver semantics above (zones, records, weighted routing) are available today through the Portable Go API.

@@ -1,14 +1,14 @@
 ---
 title: Serverless
-description: Functions-as-a-service emulation for Lambda, Azure Functions, and Cloud Functions, driven with the real cloud SDKs.
+description: In-memory functions-as-a-service modelled on Lambda, Azure Functions, and Cloud Functions, driven with the real cloud SDKs
 aws: Lambda
 azure: Functions
 gcp: Cloud Functions
 ---
 
-## Overview
+Emulates functions-as-a-service — the Lambda/Azure Functions/Cloud Functions control plane where you create a function and invoke it with a payload. Instead of deploying a zip, you register a plain Go function as the handler; an `Invoke` then runs it in-process and returns its response bytes. That keeps the create/invoke path fast and deterministic while still exercising your production wiring.
 
-Create and invoke functions on **Lambda** (AWS), **Functions** (Azure), and **Cloud Functions** (GCP) with the real SDKs.
+Reach for it in tests when your code creates a function, invokes it synchronously, and reads the response — for example verifying an orchestration that fans out to Lambdas, or a caller that depends on a function's output shape — without deploying to a real cloud. You get the function's response back exactly as the SDK would deliver it.
 
 | Provider | Service | SDK-compat | Driver |
 |----------|---------|:----------:|--------|
@@ -16,9 +16,9 @@ Create and invoke functions on **Lambda** (AWS), **Functions** (Azure), and **Cl
 | Azure | Functions (Function Apps + `/api/{name}` invoke) | ✓ Live | `azure.Functions` |
 | GCP | Cloud Functions v1 (Create LRO + `:call`) | ✓ Live | `gcp.CloudFunctions` |
 
-## Examples
+## Drive it with the real SDK
 
-The recommended path is to point the real SDK at the SDK-compat server:
+The recommended path is to point the real SDK at the SDK-compat server. Because there's no real runtime, you register a Go handler so `Invoke` has something to execute — then the stock Lambda client creates and calls the function unchanged:
 
 ```go
 import (
@@ -56,9 +56,9 @@ fmt.Println(string(resp.Payload)) // {"status":"ok"}
 
 Same shape with `armappservice` (Azure) and `google.golang.org/api/cloudfunctions/v1` (GCP) — see [SDK-Compat Server](/docs/sdk-compat#azure-handlers).
 
-### Portable Go API
+## Call the driver directly
 
-For direct in-process calls without the HTTP hop:
+For in-process setup you can skip the HTTP hop. The flow is the same three steps — create, register a handler, invoke — with the driver's own input structs:
 
 ```go
 import sdriver "github.com/stackshy/cloudemu/v2/services/serverless/driver"
@@ -74,16 +74,12 @@ out, _ := aws.Lambda.Invoke(ctx, sdriver.InvokeInput{
 })
 ```
 
-## Notes
+`Invoke` returns an `InvokeOutput` carrying the status code, response payload, and any handler error string.
 
-### Operations supported via SDK-compat
+## Behavior & fidelity
 
-**Lambda:** CreateFunction, GetFunction, ListFunctions, DeleteFunction, Invoke (sync).
-
-**Azure Functions:** `Microsoft.Web/sites` CreateOrUpdate / Get / List / Delete + non-ARM `/api/{name}` invoke.
-
-**GCP Cloud Functions:** Create (LRO), Get, List, Delete (LRO), `:call` (sync invoke), `Operations.Get` for LRO polling.
-
-### Portable-API-only capabilities
-
-The Portable API also exposes operations not yet on the SDK-compat surface: published versions, weighted aliases, layers, function concurrency, event source mappings.
+- **Invoke runs your registered handler.** A function created but never given a handler via `RegisterHandler` has nothing to execute; register one keyed by function name before invoking. The handler's returned bytes come straight back as the invocation payload.
+- **Handler errors surface as invocation errors.** An error returned from the handler is reported on the invocation result rather than as a transport failure — matching how the real services distinguish a function error from a call failure.
+- **GCP create/delete are long-running.** Cloud Functions Create and Delete return an LRO you poll via `Operations.Get`, mirroring the real v1 API; `:call` is the synchronous invoke.
+- **Portable-API-only extras.** The driver also exposes surface not yet on the SDK-compat layer — published versions, weighted aliases, layers, reserved/provisioned concurrency, and event source mappings. Reach for these through the [Portable Go API](/docs/sdk-compat) when a test needs them.
+- **SDK-compat status — Live.** Lambda (CreateFunction, GetFunction, ListFunctions, DeleteFunction, sync Invoke), Azure Functions (`Microsoft.Web/sites` CRUD + `/api/{name}` invoke), and GCP Cloud Functions (Create/Delete LROs, Get, List, `:call`) all work through the real SDKs. See [SDK-Compat](/docs/sdk-compat) for the full surface.
