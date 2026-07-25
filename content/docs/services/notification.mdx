@@ -1,24 +1,24 @@
 ---
 title: Notification
-description: Emulated topics, subscriptions, and push notifications
+description: Pub/sub topics with fan-out to multiple subscribers and attribute filtering, modelled on SNS, Notification Hubs, and FCM
 aws: SNS
 azure: Notification Hubs
 gcp: FCM
 ---
 
-## Overview
+Emulates a managed pub/sub notification service — the topic you publish one message to and have it fanned out to every subscriber at once. You create a topic, attach subscriptions that each point at an endpoint (an email address, an HTTP webhook, an SQS queue), then publish; the message is delivered to all matching subscriptions.
 
-Create topics, subscribe endpoints, and publish messages through emulated **SNS** (AWS), **NotificationHubs** (Azure), and **FCM** (GCP).
+Reach for it in tests when your code announces an event to several independent consumers and you don't want a queue's pull-and-ack cycle — publish is fire-and-forget fan-out. Unlike the [message queue](/docs/services/messagequeue), there's no per-consumer acknowledgement: a subscriber either matches the message or it doesn't.
 
-| Provider | Service | Access |
+| Provider | Service | Driver |
 |----------|---------|--------|
 | AWS | SNS | `aws.SNS` |
 | Azure | Notification Hubs | `azure.NotificationHubs` |
 | GCP | FCM | `gcp.FCM` |
 
-## Examples
+## Create a topic and subscribe endpoints
 
-### Topics and Subscriptions
+A topic is the fan-out point; subscriptions are the endpoints it delivers to. Create the topic first, then attach one subscription per consumer — each names a `Protocol` (`email`, `sms`, `http`, `https`, `sqs`, `lambda`) and the `Endpoint` to reach it at.
 
 ```go
 import notifdriver "github.com/stackshy/cloudemu/v2/services/notification/driver"
@@ -34,7 +34,9 @@ sub, _ := aws.SNS.Subscribe(ctx, notifdriver.SubscriptionConfig{
 })
 ```
 
-### Publishing
+## Publish a message
+
+`Publish` fans one message out to every subscription on the topic. The `Attributes` map rides along with the message so subscribers can filter on it — a subscription with a matching filter policy receives the message, others are skipped.
 
 ```go
 aws.SNS.Publish(ctx, notifdriver.PublishInput{
@@ -44,6 +46,9 @@ aws.SNS.Publish(ctx, notifdriver.PublishInput{
 })
 ```
 
-## Notes
+## Behavior & fidelity
 
-> **SDK-compat status:** _Portable Go API only._ Real `aws-sdk-go-v2/service/sns`, Notification Hubs ARM, and FCM REST clients can't talk to cloudemu yet — notification SDK-compat handlers will ship in lockstep across all 3 providers in a future phase. Topics, subscriptions, fan-out, and message-attribute filtering are already available through the Portable Go API shown above.
+- **Fan-out delivery.** One `Publish` is delivered to every subscription on the topic; adding or removing a subscription changes the recipient set for subsequent publishes with no change to the producer.
+- **Attribute filtering.** Message `Attributes` are matched against each subscription's filter policy, so a single topic can route to different subscribers by attribute — mirroring SNS message-attribute filtering.
+- **Subscription status.** New subscriptions carry a `confirmed`/`pending` status, matching the SNS confirmation handshake rather than assuming every endpoint is immediately live.
+- **SDK-compat status — Portable Go API only.** Real `aws-sdk-go-v2/service/sns`, Notification Hubs ARM, and FCM REST clients can't talk to cloudemu yet; notification SDK-compat handlers will ship in lockstep across all three providers in a later phase. Topics, subscriptions, fan-out, and attribute filtering are fully available today through the Portable Go API shown above.
