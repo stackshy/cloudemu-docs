@@ -13,8 +13,12 @@ import { useInView } from '@/components/diagrams/use-in-view';
  * entire animation budget. Halves stack into one table on small screens.
  */
 
+// On small screens the columns shrink to share the viewport (names truncate),
+// so the fourth provider column never overflows off-screen; the fixed
+// min-widths kick in only from `lg` up, where there's room for them.
 const GRID =
-  'grid grid-cols-[minmax(114px,1.1fr)_minmax(120px,1.15fr)_minmax(84px,1fr)_minmax(108px,1.05fr)] gap-x-3';
+  'grid grid-cols-[minmax(0,1.1fr)_minmax(0,1.15fr)_minmax(0,1fr)_minmax(0,1.05fr)] gap-x-3 ' +
+  'lg:grid-cols-[minmax(114px,1.1fr)_minmax(120px,1.15fr)_minmax(84px,1fr)_minmax(108px,1.05fr)]';
 
 const MID = Math.ceil(services.length / 2);
 const HALVES = [services.slice(0, MID), services.slice(MID)];
@@ -37,7 +41,7 @@ export function CoverageMatrix() {
 
   return (
     <section className="w-full border-t border-line">
-      <div className="mx-auto w-full max-w-[1120px] px-6 py-20">
+      <div className="mx-auto w-full max-w-[1120px] px-4 py-16 sm:px-6 sm:py-20">
         <Reveal>
           <div className="flex flex-wrap items-baseline justify-between gap-4">
             <div>
