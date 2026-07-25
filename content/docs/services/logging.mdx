@@ -1,24 +1,24 @@
 ---
 title: Logging
-description: Log groups and log streams
+description: Log groups, streams, and event queries, modelled on CloudWatch Logs, Log Analytics, and Cloud Logging
 aws: CloudWatch Logs
 azure: Log Analytics
 gcp: Cloud Logging
 ---
 
-## Overview
+Emulates a managed log store — the CloudWatch Logs pipeline your app writes events into and you later query. You create a log group, open a stream within it, put events onto the stream, then read them back by time range.
 
-Write and query log events against emulated **CloudWatch Logs** (AWS), **Log Analytics** (Azure), and **Cloud Logging** (GCP). Log groups, streams, and filter expressions are available through the Portable Go API.
+Reach for it in tests when your code emits log events, sets retention, or queries a window of history — so you can exercise those paths without a live logging backend. Under the hood a group is a named container, a stream is an ordered sequence of timestamped events inside it, and a query filters that sequence by time.
 
-| Provider | Service | SDK-compat | Driver |
-|----------|---------|:----------:|--------|
-| AWS | CloudWatch Logs | — | `aws.CloudWatchLogs` |
-| Azure | Log Analytics | — | `azure.LogAnalytics` |
-| GCP | Cloud Logging | — | `gcp.CloudLogging` |
+| Provider | Service | Driver |
+|----------|---------|--------|
+| AWS | CloudWatch Logs | `aws.CloudWatchLogs` |
+| Azure | Log Analytics | `azure.LogAnalytics` |
+| GCP | Cloud Logging | `gcp.CloudLogging` |
 
-## Examples
+## Create groups and streams, then write events
 
-Create log groups and streams, then write log events:
+A log group is the top-level container (with a retention window), a stream is a single source of events within it, and `PutLogEvents` appends timestamped messages — the same three steps you'd take with CloudWatch Logs:
 
 ```go
 import logdriver "github.com/stackshy/cloudemu/v2/services/logging/driver"
@@ -39,7 +39,9 @@ aws.CloudWatchLogs.PutLogEvents(ctx, "/app/web", "instance-001", []logdriver.Log
 })
 ```
 
-Query log events:
+## Query events
+
+`GetLogEvents` reads back a stream over a time window with a limit, the way you'd scan recent history in the console or an alerting job:
 
 ```go
 events, _ := aws.CloudWatchLogs.GetLogEvents(ctx, "/app/web", "instance-001",
@@ -49,6 +51,10 @@ events, _ := aws.CloudWatchLogs.GetLogEvents(ctx, "/app/web", "instance-001",
     })
 ```
 
-## Notes
+To test retention or time-windowed queries without waiting, drive time with the [fake clock](/docs/features/fake-clock): advance the clock and query a window that spans the jump.
 
-- **SDK-compat status:** Portable Go API only. Real `aws-sdk-go-v2/service/cloudwatchlogs`, Log Analytics REST, and Cloud Logging REST clients can't talk to cloudemu yet — logging SDK-compat handlers will ship in lockstep across all 3 providers in a future phase.
+## Behavior & fidelity
+
+- **Events are timestamped and time-ordered.** A query filters a stream by `StartTime` and caps results with `Limit`, so you can assert on exactly the window your code reads.
+- **Groups and streams are addressed by name.** Events live under a group name and a stream name, matching how CloudWatch Logs namespaces a source.
+- **SDK-compat status — Portable Go API only.** Real `aws-sdk-go-v2/service/cloudwatchlogs`, Log Analytics REST, and Cloud Logging REST clients can't talk to cloudemu yet — logging SDK-compat handlers will ship in lockstep across all three providers in a future phase. Groups, streams, and event queries are available today through the Portable Go API shown above.
