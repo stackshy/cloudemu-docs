@@ -1,14 +1,14 @@
 ---
 title: Monitoring
-description: Emulated metrics, alarms, and time series for CloudWatch, Azure Monitor, and Cloud Monitoring
+description: Metric ingest and threshold alarms that transition OK/ALARM as data arrives, modelled on CloudWatch, Azure Monitor, and Cloud Monitoring
 aws: CloudWatch
 azure: Azure Monitor
 gcp: Cloud Monitoring
 ---
 
-## Overview
+Emulates a managed metrics and alarms service — the place you push time-series datapoints and define thresholds that flip an alarm between `OK` and `ALARM`. You publish metric data under a namespace, define an alarm over one metric, and the alarm re-evaluates itself every time new data lands.
 
-Push metrics and trigger alarms on **CloudWatch** (AWS), **Azure Monitor** (Azure), and **Cloud Monitoring** (GCP) with the real SDKs.
+Reach for it in tests when your code emits custom metrics or reacts to alarm state, so you can assert an alarm fired without waiting on a real evaluation cycle. Because the emulator drives evaluation on every write, you control alarm state directly by controlling the datapoints you push.
 
 | Provider | Service | SDK-compat | Driver |
 |----------|---------|:----------:|--------|
@@ -16,9 +16,9 @@ Push metrics and trigger alarms on **CloudWatch** (AWS), **Azure Monitor** (Azur
 | Azure | Azure Monitor | ✓ Live | `azure.Monitor` |
 | GCP | Cloud Monitoring | ✓ Live | `gcp.CloudMonitoring` |
 
-## Examples
+## Drive it with the real SDK
 
-Drive the emulator with the real SDK (recommended):
+This is the recommended path: point the AWS SDK at a cloudemu test server and the production `cloudwatch` client talks to the emulator. `PutMetricData` ingests datapoints under a namespace; `PutMetricAlarm` defines a threshold over one of them, and the alarm evaluates as soon as matching data arrives.
 
 ```go
 import (
@@ -53,9 +53,9 @@ client.PutMetricAlarm(ctx, &cloudwatch.PutMetricAlarmInput{
 })
 ```
 
-### Portable Go API
+## Use the Portable Go API
 
-The same driver is available through the portable API:
+When you don't need a real SDK client, the same driver is callable directly — the leanest way to seed metric data inside a test. Each `MetricDatum` carries its own namespace, name, value, and unit.
 
 ```go
 import mondriver "github.com/stackshy/cloudemu/v2/services/monitoring/driver"
@@ -65,18 +65,9 @@ aws.CloudWatch.PutMetricData(ctx, []mondriver.MetricDatum{
 })
 ```
 
-## Notes
+## Behavior & fidelity
 
-### Operations supported via SDK-compat
-
-**CloudWatch:** PutMetricData, GetMetricStatistics, ListMetrics, PutMetricAlarm, DescribeAlarms, DeleteAlarms.
-
-**Azure Monitor:** `microsoft.insights/metricAlerts` CRUD, metric ingest/read.
-
-**Cloud Monitoring:** Time-series ingest/read at `/v3/projects/.../`, alert policies.
-
-### Realistic behaviors
-
-- **Auto-metrics from compute**: `RunInstances` automatically pushes 5 metrics (CPU, NetworkIn, NetworkOut, DiskReadOps, DiskWriteOps) with 5 backfill datapoints at 1-minute intervals.
-- **Alarm auto-evaluation**: `PutMetricData` triggers `evaluateAlarms()` for each affected namespace+metric. Alarms transition between `OK` and `ALARM` based on threshold comparison.
-- **Alarm history**: `GetAlarmHistory()` returns transition events with timestamps.
+- **Alarms auto-evaluate on write.** Every `PutMetricData` runs `evaluateAlarms()` for each affected namespace+metric, transitioning alarms between `OK` and `ALARM` against their threshold — so you assert alarm state by controlling the datapoints you push, not by waiting on a timer.
+- **Auto-metrics from compute.** `RunInstances` automatically emits five metrics per instance (`CPUUtilization`, `NetworkIn`, `NetworkOut`, `DiskReadOps`, `DiskWriteOps`) with five backfilled datapoints at one-minute intervals, so newly launched instances have realistic history to query and alarm on.
+- **Alarm history.** `GetAlarmHistory` returns each state transition with a timestamp — drive the timestamps deterministically with the [fake clock](/docs/features/fake-clock) rather than wall time.
+- **SDK-compat status — Live across all three providers.** CloudWatch, Azure Monitor, and Cloud Monitoring all accept their real SDK/REST clients today: CloudWatch `PutMetricData`, `GetMetricStatistics`, `ListMetrics`, `PutMetricAlarm`, `DescribeAlarms`, `DeleteAlarms`; Azure Monitor `microsoft.insights/metricAlerts` CRUD plus metric ingest/read; Cloud Monitoring time-series ingest/read at `/v3/projects/.../` plus alert policies.
