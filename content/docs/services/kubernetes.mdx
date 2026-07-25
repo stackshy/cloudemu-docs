@@ -1,14 +1,14 @@
 ---
 title: Kubernetes
-description: EKS, AKS, and GKE control planes plus an in-memory Kubernetes data-plane API that real client-go drives end-to-end.
+description: EKS, AKS, and GKE control planes plus a shared in-memory Kubernetes data plane that real client-go and kubectl drive end-to-end
 aws: EKS
 azure: AKS
 gcp: GKE
 ---
 
-## Overview
+Emulates managed Kubernetes as two layers: the cloud *control plane* (EKS/AKS/GKE — the API you call to create clusters and node groups) and a shared *data plane* — an in-memory Kubernetes API server that `kubectl` and `client-go` talk to. Create a cluster with the real cloud SDK, and the kubeconfig it hands back points at the data plane, so `kubectl apply` round-trips against actual resources.
 
-Create **EKS**, **AKS**, and **GKE** clusters with the real SDKs, then drive the in-memory data plane with `client-go` or `kubectl`. Two layers, both shipped: the three control planes plus a shared **in-memory Kubernetes data-plane API server**.
+Reach for it in tests when your code provisions clusters, or when it drives Kubernetes objects directly — deployments, informers, watch streams — so you can exercise controller logic without a real cluster or a `kind` container. The data plane is a fast, deterministic test double: it stores and serves objects, but deliberately runs no controllers or scheduler.
 
 | Provider | Service | SDK-compat | Driver |
 |----------|---------|:----------:|--------|
@@ -16,9 +16,9 @@ Create **EKS**, **AKS**, and **GKE** clusters with the real SDKs, then drive the
 | Azure | AKS (control plane + data plane) | ✓ Live | `azure.AKS` |
 | GCP | GKE (control plane + data plane) | ✓ Live | `gcp.GKE` |
 
-## Examples
+## Create a cluster and drive its data plane
 
-The recommended path is to point the real SDK at the SDK-compat server:
+The recommended path points the real SDK at the SDK-compat server. Pass a shared `*kubernetes.APIServer` as `K8sAPI` and call `SetBaseURL` so the kubeconfigs the control plane issues point back at this server — then `DescribeCluster` returns a kubeconfig you can hand straight to `client-go`:
 
 ```go
 import (
@@ -46,11 +46,11 @@ client.CreateCluster(ctx, &eks.CreateClusterInput{Name: aws.String("prod")})
 // data plane — point client-go at it and `kubectl apply` works.
 ```
 
-The AKS and GKE control planes are equivalent (`armcontainerservice`, `container/apiv1`). See the [SDK-Compat Server page](/docs/sdk-compat).
+The AKS and GKE control planes are equivalent (`armcontainerservice`, `container/apiv1`) and share the same data plane. See the [SDK-Compat Server](/docs/sdk-compat).
 
-### Portable Go API
+## Portable Go API
 
-Drive the control plane directly through the driver, or the data plane through the `kubernetes` package, without the HTTP hop:
+Drive the control plane through the driver, or the data plane through the `kubernetes` package, without the HTTP hop. Creating a cluster registers it into the same `*kubernetes.APIServer` the SDK-compat path uses, so both layers see identical state:
 
 ```go
 import "github.com/stackshy/cloudemu/v2/services/kubernetes"
@@ -60,32 +60,12 @@ k8s := kubernetes.NewAPIServer()
 // deregisters it on DeleteCluster; the same in-memory state backs both layers.
 ```
 
-## Notes
+Because the data plane is a single `*kubernetes.APIServer`, passing it into `awsserver.Drivers{K8sAPI: …}`, `azureserver.Drivers{K8sAPI: …}`, and `gcpserver.Drivers{K8sAPI: …}` lands every provider's kubeconfig on the identical backend — just as the real Kubernetes REST API is provider-agnostic.
 
-### The two layers
+## Behavior & fidelity
 
-- **Control plane** (EKS / AKS / GKE) — cluster, node-group/node-pool, addon, Fargate-profile, and maintenance-config lifecycle, driven by the real cloud SDKs.
-- **Data plane** (`kubernetes.APIServer`) — an in-memory Kubernetes API server. Kubeconfigs issued by the control plane point at it, so `kubectl apply -f deployment.yaml` followed by `kubectl get pods` round-trips end-to-end, and real `client-go` `Informer` / `Reflector` machinery works against it.
-
-The data-plane server is **shared across all three providers**: pass the same `*kubernetes.APIServer` into `awsserver.Drivers{K8sAPI: …}`, `azureserver.Drivers{K8sAPI: …}`, and `gcpserver.Drivers{K8sAPI: …}`, and a kubeconfig from EKS, AKS, or GKE lands on the identical backend — just like the real Kubernetes REST API is provider-agnostic.
-
-### Control-plane operations via SDK-compat
-
-**EKS:** CreateCluster, DescribeCluster, ListClusters, UpdateClusterConfig, UpdateClusterVersion, DeleteCluster; managed node groups (Create/Describe/List/UpdateConfig/UpdateVersion/Delete); Fargate profiles (Create/Describe/List/Delete); addons (Create/Describe/List/Update/Delete).
-
-**AKS:** ManagedClusters (CreateOrUpdate/Get/List/UpdateTags/Delete/RotateClusterCertificates); agent pools (CreateOrUpdate/Get/List/Delete); maintenance configurations (CreateOrUpdate/Get/List/Delete).
-
-**GKE:** clusters (Create/Get/List/Update/Delete) plus configuration setters (logging, monitoring, master auth, network policy, maintenance policy, resource labels, IP rotation); node pools (Create/Get/List/Update/Delete, SetSize, SetAutoscaling, SetManagement, Rollback); operations (Get/List/Cancel).
-
-### Data-plane resources (`kubernetes.APIServer`)
-
-Kinds supported: **Namespace, Pod, Service, ConfigMap, Secret, ServiceAccount, Deployment** (all Create/Get/List/Update/Delete/Patch/Watch), plus **Endpoints** (read-only — auto-created per Service; Get/List/Watch).
-
-- **Patch**: JSON-merge-patch (RFC 7396, `application/merge-patch+json`).
-- **Watch**: `?watch=true` streams `ADDED` / `MODIFIED` / `DELETED` events as newline-delimited JSON, so `Informer` / `Reflector` work.
-- API groups served: `core/v1` and `apps/v1`.
-- Each new cluster starts with the `default`, `kube-system`, and `kube-public` namespaces and a `default` ServiceAccount in each.
-
-### Intentionally out of scope
-
-To keep the data plane a fast, deterministic test double, it deliberately omits: real controllers (a Deployment does **not** create ReplicaSets/Pods — `spec.replicas` mirrors straight to `status.replicas`), the scheduler (Pods stay `Pending`, no Node binding or Pod IPs), RBAC / authorization, PersistentVolumes / PVCs, Nodes, and StatefulSet / DaemonSet / Job / CronJob / Ingress. Strategic-merge and JSON-Patch (RFC 6902) are not supported.
+- **Two layers, one backend.** The control plane covers cluster, node-group/node-pool, addon, Fargate-profile, and maintenance-config lifecycle; the data plane is an in-memory Kubernetes API server that the issued kubeconfigs point at. `kubectl apply -f deployment.yaml` then `kubectl get pods` round-trips, and real `client-go` `Informer` / `Reflector` machinery works against it.
+- **Data-plane kinds.** Namespace, Pod, Service, ConfigMap, Secret, ServiceAccount, and Deployment (all Create/Get/List/Update/Delete/Patch/Watch), plus Endpoints (read-only, auto-created per Service). API groups served: `core/v1` and `apps/v1`. Each new cluster starts with `default`, `kube-system`, and `kube-public` namespaces and a `default` ServiceAccount in each.
+- **Patch and Watch.** Patch is JSON-merge-patch (RFC 7396, `application/merge-patch+json`); `?watch=true` streams `ADDED` / `MODIFIED` / `DELETED` as newline-delimited JSON so informers work. Strategic-merge and JSON-Patch (RFC 6902) are not supported.
+- **Intentionally out of scope.** To stay a fast, deterministic double, the data plane runs no controllers (a Deployment does *not* create ReplicaSets/Pods — `spec.replicas` mirrors straight to `status.replicas`), no scheduler (Pods stay `Pending`, no Node binding or Pod IPs), and omits RBAC, PersistentVolumes/PVCs, Nodes, and StatefulSet/DaemonSet/Job/CronJob/Ingress.
+- **SDK-compat status — Live.** Real `eks`, `armcontainerservice`, and `container/apiv1` clients drive the control plane. EKS covers cluster CRUD + UpdateConfig/UpdateVersion, managed node groups, Fargate profiles, and addons; AKS covers ManagedClusters (+ RotateClusterCertificates), agent pools, and maintenance configs; GKE covers clusters + config setters (logging, monitoring, master auth, network policy, maintenance, resource labels, IP rotation), node pools (+ SetSize/SetAutoscaling/SetManagement/Rollback), and operations.
