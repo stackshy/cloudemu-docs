@@ -1,14 +1,14 @@
 ---
 title: Storage
-description: Object storage emulation for S3, Azure Blob Storage, and GCS, driven with the real cloud SDKs.
+description: In-memory object storage modelled on S3, Azure Blob Storage, and GCS, driven with the real cloud SDKs
 aws: S3
 azure: Blob Storage
 gcp: GCS
 ---
 
-## Overview
+Emulates managed object storage — the S3/Blob/GCS bucket where your app keeps uploads, exports, and config blobs. You create named buckets, then put, get, list, and copy objects as byte payloads with a content type and metadata. Everything lives in memory, so a test run starts from an empty store and leaves nothing behind.
 
-Drive **S3** (AWS), **Blob Storage** (Azure), and **GCS** (GCP) with the real SDKs — buckets, objects, listings, all in memory.
+Reach for it in tests whenever your code writes a file to a bucket and reads it back, paginates a listing, or copies objects between prefixes — so you can exercise those paths without a real S3 account or network. Because the SDK-compat server speaks the real wire protocol, your production upload/download code runs unchanged against it.
 
 | Provider | Service | SDK-compat | Driver |
 |----------|---------|:----------:|--------|
@@ -16,9 +16,9 @@ Drive **S3** (AWS), **Blob Storage** (Azure), and **GCS** (GCP) with the real SD
 | Azure | Blob Storage | ✓ Live | `azure.BlobStorage` |
 | GCP | GCS | ✓ Live | `gcp.GCS` |
 
-## Examples
+## Drive it with the real SDK
 
-The recommended path is to drop the SDK-compat server in front of cloudemu and call your existing production code unchanged:
+The recommended path is to drop the SDK-compat server in front of cloudemu and point your existing production code at it — no code changes, just a rewritten endpoint. This example stands up an in-memory S3, creates a bucket, writes an object, and reads it back exactly as the real client would:
 
 ```go
 import (
@@ -50,9 +50,9 @@ out, _ := client.GetObject(ctx, &s3.GetObjectInput{
 
 The same pattern works with `armappservice` / `azblob` (Azure) and `cloud.google.com/go/storage` (GCP). See the [SDK-Compat Server page](/docs/sdk-compat#quick-start-azure) for full quick starts per provider.
 
-### Portable Go API
+## Call the driver directly
 
-When you don't need to drive a real SDK — for example, in cloudemu-only setup code — call the driver directly:
+When you don't need to drive a real SDK — for example in cloudemu-only setup code — skip the HTTP hop and call the driver. The same three operations, minus the client boilerplate:
 
 ```go
 aws.S3.CreateBucket(ctx, "my-bucket")
@@ -60,12 +60,11 @@ aws.S3.PutObject(ctx, "my-bucket", "config.yaml", []byte("..."), "text/yaml", ni
 obj, _ := aws.S3.GetObject(ctx, "my-bucket", "config.yaml")
 ```
 
-## Notes
+`PutObject`'s last two arguments are the content type and an optional metadata map (pass `nil` for none). `GetObject` returns the object with its data and info; a missing bucket or key returns an error.
 
-### Operations supported via SDK-compat
+## Behavior & fidelity
 
-CreateBucket, DeleteBucket, ListBuckets, PutObject, GetObject, HeadObject, DeleteObject, ListObjectsV2 (prefix, delimiter, common prefixes, continuation token), CopyObject.
-
-### Portable-API-only capabilities
-
-The Portable API also exposes operations not yet on the SDK-compat surface — multipart upload, presigned URLs, lifecycle policies, versioning. See the driver interface for the full list.
+- **Listings paginate and group.** `ListObjectsV2` honours `prefix`, `delimiter` (with common prefixes), `MaxKeys`, and a continuation token — the same paging contract your production listing loop expects.
+- **Copy is server-side.** `CopyObject` duplicates the object and its metadata into the destination without a round-trip through your process.
+- **Portable-API-only extras.** The driver also exposes operations not yet on the SDK-compat surface — multipart upload, presigned URLs, lifecycle policies, versioning, bucket/object tagging, CORS, and encryption config. Reach for these through the [Portable Go API](/docs/sdk-compat) when your test needs them.
+- **SDK-compat status — Live.** CreateBucket, DeleteBucket, ListBuckets, PutObject, GetObject, HeadObject, DeleteObject, ListObjectsV2, and CopyObject all work through the real S3, Blob, and GCS SDKs today. See [SDK-Compat](/docs/sdk-compat) for the current surface.
