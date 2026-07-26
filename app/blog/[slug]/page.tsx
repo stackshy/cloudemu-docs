@@ -87,24 +87,26 @@ async function renderMarkdown(md: string): Promise<string> {
   // had no text color and was near-invisible on the raised background).
   const flushCode = async () => {
     const code = codeBuffer.join('\n');
-    const lang = codeLang || 'text';
-    let highlighted: string;
+    // Fence info strings can carry metadata after the language (e.g.
+    // ```go title="main.go"); Shiki only wants the language token.
+    const lang = codeLang.split(/\s+/)[0] || 'text';
+    let inner: string;
     try {
-      highlighted = await codeToHtml(code, {
+      inner = await codeToHtml(code, {
         lang,
         themes: { light: cloudemuLight, dark: cloudemuDark },
         defaultColor: false,
       });
     } catch {
-      // Unknown/unsupported language → fall back to unhighlighted plain text.
-      highlighted = await codeToHtml(code, {
-        lang: 'text',
-        themes: { light: cloudemuLight, dark: cloudemuDark },
-        defaultColor: false,
-      });
+      // Unknown language, or any Shiki failure: fall back to readable escaped
+      // plain text. This never re-throws (a second codeToHtml could), so a bad
+      // fence degrades gracefully instead of 500-ing the whole post.
+      inner = `<pre class="overflow-x-auto px-4 font-mono text-[13px] leading-[1.65] text-ink-2"><code>${escapeHtml(
+        code,
+      )}</code></pre>`;
     }
     out.push(
-      `<figure class="u-codeblock not-prose my-7 overflow-hidden"><div class="overflow-x-auto py-3.5">${highlighted}</div></figure>`,
+      `<figure class="u-codeblock not-prose my-7 overflow-hidden"><div class="overflow-x-auto py-3.5">${inner}</div></figure>`,
     );
     codeBuffer = [];
     codeLang = '';
