@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/link';
 import { findNeighbour } from 'fumadocs-core/page-tree';
 import { source } from '@/lib/source';
 
