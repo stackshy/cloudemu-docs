@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import Link from '@/components/link';
 import { ArrowRight } from 'lucide-react';
 import { HighlightedGo } from '@/components/landing/highlighted-go';
 import { Reveal } from '@/components/reveal';

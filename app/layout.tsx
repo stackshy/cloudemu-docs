@@ -6,6 +6,7 @@ import type { Metadata } from 'next';
 import CustomSearchDialog from '@/components/search-dialog';
 import { AnnouncementBanner } from '@/components/announcement-banner';
 import { MotionProvider } from '@/components/motion-provider';
+import Link from '@/components/link';
 
 const sans = Instrument_Sans({
   subsets: ['latin'],
@@ -57,6 +58,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           search={{
             SearchDialog: CustomSearchDialog,
           }}
+          components={{ Link }}
         >
           <MotionProvider>
             <AnnouncementBanner />
