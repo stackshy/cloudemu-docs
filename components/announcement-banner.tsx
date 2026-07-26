@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
+import Link from '@/components/link';
 import { X } from 'lucide-react';
 
 const STORAGE_KEY = 'cloudemu-banner-v2-release';

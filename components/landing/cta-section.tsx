@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import Link from '@/components/link';
 import { useState } from 'react';
 import { Check, Copy, ArrowRight } from 'lucide-react';
 import { Reveal } from '@/components/reveal';

@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/link';
 import { ArrowRight } from 'lucide-react';
 import { MorphCode } from '@/components/code/morph-code';
 import { Reveal } from '@/components/reveal';

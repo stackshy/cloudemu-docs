@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import Link from '@/components/link';
 import { services } from '@/lib/services';
 import { Reveal } from '@/components/reveal';
 import { useInView } from '@/components/diagrams/use-in-view';
