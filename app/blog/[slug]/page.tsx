@@ -2,7 +2,9 @@ import { notFound } from 'next/navigation';
 import fs from 'fs';
 import path from 'path';
 import type { Metadata } from 'next';
+import { codeToHtml } from 'shiki';
 import { CodeCopy } from '@/components/blog/code-copy';
+import { cloudemuDark, cloudemuLight } from '@/lib/shiki-themes';
 
 const blogDir = path.join(process.cwd(), 'content/blog');
 
@@ -61,11 +63,12 @@ function inline(s: string): string {
 // A small block-level markdown renderer good enough for blog posts: fenced code
 // blocks, headings, unordered lists, blockquotes, and paragraphs — each with
 // inline formatting applied.
-function renderMarkdown(md: string): string {
+async function renderMarkdown(md: string): Promise<string> {
   const lines = md.split('\n');
   const out: string[] = [];
   let inCode = false;
   let codeBuffer: string[] = [];
+  let codeLang = '';
   let inList = false;
   let tableBuffer: string[] = [];
 
@@ -76,13 +79,37 @@ function renderMarkdown(md: string): string {
     }
   };
 
-  const flushCode = () => {
+  // Highlight fenced code with the same Shiki themes the docs use
+  // (cloudemuLight/cloudemuDark). `defaultColor: false` emits per-token
+  // --shiki-light/--shiki-dark vars that fumadocs' shiki.css switches on, and
+  // the .u-codeblock wrapper matches the site-wide code surface — so blog code
+  // reads identically to docs code in both themes (the plain <pre> before this
+  // had no text color and was near-invisible on the raised background).
+  const flushCode = async () => {
+    const code = codeBuffer.join('\n');
+    // Fence info strings can carry metadata after the language (e.g.
+    // ```go title="main.go"); Shiki only wants the language token.
+    const lang = codeLang.split(/\s+/)[0] || 'text';
+    let inner: string;
+    try {
+      inner = await codeToHtml(code, {
+        lang,
+        themes: { light: cloudemuLight, dark: cloudemuDark },
+        defaultColor: false,
+      });
+    } catch {
+      // Unknown language, or any Shiki failure: fall back to readable escaped
+      // plain text. This never re-throws (a second codeToHtml could), so a bad
+      // fence degrades gracefully instead of 500-ing the whole post.
+      inner = `<pre class="overflow-x-auto px-4 font-mono text-[13px] leading-[1.65] text-ink-2"><code>${escapeHtml(
+        code,
+      )}</code></pre>`;
+    }
     out.push(
-      `<pre class="my-7 overflow-x-auto rounded-lg border border-line bg-raised p-4"><code class="font-mono text-[13px] leading-[1.65]">${escapeHtml(
-        codeBuffer.join('\n'),
-      )}</code></pre>`,
+      `<figure class="u-codeblock not-prose my-7 overflow-hidden"><div class="overflow-x-auto py-3.5">${inner}</div></figure>`,
     );
     codeBuffer = [];
+    codeLang = '';
   };
 
   const flushTable = () => {
@@ -127,12 +154,13 @@ function renderMarkdown(md: string): string {
   for (const line of lines) {
     if (line.startsWith('```')) {
       if (inCode) {
-        flushCode();
+        await flushCode();
         inCode = false;
       } else {
         flushTable();
         closeList();
         inCode = true;
+        codeLang = line.trim().slice(3).trim();
       }
       continue;
     }
@@ -182,7 +210,7 @@ function renderMarkdown(md: string): string {
   closeList();
   flushTable();
   if (inCode && codeBuffer.length) {
-    flushCode();
+    await flushCode();
   }
 
   return out.join('\n');
@@ -195,7 +223,7 @@ export default async function BlogPostPage(props: {
   const post = await getBlogPost(params.slug);
   if (!post) notFound();
 
-  const html = renderMarkdown(post.content);
+  const html = await renderMarkdown(post.content);
 
   return (
     <main className="max-w-3xl mx-auto px-6 py-16">
