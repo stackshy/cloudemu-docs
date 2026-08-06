@@ -67,7 +67,21 @@ aws.EC2.TerminateInstances(ctx, []string{instances[0].ID})
 
 ## Behavior & fidelity
 
-- **State machine enforces valid transitions.** Instances walk `pending → running → stopped → terminated`; illegal transitions return errors, so a test that stops a terminated instance fails the same way real EC2 would.
-- **Lifecycle metrics are emitted automatically.** `RunInstances` pushes CPU, Network, and Disk metrics to the [monitoring service](/docs/services/monitoring), and every Start/Stop/Reboot/Terminate writes matching values — so you can assert on metric-driven alarms end-to-end.
-- **Full VPC stack alongside compute.** Subnets, Security Groups, Internet/NAT Gateways, Route Tables, Peering, Flow Logs, ACLs, EBS Volumes, Key Pairs, Snapshots, AMIs, Spot Instances, Launch Templates, and Auto Scaling Groups are all available on `aws.EC2` / `aws.VPC` — see [Networking](/docs/services/networking).
-- **SDK-compat status — Live.** Real `ec2`, `armcompute`, and `compute/apiv1` clients drive the emulator. EC2 covers RunInstances, DescribeInstances (filters: `instance-id`, `instance-type`, `instance-state-name`, `tag:*`), Start/Stop/Reboot/Terminate, and ModifyInstanceAttribute; Azure covers VM CreateOrUpdate/Get/List/Delete plus start/powerOff/restart and full Disks/Snapshots/Images/SSHPublicKeys CRUD; GCP covers Instances/Disks/Snapshots/Images insert/get/list/delete with LRO envelopes.
+| Behavior | What happens |
+|----------|--------------|
+| Valid state transitions | Instances walk `pending → running → stopped → terminated`. Illegal transitions error, so stopping a terminated instance fails just like real EC2. |
+| Automatic lifecycle metrics | `RunInstances` and every start/stop/reboot/terminate push CPU, network, and disk metrics to the [monitoring service](/docs/services/monitoring) — assert on metric-driven alarms end-to-end. |
+| Full VPC stack | Subnets, security groups, gateways, route tables, volumes, snapshots, AMIs, launch templates, and auto-scaling groups all live on `aws.EC2` / `aws.VPC`. See [Networking](/docs/services/networking). |
+| Managed-resource visibility | EC2 models the managed instances an AWS service (ECS, EKS Auto Mode) provisions. `SetManagedResourceVisibility("hidden")` drops them from `DescribeInstances` unless you pass `IncludeManagedResources=true` — how an ECS container instance surfaces as a real EC2 instance ([Container Orchestration](/docs/services/container-orchestration)). |
+
+## SDK-compat — Live
+
+Real `ec2`, `armcompute`, and `compute/apiv1` clients drive the emulator end-to-end:
+
+| Provider | Coverage |
+|----------|----------|
+| AWS EC2 | Instance lifecycle, filtered describe, attribute modify, and the full VPC stack |
+| Azure VMs | Virtual machines, power actions, disks, snapshots, images, SSH keys |
+| GCP Compute Engine | Instances, disks, snapshots, and images with LRO envelopes |
+
+See [SDK-Compat](/docs/sdk-compat) for the full per-operation list.
