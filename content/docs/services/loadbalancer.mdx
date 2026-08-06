@@ -1,64 +1,124 @@
 ---
 title: Load Balancer
-description: Emulated load balancers, target groups, listeners, and health checks, modelled on ELB and cloud LBs
+description: Emulated load balancers, target groups, listeners, rules, and health checks — driven with the real ELBv2 and cloud LB SDKs
 aws: ELB
 azure: LB
 gcp: LB
 ---
 
-Emulates a managed load balancer — the ELB-style front door that spreads traffic across a pool of backends. You create a load balancer, register targets in a target group, and attach a listener that routes a port to that group.
+Emulates a managed load balancer — the ELB-style front door that spreads traffic across a pool of backends. You create a load balancer, register targets in a target group, and attach a listener that routes a port to that group; listener rules and per-LB attributes tune how the traffic is steered.
 
-Reach for it in tests when your code provisions load balancers, registers or deregisters targets, or reacts to target health — so you can exercise those paths without a live LB. Under the hood a load balancer, its target groups, and its listeners are plain named records wired together by ID.
+Reach for it in tests when your code provisions load balancers, registers or deregisters targets, or reacts to target health — so you can exercise those paths without a live LB. Because the SDK-compat server speaks the real wire protocol, your production provisioning code runs unchanged against it. Under the hood a load balancer, its target groups, and its listeners are plain named records wired together by ARN.
 
-| Provider | Service | Driver |
-|----------|---------|--------|
-| AWS | ELB | `aws.ELB` |
-| Azure | LB | `azure.LB` |
-| GCP | LB | `gcp.LB` |
+| Provider | Service | SDK-compat | Driver |
+|----------|---------|:----------:|--------|
+| AWS | ELBv2 | ✓ Live | `aws.ELB` |
+| Azure | LB | ✓ Live | `azure.LB` |
+| GCP | LB | ✓ Live | `gcp.LB` |
 
-## Create a load balancer
+## Drive it with the real SDK
 
-The load balancer is the entry point clients connect to — the equivalent of provisioning an Application Load Balancer. Create one before wiring up targets or listeners:
+The recommended path is to drop the SDK-compat server in front of cloudemu and point your existing production code at it — no code changes, just a rewritten endpoint. This example stands up an in-memory ELBv2, creates an ALB, and adds a target group exactly as the real client would:
+
+```go
+import (
+    "github.com/aws/aws-sdk-go-v2/aws"
+    elb "github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2"
+    elbtypes "github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2/types"
+    "github.com/stackshy/cloudemu/v2"
+    awsserver "github.com/stackshy/cloudemu/v2/server/aws"
+)
+
+cloud := cloudemu.NewAWS()
+ts := httptest.NewServer(awsserver.New(awsserver.Drivers{ELB: cloud.ELB}))
+defer ts.Close()
+
+client := elb.NewFromConfig(cfg, func(o *elb.Options) {
+    o.BaseEndpoint = aws.String(ts.URL)
+})
+
+lb, _ := client.CreateLoadBalancer(ctx, &elb.CreateLoadBalancerInput{
+    Name:    aws.String("my-alb"),
+    Type:    elbtypes.LoadBalancerTypeEnumApplication,
+    Scheme:  elbtypes.LoadBalancerSchemeEnumInternetFacing,
+    Subnets: []string{"subnet-a", "subnet-b"},
+})
+
+tg, _ := client.CreateTargetGroup(ctx, &elb.CreateTargetGroupInput{
+    Name: aws.String("web-targets"), Port: aws.Int32(8080), Protocol: elbtypes.ProtocolEnumHttp,
+})
+```
+
+The same pattern works with `armnetwork.LoadBalancersClient` (Azure) and the GCP forwarding-rule / backend-service REST clients — only the endpoint changes. See the [SDK-Compat Server page](/docs/sdk-compat).
+
+## Call the driver directly
+
+When you don't need to drive a real SDK — for example in cloudemu-only setup code — skip the HTTP hop and call the driver. The load balancer is the entry point; create it, then wire a target group and a listener by ARN:
 
 ```go
 import lbdriver "github.com/stackshy/cloudemu/v2/services/loadbalancer/driver"
 
-lb, _ := aws.ELB.CreateLoadBalancer(ctx, lbdriver.LoadBalancerConfig{
-    Name:   "web-lb",
-    Type:   "application",
-    Scheme: "internet-facing",
+lb, _ := aws.ELB.CreateLoadBalancer(ctx, lbdriver.LBConfig{
+    Name: "web-lb", Type: "application", Scheme: "internet-facing",
 })
-```
 
-## Create a target group and register targets
-
-A target group is the pool of backends the load balancer sends traffic to, along with the health check that decides which are eligible. Register your instances into it:
-
-```go
 tg, _ := aws.ELB.CreateTargetGroup(ctx, lbdriver.TargetGroupConfig{
-    Name:     "web-targets",
-    Port:     8080,
-    Protocol: "HTTP",
+    Name: "web-targets", Port: 8080, Protocol: "HTTP",
 })
 
-aws.ELB.RegisterTargets(ctx, tg.ID, []string{"i-00000001", "i-00000002"})
+aws.ELB.RegisterTargets(ctx, tg.ARN, []lbdriver.Target{
+    {ID: "i-00000001", Port: 8080}, {ID: "i-00000002", Port: 8080},
+})
+
+aws.ELB.CreateListener(ctx, lbdriver.ListenerConfig{
+    LBARN: lb.ARN, Port: 443, Protocol: "HTTPS", TargetGroupARN: tg.ARN,
+})
 ```
 
-## Attach a listener
+`RegisterTargets` takes `[]lbdriver.Target` (an ID plus optional port), and listeners reference the load balancer and target group by their `ARN`.
 
-A listener binds a port and protocol on the load balancer to a target group — this is what actually forwards incoming requests to your backends:
+## Rules, attributes, and target health
+
+A listener can carry rules that steer requests to different target groups by path or host, and each load balancer has an attribute set you can read and modify. Target health is settable directly so you can assert how your code reacts to a backend going unhealthy:
 
 ```go
-aws.ELB.CreateListener(ctx, lbdriver.ListenerConfig{
-    LoadBalancerID: lb.ID,
-    Port:           443,
-    Protocol:       "HTTPS",
-    TargetGroupID:  tg.ID,
+// Path-based routing rule on a listener.
+aws.ELB.CreateRule(ctx, lbdriver.RuleConfig{
+    ListenerARN: listener.ARN, Priority: 10,
+    Conditions: []lbdriver.RuleCondition{{Field: "path-pattern", Values: []string{"/api/*"}}},
+    Actions:    []lbdriver.RuleAction{{Type: "forward", TargetGroupARN: tg.ARN}},
 })
+rules, _ := aws.ELB.DescribeRules(ctx, listener.ARN)
+
+// Attributes: the typed fields plus an open Extra map for anything AWS adds.
+aws.ELB.PutLBAttributes(ctx, lb.ARN, lbdriver.LBAttributes{
+    IdleTimeout: 120, DeletionProtection: true,
+    Extra: map[string]string{"load_balancing.cross_zone.enabled": "true"},
+})
+attrs, _ := aws.ELB.GetLBAttributes(ctx, lb.ARN)
+
+// Drive a target unhealthy, then read health back.
+aws.ELB.SetTargetHealth(ctx, tg.ARN, "i-00000001", "unhealthy")
+health, _ := aws.ELB.DescribeTargetHealth(ctx, tg.ARN)
+aws.ELB.DeregisterTargets(ctx, tg.ARN, []lbdriver.Target{{ID: "i-00000002", Port: 8080}})
 ```
 
 ## Behavior & fidelity
 
-- **Target groups carry health-check configuration.** Each group's health check determines the health status of its registered targets, so you can test how your code responds to a target going unhealthy.
-- **Objects are wired by ID.** Listeners reference a load balancer and a target group by ID, mirroring how ELB resources compose; a target group can back more than one listener.
-- **SDK-compat status — Portable Go API only.** Real `elbv2`, `armnetwork.LoadBalancers`, and GCP LB clients can't talk to cloudemu yet — load balancer SDK-compat handlers will ship in lockstep across all three providers in a future phase. Targets, listeners, and health checks are available today through the Portable Go API shown above.
+| Behavior | What happens |
+|----------|--------------|
+| Target groups carry health-check configuration | Health status drives which targets are eligible, and `SetTargetHealth` lets a test flip that state deterministically. |
+| Objects are wired by ARN | Listeners and rules reference a load balancer and target group by ARN; a target group can back more than one listener. |
+| Attributes keep unknown keys | `LBAttributes.Extra` holds attributes outside the typed set, so a caller reading back its own write gets the right answer even for keys the struct never learned. |
+
+## SDK-compat — Live
+
+Real `elasticloadbalancingv2`, `armnetwork.LoadBalancers`, and GCP LB clients drive the emulator end-to-end:
+
+| Provider | Coverage |
+|----------|----------|
+| AWS ELBv2 | Load balancers, target groups, listeners, rules, and target health |
+| Azure LB | Load balancers via ARM |
+| GCP LB | Forwarding rules and backend services via REST |
+
+See [SDK-Compat](/docs/sdk-compat) for the full per-operation list.
