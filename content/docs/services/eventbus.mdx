@@ -10,11 +10,11 @@ Emulates a managed event bus — the router you publish events to and let rules 
 
 Reach for it in tests when your code emits domain events (`OrderCreated`, `UserSignedUp`) and downstream handlers subscribe by shape rather than by name. Unlike the [message queue](/docs/services/messagequeue), routing is content-based and there's no pull-and-ack — an event that matches no rule is simply not delivered anywhere.
 
-| Provider | Service | Access |
-|----------|---------|--------|
-| AWS | EventBridge | `aws.EventBridge` |
-| Azure | Event Grid | `azure.EventGrid` |
-| GCP | Eventarc | `gcp.Eventarc` |
+| Provider | Service | SDK-compat | Driver |
+|----------|---------|:----------:|--------|
+| AWS | EventBridge | ✓ Live | `aws.EventBridge` |
+| Azure | Event Grid | ✓ Live | `azure.EventGrid` |
+| GCP | Eventarc | ✓ Live | `gcp.Eventarc` |
 
 ## Create an event bus
 
@@ -61,7 +61,12 @@ aws.EventBridge.PutEvents(ctx, []ebdriver.Event{
 
 ## Behavior & fidelity
 
-- **Content-based routing.** Every published event is matched against all rules on its bus; a rule fires only when the event satisfies its `EventPattern`, and matched events are forwarded to that rule's targets — an event matching no rule is dropped, not queued.
-- **Default bus fallback.** An event or rule with an empty `EventBus` is routed to the provider's default bus, matching EventBridge's default-bus behaviour.
-- **Rule state and replay.** Rules can be enabled/disabled without deletion, and published events are retained so `GetEventHistory` can replay what was sent to a bus.
-- **SDK-compat status — Portable Go API only.** Real `aws-sdk-go-v2/service/eventbridge`, `armeventgrid`, and Eventarc REST clients can't talk to cloudemu yet; event-bus SDK-compat handlers will ship in lockstep across all three providers in a later phase. Buses, rules, targets, and pattern-based routing are fully available today through the Portable Go API shown above.
+| Behavior | What happens |
+|----------|--------------|
+| Content-based routing | Each published event is matched against all rules on its bus; a rule fires only when the event satisfies its `EventPattern`, and an event matching no rule is dropped, not queued. |
+| Default bus fallback | An event or rule with an empty `EventBus` routes to the provider's default bus, matching EventBridge's default-bus behaviour. |
+| Rule state and replay | Rules can be enabled or disabled without deletion, and published events are retained so `GetEventHistory` can replay what was sent to a bus. |
+
+## SDK-compat — Live
+
+Real EventBridge, Event Grid, and Eventarc clients drive it end-to-end. See [SDK-Compat](/docs/sdk-compat) for the full operation list.
