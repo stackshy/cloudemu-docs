@@ -58,6 +58,23 @@ runID, _ := azure.Databricks.RunJobNow(ctx, jobID)
 
 ## Behavior & fidelity
 
-- **Deterministic workspace URL.** `CreateWorkspace` synthesizes an `adb-{workspaceId}.{shard}.azuredatabricks.net` host with a numeric workspace ID derived from the resource group + name, so identical inputs always yield the same URL. The `/.well-known/databricks-config` host-metadata endpoint is served so `databricks-sdk-go` locates the workspace automatically.
-- **Shared backend.** The ARM control plane and the data plane read and write the same in-memory state, so a workspace created over ARM is immediately usable over the data-plane API.
-- **SDK-compat status — Live.** The real `databricks-sdk-go` drives it end-to-end via the [SDK-compat server](/docs/sdk-compat): the ARM control plane (CreateWorkspace, GetWorkspace, UpdateWorkspaceTags, DeleteWorkspace, ListWorkspacesByResourceGroup, ListWorkspaces) and the data plane — Clusters (`/api/2.1/clusters/*`), Instance pools (`/api/2.0/instance-pools/*`), Jobs (`/api/2.2/jobs/*`), Runs (`/api/2.2/jobs/runs/*`), Cluster policies, Libraries, and Permissions — with DBFS, Repos, Git credentials, Secrets, Workspace files (WSFS), SCIM, Tokens, Pipelines, Query history, SQL Warehouses, Serving endpoints, and Unity Catalog (+ UC storage) wired in as nested handlers. The same semantics are available through the Portable Go API above.
+| Behavior | What happens |
+|----------|--------------|
+| Deterministic workspace URL | `CreateWorkspace` synthesizes an `adb-{workspaceId}.{shard}.azuredatabricks.net` host from a numeric ID derived from the resource group and name, so identical inputs always yield the same URL. |
+| Auto-discovery is served | The `/.well-known/databricks-config` host-metadata endpoint lets `databricks-sdk-go` locate the workspace automatically. |
+| Shared backend | The ARM control plane and data plane share one in-memory store, so a workspace created over ARM is immediately usable over the data-plane API. |
+| Extended ARM is store-and-echo | Beyond workspaces, the ARM resources persist and list faithfully, but the underlying Azure networking side effects are not simulated. |
+| Access connectors get an identity | A system-assigned access-connector identity is synthesized with principal and tenant IDs. |
+| Peerings auto-connect | A created VNet peering springs to Connected/Succeeded. |
+
+## SDK-compat — Live
+
+The real `databricks-sdk-go` drives both layers end-to-end; the same semantics are available through the Portable Go API above.
+
+| Layer | Coverage |
+|-------|----------|
+| ARM control plane | Workspaces, access connectors, private endpoints and links, VNet peerings, outbound dependencies, operations |
+| Data plane (core) | Clusters, instance pools, jobs, runs, cluster policies, libraries, permissions |
+| Data plane (nested) | DBFS, Repos, Git credentials, Secrets, workspace files, SCIM, tokens, pipelines, query history, SQL warehouses, serving endpoints, Unity Catalog |
+
+See [SDK-Compat](/docs/sdk-compat) for the full per-operation list.
