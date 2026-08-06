@@ -36,9 +36,9 @@ type Provider struct {
     SQS        *sqs.Mock
     CloudWatch *cloudwatch.Mock
     Bedrock    *bedrock.Mock
-    // ... plus IAM, Route53, ELB, ECR, SNS, EventBridge, ElastiCache,
-    //     SecretsManager, CloudWatchLogs, Redshift, SageMaker,
-    //     ResourceDiscovery, and more
+    // ... 30+ services in all — IAM, Route53, ELB, ECR, ECS, SNS, EventBridge,
+    //     ElastiCache, SecretsManager, CloudWatchLogs, Redshift, SageMaker,
+    //     Keyspaces, MemoryDB, NetworkFirewall, SSM, ResourceDiscovery, and more
 }
 ```
 
@@ -49,7 +49,7 @@ All mocks are backed by a generic, thread-safe `memstore.Store[V]` — an in-mem
 Each service category defines a minimal Go interface that all providers implement:
 
 ```go
-// compute/driver/driver.go
+// services/compute/driver/driver.go
 type Compute interface {
     RunInstances(ctx context.Context, config InstanceConfig, count int) ([]Instance, error)
     StopInstances(ctx context.Context, instanceIDs []string) error
@@ -81,7 +81,7 @@ Each handler is a self-contained package (`server/aws/s3`, `server/azure/cosmos`
 
 ## Alternative: portable Go API
 
-For in-process tests, code that doesn't go through an SDK, or domains where SDK-compat isn't shipped yet (DNS, Load Balancer, Notification, Event Bus, Cache, Secrets, Logging), call the driver directly through the [Portable Go API](/docs/portable-api):
+For in-process tests or code that doesn't go through an SDK, call the driver directly through the [Portable Go API](/docs/portable-api):
 
 ```go
 bucket := storage.NewBucket(aws.S3,

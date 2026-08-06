@@ -64,7 +64,12 @@ obj, _ := aws.S3.GetObject(ctx, "my-bucket", "config.yaml")
 
 ## Behavior & fidelity
 
-- **Listings paginate and group.** `ListObjectsV2` honours `prefix`, `delimiter` (with common prefixes), `MaxKeys`, and a continuation token — the same paging contract your production listing loop expects.
-- **Copy is server-side.** `CopyObject` duplicates the object and its metadata into the destination without a round-trip through your process.
-- **Portable-API-only extras.** The driver also exposes operations not yet on the SDK-compat surface — multipart upload, presigned URLs, lifecycle policies, versioning, bucket/object tagging, CORS, and encryption config. Reach for these through the [Portable Go API](/docs/sdk-compat) when your test needs them.
-- **SDK-compat status — Live.** CreateBucket, DeleteBucket, ListBuckets, PutObject, GetObject, HeadObject, DeleteObject, ListObjectsV2, and CopyObject all work through the real S3, Blob, and GCS SDKs today. See [SDK-Compat](/docs/sdk-compat) for the current surface.
+| Behavior | What happens |
+|----------|--------------|
+| Listings paginate and group | `ListObjectsV2` honours `prefix`, `delimiter` (with common prefixes), `MaxKeys`, and a continuation token — the paging contract your listing loop expects. |
+| Server-side copy | `CopyObject` duplicates the object and its metadata into the destination without a round-trip through your process. |
+| Portable-API-only extras | Multipart upload, presigned URLs, lifecycle policies, versioning, tagging, CORS, and encryption config are driver-only — reach for them through the [Portable Go API](/docs/sdk-compat). |
+
+## SDK-compat — Live
+
+Real S3, Blob, and GCS clients drive object storage end-to-end — see [SDK-Compat](/docs/sdk-compat) for the full operation list.

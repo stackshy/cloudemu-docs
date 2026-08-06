@@ -1,6 +1,6 @@
 ---
 title: Relational Database
-description: Managed relational-database control-plane emulation for RDS/Aurora, Redshift, Azure SQL, PostgreSQL/MySQL Flexible Server, and Cloud SQL
+description: Managed relational-database control-plane emulation for RDS/Aurora, Redshift, Azure SQL, PostgreSQL/MySQL Flexible Server, Cloud SQL, and AlloyDB
 aws: RDS
 azure: Azure SQL
 gcp: Cloud SQL
@@ -18,6 +18,7 @@ Reach for it in tests when your provisioning or IaC code creates a DB instance, 
 | Azure | PostgreSQL Flexible Server | ✓ Live | `azure.PostgresFlex` |
 | Azure | MySQL Flexible Server | ✓ Live | `azure.MySQLFlex` |
 | GCP | Cloud SQL (MySQL / PostgreSQL / SQL Server) | ✓ Live | `gcp.CloudSQL` |
+| GCP | AlloyDB (PostgreSQL-compatible) | ✓ Live | `gcp.AlloyDB` |
 
 ## Drive it with the real SDK
 
@@ -87,9 +88,48 @@ Restore with `RestoreInstanceFromSnapshot` (or `RestoreClusterFromSnapshot`), pa
 
 ## Behavior & fidelity
 
-- **Lifecycle is a real state machine.** Instances and clusters move through `creating → available → modifying → starting → stopping → stopped → rebooting → deleting`. Illegal transitions (e.g. stopping an already-stopped instance) return errors, so your wait-for-state code is exercised for real.
-- **Aurora clusters own members.** A cluster tracks its member instances (`Instance.ClusterID`); the `aurora-postgresql` / `aurora-mysql` engines, plus **Neptune** and **DocumentDB**, run through the RDS driver with the right ports and namespaces.
-- **Snapshots and restore round-trip.** Instance and cluster snapshots can be created, listed, deleted, and restored into new instances/clusters. Services with no cluster concept (Redshift, Flexible Server, Cloud SQL) return an error for cluster-snapshot operations; Redshift is cluster-only and errors on instance-level operations.
-- **Lifecycle emits metrics.** State transitions push CloudWatch / Azure Monitor / Cloud Monitoring values under the correct per-engine namespace (`AWS/RDS`, `AWS/Redshift`, `Microsoft.Sql/servers/databases`, `cloudsql.googleapis.com`, …), so metric-driven tests have data to read.
-- **Provider quirks are preserved.** Cloud SQL start/stop is emulated via `settings.activationPolicy` (`ALWAYS` / `NEVER`); the Cloud SQL operations endpoint returns `DONE` immediately.
-- **SDK-compat status — Live.** All six services work through their real SDKs today: RDS/Aurora and Redshift instance/cluster/snapshot operations, Azure SQL + PostgreSQL/MySQL Flexible Server (CRUD plus `start`/`stop`/`restart`), and Cloud SQL (instances CRUD, `restart`/`restoreBackup`, backup-run CRUD). See [SDK-Compat](/docs/sdk-compat) for the full surface.
+| Behavior | What happens |
+|----------|--------------|
+| Real state machine | Instances and clusters walk `creating → available → stopped → deleting`; illegal transitions error, so wait-for-state code is exercised for real. |
+| Aurora clusters own members | A cluster tracks its member instances; the `aurora-postgresql`/`aurora-mysql`, Neptune, and DocumentDB engines run through the RDS driver with the right ports and namespaces. |
+| Snapshots round-trip | Instance and cluster snapshots can be created, listed, deleted, and restored into new instances or clusters. |
+| Cluster support tracks reality | Cluster-less services (Redshift, Flexible Server, Cloud SQL) error on cluster-snapshot ops; Redshift is cluster-only and errors on instance-level ops. |
+| Lifecycle emits metrics | State transitions push CloudWatch / Azure Monitor / Cloud Monitoring values under the correct per-engine namespace. |
+| Provider quirks preserved | Cloud SQL start/stop is emulated via `settings.activationPolicy`, and its operations endpoint returns `DONE` immediately. |
+| AlloyDB reuses the driver | GCP AlloyDB maps clusters to `Cluster`, read-pool/secondary instances to `Instance`, and backups to `ClusterSnapshot`. |
+| Optional capabilities are type-asserted | Extras stay out of the core interface — each driver answers only for the resources its cloud has, and the rest return `InvalidAction`. |
+| Discoverable and billed | Managed relational servers surface in [Resource Discovery](/docs/services/resource-discovery) and are billed per instance-hour. |
+
+RDS-oriented capability families:
+
+| Family | Covers |
+|--------|--------|
+| Subnet groups | DB subnet groups for VPC placement |
+| Parameter & option groups | Instance- and cluster-scoped tuning |
+| Read replicas | Replica creation and standalone promotion |
+| Advanced restore | Snapshot copy and point-in-time restore |
+| RDS Proxy | Connection proxy with a target group |
+| Event subscriptions | Instance and cluster event feeds |
+| Aurora | Cluster endpoints, cluster failover, global clusters |
+| Metadata & tagging | Engine-version catalogs, ARN-addressed tags |
+
+Azure and GCP managed-SQL child resources, cascade-deleted with their parent server:
+
+| Service | Child resources |
+|---------|-----------------|
+| Flexible servers + Cloud SQL | Databases, firewall rules, server parameters |
+| Azure SQL | VNet rules, elastic pools, failover groups, AAD admins, SQL Managed Instances |
+| Cloud SQL | Users, SSL certs, instance clone, replica promotion, tiers/flags catalogs |
+| AlloyDB | Cross-region secondary clusters, promote, instance failover/restart |
+
+## SDK-compat — Live
+
+Real `rds`, `armsql`, `sqladmin`, and related clients drive every service end-to-end:
+
+| Provider | Coverage |
+|----------|----------|
+| AWS RDS/Aurora + Redshift | Instances, clusters, snapshots |
+| Azure SQL + Flexible Server | Logical servers, databases, lifecycle |
+| GCP Cloud SQL + AlloyDB | Instances, backups, replicas |
+
+See [SDK-Compat](/docs/sdk-compat) for the full per-operation list.

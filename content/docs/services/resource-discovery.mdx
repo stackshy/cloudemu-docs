@@ -6,7 +6,7 @@ azure: Resource Graph
 gcp: Cloud Asset Inventory
 ---
 
-Emulates the cross-service inventory APIs — the "list everything I have, filtered by service, type, region, or tag" layer that Resource Explorer, Resource Graph, and Cloud Asset Inventory provide. An engine walks your emulated compute, networking, storage, database, serverless, and Databricks resources and answers those queries over normalized, cross-cloud records.
+Emulates the cross-service inventory APIs — the "list everything I have, filtered by service, type, region, or tag" layer that Resource Explorer, Resource Graph, and Cloud Asset Inventory provide. An engine walks your emulated compute, networking, storage, database, serverless, Databricks, Kubernetes, and relational-database resources and answers those queries over normalized, cross-cloud records.
 
 Reach for it in tests when your code enumerates resources, reconciles inventory, or drives tag-based automation — so you can assert on what's discoverable without a real account. Every provider auto-wires a `ResourceDiscovery` engine over its core drivers, so anything you create through those services is immediately discoverable, with no separate registration step.
 
@@ -77,9 +77,52 @@ The engine reads live state from the service drivers and emits normalized, cross
 | `database` | Table | DynamoDB · Cosmos DB · Firestore |
 | `serverless` | Function | Lambda · Functions · Cloud Functions |
 | `databricks` | Workspace | — · Databricks · — |
+| `kubernetes` | Cluster / NodeGroup | EKS · AKS · GKE (nodegroups / node pools / agent pools) |
+| `relationaldb` | Database | RDS / Aurora · — · — |
+
+Kubernetes clusters and their node groups are surfaced through a `KubernetesClusters` discovery adapter each provider wires over its cluster mock. Relational databases follow the same pattern via a `RelationalDatabases` adapter — AWS RDS/Aurora instances, clusters, and snapshots surface through Resource Explorer 2 (filter `service:rds`); GCP Cloud SQL and Azure SQL discovery are not yet wired.
 
 ## Behavior & fidelity
 
-- **Live, not cached.** The engine reads current driver state on every query, so a resource is discoverable the moment you create it and gone the moment you delete it — no reindex step.
-- **Provider-native query surfaces.** Each provider maps to its own dialect: AWS query filters (`service:`, `tag.<key>:<value>`, `region:`) across Resource Explorer 2 and the Resource Groups Tagging API; a KQL subset over Azure Resource Graph's `Resources` table (`where type ==`/`in~ (…)`, `where location ==`, `where tags['k'] ==`, `| limit`/`| take`); and GCP Cloud Asset Inventory filters (`service:`, `assetType:`, `location:`, `labels.<k>:<v>`).
-- **SDK-compat status — Live.** Real Resource Explorer 2 + Resource Groups Tagging API clients (CreateView/DeleteView/ListViews/GetView/Search/ListResources/ListIndexes/GetIndex; GetResources/GetTagKeys/GetTagValues/TagResources/UntagResources), Azure Resource Graph (`POST /resources`, `/resourcesHistory`, `GET /operations`), and GCP Cloud Asset Inventory (`searchAllResources`, `searchAllIamPolicies`, `exportAssets`, `batchGetAssetsHistory`, `assets.list`, feed CRUD) point at the [SDK-compat server](/docs/sdk-compat); the same queries are available through the Portable Go API above.
+| Behavior | What happens |
+|----------|--------------|
+| Live, not cached | The engine reads current driver state on every query, so a resource is discoverable the moment you create it and gone the moment you delete it — no reindex step. |
+| Provider-native query surfaces | Each provider speaks its own query dialect over the same inventory (dialects below). |
+| Azure cost-field projection | Each Resource Graph row also projects the `sku` and `properties` a cost tool prices on, so a value set at create time round-trips over the real `armresourcegraph` SDK (types below). |
+
+Each provider's filter dialect:
+
+- **AWS** — `service:`, `tag.<key>:<value>`, and `region:` across Resource Explorer 2 and the Resource Groups Tagging API.
+- **Azure** — a KQL subset over the `Resources` table: `where type ==` / `in~ (…)`, `where location ==`, `where tags['k'] ==`, and `| limit` / `| take`.
+- **GCP** — Cloud Asset Inventory filters `service:`, `assetType:`, `location:`, and `labels.<k>:<v>`.
+
+Cost-relevant fields projected on each Azure type:
+
+| Azure type | Projected fields |
+|---|---|
+| `microsoft.compute/virtualmachines` | priority/Spot, licenseType, OS type, `sku.name`, zones |
+| `microsoft.compute/disks` | IOPS, throughput, sizeGB, tier |
+| `.../virtualmachinescalesets` | `sku` + nested VM profile |
+| `microsoft.network/publicipaddresses` | `sku`, allocation method |
+| `.../virtualnetworks`, `.../subnets` | address space |
+| `microsoft.sql/managedinstances`, `.../servers`, `.../servers/databases` | `sku`, vCores, tier, storage, version, zone-redundant |
+| `microsoft.dbformysql` / `dbforpostgresql/flexibleservers` | `sku`/tier, version, storage, HA mode |
+| `microsoft.containerservice/managedclusters` (+ `/agentpools`) | tier, powerState, k8s version, vmSize, Spot, count, mode |
+| `microsoft.databricks/workspaces` | `sku`, workspaceId, provisioning state |
+| `microsoft.storage/storageaccounts` | redundancy, kind, accessTier |
+| `microsoft.documentdb/databaseaccounts` | offer type, serverless capability, free tier |
+| `microsoft.web/serverfarms` | App Service plan pricing tier |
+
+Values are seeded through the portable driver configs and optional enrichment capabilities — e.g. `VolumeConfig.IOPS/Throughput/Tier`, `InstanceConfig.OSType/Priority/LicenseType/Zones`, the AKS `Tier`/`ScaleSetPriority` inputs, and `BucketAttributes` / `TableAttributes`.
+
+## SDK-compat — Live
+
+Real Resource Explorer 2, Resource Graph, and Cloud Asset Inventory clients drive it end-to-end; the same queries run through the Portable Go API above.
+
+| Provider | Discovery surface |
+|----------|-------------------|
+| AWS | Resource Explorer 2 + Resource Groups Tagging API |
+| Azure | Resource Graph (`armresourcegraph`, KQL) |
+| GCP | Cloud Asset Inventory (`cloudasset/v1`) |
+
+See [SDK-Compat](/docs/sdk-compat) for the full per-operation list.

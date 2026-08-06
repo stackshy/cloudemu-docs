@@ -75,9 +75,14 @@ item, _ := aws.DynamoDB.GetItem(ctx, "Users", map[string]any{"id": "u1"})
 
 ## Behavior & fidelity
 
-- **Query and scan paginate.** Results come back in a stable key order; pass a `Limit` and continue with either an offset `PageToken` or a DynamoDB-style `ExclusiveStartKey`/`LastEvaluatedKey`. Queries can also sort descending. Because ordering is stable, page tokens stay valid across calls.
-- **Comparisons are numeric-aware.** Key conditions and filters order numbers numerically (`"10" > "9"`), strings lexically, and bools `false < true` — matching the real services rather than naive string compare.
-- **TTL expiry on read.** Items whose TTL attribute is past due are treated as absent on the next read, so a `Get`/`Query` never returns expired data.
-- **Streams / change feed.** With streams enabled, `PutItem` / `UpdateItem` / `DeleteItem` emit INSERT / MODIFY / REMOVE records you can read back — useful for testing change-driven pipelines.
-- **Global Secondary Indexes.** `CreateIndex` / `DescribeIndex` / `DeleteIndex` are supported, and a `Query` can target a GSI via its `IndexName`.
-- **SDK-compat status — Live.** DynamoDB (CreateTable, PutItem, GetItem, UpdateItem, Query, Scan with FilterExpression, Batch*, TransactWriteItems, …), Cosmos DB (databases/containers/documents CRUD + query), and Firestore (`:commit`, `:batchGet`, `:runQuery`, document CRUD) all work through the real SDKs. See [SDK-Compat](/docs/sdk-compat) for the full surface.
+| Behavior | What happens |
+|----------|--------------|
+| Query and scan paginate | Results come back in stable key order; pass a `Limit` and resume with an offset `PageToken` or a DynamoDB-style `ExclusiveStartKey`, and page tokens stay valid across calls. |
+| Numeric-aware comparisons | Numbers order numerically (`"10" > "9"`), strings lexically, and bools `false < true`, matching the real services rather than naive string compare. |
+| TTL expiry on read | An item past its TTL attribute reads as absent, so a `Get` or `Query` never returns expired data. |
+| Streams / change feed | With streams enabled, writes emit INSERT / MODIFY / REMOVE records you can read back — useful for change-driven pipelines. |
+| Global secondary indexes | GSIs can be created, described, listed, and deleted, and a `Query` can target one via its `IndexName`. |
+
+## SDK-compat — Live
+
+Real `dynamodb`, `azcosmos`, and Firestore clients drive it end-to-end — see [SDK-Compat](/docs/sdk-compat) for the full operation list.

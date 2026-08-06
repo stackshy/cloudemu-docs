@@ -1,0 +1,85 @@
+---
+title: Keyspaces
+description: In-memory control plane for Amazon Keyspaces (for Apache Cassandra) — keyspaces, tables, and UDTs, driven with the real SDK
+aws: Keyspaces
+---
+
+Emulates the *control plane* of Amazon Keyspaces, the managed Cassandra-compatible wide-column service — the API that creates keyspaces, defines tables with a Cassandra schema, and manages user-defined types. CQL data operations are out of scope, so it has its own driver rather than reusing the relational or cache drivers. You define a table's partition and clustering keys, capacity mode, encryption, and TTL, then read it back exactly as the real service returns it.
+
+Reach for it in tests when your provisioning code creates a keyspace and tables, adjusts capacity, or restores a table point-in-time — without a real (billed) Keyspaces account. Served as AWS JSON 1.0 on the `KeyspacesService.` target prefix, so a real `aws-sdk-go-v2/service/keyspaces` client with a custom endpoint works unchanged.
+
+| Provider | Service | SDK-compat | Driver |
+|----------|---------|:----------:|--------|
+| AWS | Amazon Keyspaces (for Apache Cassandra) | ✓ Live | `aws.Keyspaces` |
+
+## Drive it with the real SDK
+
+Point the stock AWS SDK at the SDK-compat server — only the endpoint changes. This creates a keyspace and a table keyed on `id`:
+
+```go
+import (
+    "github.com/aws/aws-sdk-go-v2/aws"
+    "github.com/aws/aws-sdk-go-v2/service/keyspaces"
+    "github.com/aws/aws-sdk-go-v2/service/keyspaces/types"
+    "github.com/stackshy/cloudemu/v2"
+    awsserver "github.com/stackshy/cloudemu/v2/server/aws"
+)
+
+cloud := cloudemu.NewAWS()
+ts := httptest.NewServer(awsserver.New(awsserver.Drivers{Keyspaces: cloud.Keyspaces}))
+defer ts.Close()
+
+client := keyspaces.NewFromConfig(cfg, func(o *keyspaces.Options) {
+    o.BaseEndpoint = aws.String(ts.URL)
+})
+
+client.CreateKeyspace(ctx, &keyspaces.CreateKeyspaceInput{KeyspaceName: aws.String("app")})
+
+client.CreateTable(ctx, &keyspaces.CreateTableInput{
+    KeyspaceName: aws.String("app"),
+    TableName:    aws.String("events"),
+    SchemaDefinition: &types.SchemaDefinition{
+        AllColumns: []types.ColumnDefinition{
+            {Name: aws.String("id"), Type: aws.String("uuid")},
+        },
+        PartitionKeys: []types.PartitionKey{{Name: aws.String("id")}},
+    },
+})
+```
+
+See the [SDK-Compat Server page](/docs/sdk-compat) for the full quick start.
+
+## Call the driver directly
+
+For in-process setup or assertions you can skip the HTTP hop and call the driver:
+
+```go
+import ksdriver "github.com/stackshy/cloudemu/v2/services/keyspaces/driver"
+
+aws.Keyspaces.CreateKeyspace(ctx, ksdriver.CreateKeyspaceConfig{Name: "app"})
+
+aws.Keyspaces.CreateTable(ctx, ksdriver.CreateTableConfig{
+    KeyspaceName: "app", Name: "events",
+    SchemaDefinition: ksdriver.SchemaDefinition{
+        AllColumns:    []ksdriver.ColumnDefinition{{Name: "id", Type: "uuid"}},
+        PartitionKeys: []ksdriver.PartitionKey{{Name: "id"}},
+    },
+})
+```
+
+`RestoreTable` is point-in-time recovery into a new table, and a matching set of type calls manages user-defined types under a keyspace.
+
+## Behavior & fidelity
+
+| Behavior | What happens |
+|----------|--------------|
+| Keyspaces own tables | Keyspaces model single- or multi-region replication, must be empty to delete, and error otherwise. |
+| Full table schema | A table carries its partition/clustering keys, capacity mode (`PAY_PER_REQUEST` or `PROVISIONED`), encryption, point-in-time recovery, TTL, CDC, and replica specs. |
+| Point-in-time restore | A table can be recovered into a new table from its recovery window. |
+| User-defined types and tagging | UDTs live under a keyspace, and every resource is taggable by ARN. |
+| AWS-only auto scaling | Target-tracking settings are readable for provisioned tables and error for on-demand tables, matching AWS. |
+| Wire fidelity | Members are lowerCamelCase, so the server lowercases response keys for the SDK's case-sensitive deserializer; lists page deterministically. |
+
+## SDK-compat — Live
+
+Real `aws-sdk-go-v2/service/keyspaces` clients drive it end-to-end (AWS JSON 1.0, `KeyspacesService.` prefix) — see [SDK-Compat](/docs/sdk-compat) for the full operation list.

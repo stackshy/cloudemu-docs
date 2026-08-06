@@ -39,12 +39,12 @@ client.PutObject(ctx, &s3.PutObjectInput{ /* your real production code */ })
 
 ## What's included
 
-- **[SDK-compatible HTTP server](/docs/sdk-compat)** — real SDK wire protocols across AWS, Azure, and GCP, spanning compute, storage, NoSQL and relational databases, serverless, Kubernetes, networking, monitoring, message queues, IAM, container registry, resource discovery, and provider-specific generative AI (Bedrock/SageMaker/Vertex AI) and Databricks
+- **[SDK-compatible HTTP server](/docs/sdk-compat)** — real SDK wire protocols across AWS, Azure, and GCP, spanning dozens of services per cloud: compute, storage, NoSQL and relational databases, serverless, Kubernetes, networking, monitoring, logging, message queues, DNS, load balancing, cache, secrets, notification, event bus, IAM, container registry, resource discovery, and provider-specific generative AI (Bedrock/SageMaker/Vertex AI) and Databricks
 - **Three cloud providers** — AWS, Azure, and GCP in one binary
 - **Realistic behaviors** — state machines, auto-metrics, alarm evaluation, FIFO dedup, DLQs, TTL expiry
 - **[Chaos engineering](/docs/chaos)** — inject failures, latency spikes, and throttling in time-bounded windows
 - **[Network topology](/docs/topology)** — evaluate real reachability across VPCs, peering, security groups, ACLs, and routes
-- **[Portable Go API](/docs/portable-api)** — direct in-process calls covering every service category, including the seven not yet SDK-compatible (DNS, load balancer, notification, event bus, cache, secrets, logging)
+- **[Portable Go API](/docs/portable-api)** — direct in-process calls covering every service category, an alternative to HTTP when you'd rather skip the wire protocol
 - **Cross-cutting features** — call recording, metrics, error injection, rate limiting, fake clock, latency simulation
 - **Zero runtime dependencies**
 

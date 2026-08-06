@@ -173,11 +173,18 @@ Every domain ships HTTP wire-format handlers across all 3 providers:
 | Serverless | Lambda | Functions | Cloud Functions |
 | Kubernetes | EKS | AKS | GKE |
 | Message Queue | SQS | Service Bus | Pub/Sub |
+| Logging | CloudWatch Logs | Log Analytics | Cloud Logging |
+| DNS | Route 53 | Azure DNS | Cloud DNS |
+| Load Balancer | ELBv2 | Load Balancer | Cloud Load Balancing |
+| Cache | ElastiCache | Azure Cache | Memorystore |
+| Secrets | Secrets Manager | Key Vault | Secret Manager |
+| Notification | SNS | Notification Hubs | FCM |
+| Event Bus | EventBridge | Event Grid | Eventarc |
 | IAM | IAM | IAM | IAM |
 | Container Registry | ECR | ACR | Artifact Registry |
 | Resource Discovery | Resource Explorer + Tagging | Resource Graph | Cloud Asset Inventory |
 
-Plus **DNS, Load Balancer, Notification, Event Bus, Cache, Secrets, and Logging** (SDK-compat since v1.9.0), provider-specific **Generative AI** (Bedrock + SageMaker on AWS, Vertex AI on GCP), and **Databricks** (Azure). Kubernetes also ships a shared in-memory data plane that `client-go` / `kubectl` drive end-to-end.
+Plus provider-specific **Generative AI** (Bedrock + SageMaker on AWS, Vertex AI on GCP) and **Databricks** (Azure). Kubernetes also ships a shared in-memory data plane that `client-go` / `kubectl` drive end-to-end.
 
 Everything is equally reachable through the [Portable Go API](/docs/portable-api) when you'd rather skip HTTP.
 
