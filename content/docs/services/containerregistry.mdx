@@ -78,7 +78,12 @@ fmt.Println(result.Status, result.FindingCounts["CRITICAL"])
 
 ## Behavior & fidelity
 
-- **References resolve by tag or digest.** `GetImage`, `TagImage`, and the scan calls accept either a tag or a `sha256:` digest, matching how the real registries address images.
-- **Lifecycle evaluation is explicit.** `EvaluateLifecyclePolicy` computes the expiry set on demand and returns it rather than deleting in the background — so tests are deterministic and you see exactly what a rule matches.
-- **Manifests, not bytes.** Images are stored as manifests (digest, tags, size, layers); there's no layer blob storage, which is all a control-plane test double needs.
-- **SDK-compat status — Live.** Real `aws-sdk-go-v2/service/ecr`, `armcontainerregistry`, and Artifact Registry clients can point at the [SDK-compat server](/docs/sdk-compat) for the repository, image, and tag operations above.
+| Behavior | What happens |
+|----------|--------------|
+| References resolve by tag or digest | `GetImage`, `TagImage`, and the scan calls accept either a tag or a `sha256:` digest, matching how the real registries address images. |
+| Explicit lifecycle evaluation | `EvaluateLifecyclePolicy` computes the expiry set on demand and returns it rather than deleting in the background, so tests are deterministic and you see exactly what a rule matches. |
+| Manifests, not bytes | Images are stored as manifests (digest, tags, size, layers); there's no layer blob storage, which is all a control-plane test double needs. |
+
+## SDK-compat — Live
+
+Real `aws-sdk-go-v2/service/ecr`, `armcontainerregistry`, and Artifact Registry clients drive the repository, image, and tag operations end-to-end. See [SDK-Compat](/docs/sdk-compat) for the full operation list.
