@@ -64,8 +64,31 @@ Because the data plane is a single `*kubernetes.APIServer`, passing it into `aws
 
 ## Behavior & fidelity
 
-- **Two layers, one backend.** The control plane covers cluster, node-group/node-pool, addon, Fargate-profile, and maintenance-config lifecycle; the data plane is an in-memory Kubernetes API server that the issued kubeconfigs point at. `kubectl apply -f deployment.yaml` then `kubectl get pods` round-trips, and real `client-go` `Informer` / `Reflector` machinery works against it.
-- **Data-plane kinds.** Namespace, Pod, Service, ConfigMap, Secret, ServiceAccount, and Deployment (all Create/Get/List/Update/Delete/Patch/Watch), plus Endpoints (read-only, auto-created per Service). API groups served: `core/v1` and `apps/v1`. Each new cluster starts with `default`, `kube-system`, and `kube-public` namespaces and a `default` ServiceAccount in each.
-- **Patch and Watch.** Patch is JSON-merge-patch (RFC 7396, `application/merge-patch+json`); `?watch=true` streams `ADDED` / `MODIFIED` / `DELETED` as newline-delimited JSON so informers work. Strategic-merge and JSON-Patch (RFC 6902) are not supported.
-- **Intentionally out of scope.** To stay a fast, deterministic double, the data plane runs no controllers (a Deployment does *not* create ReplicaSets/Pods — `spec.replicas` mirrors straight to `status.replicas`), no scheduler (Pods stay `Pending`, no Node binding or Pod IPs), and omits RBAC, PersistentVolumes/PVCs, Nodes, and StatefulSet/DaemonSet/Job/CronJob/Ingress.
-- **SDK-compat status — Live.** Real `eks`, `armcontainerservice`, and `container/apiv1` clients drive the control plane. EKS covers cluster CRUD + UpdateConfig/UpdateVersion, managed node groups, Fargate profiles, and addons; AKS covers ManagedClusters (+ RotateClusterCertificates), agent pools, and maintenance configs; GKE covers clusters + config setters (logging, monitoring, master auth, network policy, maintenance, resource labels, IP rotation), node pools (+ SetSize/SetAutoscaling/SetManagement/Rollback), and operations.
+The data plane is an in-memory Kubernetes API server — one per EKS/AKS/GKE cluster, reached through the kubeconfig each control plane issues. It behaves like a tiny always-converged cluster (minikube-like), not a bare object store: every write runs a **synchronous reconcile**, so results are immediate and deterministic, with no controller goroutines to flake.
+
+| Behavior | What happens |
+|----------|--------------|
+| Real kubectl, end-to-end | The server decodes kubectl's protobuf writes and serves OpenAPI v3 discovery, so `kubectl apply` validation passes — verified against kubectl v1.36 over real TLS (a real CA, not `--insecure-skip-tls-verify`). |
+| Controllers actually run | A Deployment creates a ReplicaSet, which creates Running Pods with synthetic Pod IPs; Services get Endpoints, PVCs bind, StatefulSets get stable ordinals, DaemonSets place one Pod per node, and Jobs complete. |
+| Full patch + server-side apply | JSON-merge, JSON-Patch, and strategic-merge all work; server-side apply tracks per-manager field ownership and returns `409 Conflict` on a conflicting change unless you pass `?force=true`. |
+| Policy is applied | Object-count ResourceQuota (including on `--dry-run=server`), LimitRange defaults/validation, and PodDisruptionBudget eviction gating are enforced; RBAC and NetworkPolicy are queryable, and admission webhooks are opt-in. |
+| Informers just work | `?watch=true` streams `ADDED`/`MODIFIED`/`DELETED` events with selector filtering, resume, and bookmarks; list pagination uses a key-anchored `continue` token that never skips or duplicates under concurrent writes. |
+| Deterministic time | Every timestamp flows through an injectable clock (`APIServer.SetClock`), so a `config.FakeClock` makes runs fully reproducible. |
+
+**API groups served (12):** `core`, `apps`, `batch`, `networking`, `rbac`, `storage`, `autoscaling` (HPA), `discovery` (EndpointSlice), `policy` (PodDisruptionBudget), `apiextensions` (CRDs), `admissionregistration` (webhooks), and `metrics` (`kubectl top`). Discovery is derived from the live registry, so it never advertises a kind that 404s.
+
+**Custom resources (CRDs)** are fully dynamic: a created `CustomResourceDefinition` is served, discoverable, and marked `Established` immediately, and deleting it cascade-deletes its custom resources.
+
+**Emulation boundaries** (deliberate, not gaps): there is no real kubelet — Pods are driven Running, `pods/log` is synthetic, and `exec`/`attach`/`portforward` return `501`; no scheduling beyond the single synthetic node; RBAC and NetworkPolicy are queryable rather than request-time-enforced; CronJobs advance only when you call `TickCronJobs()`; and rollouts converge instantly.
+
+## SDK-compat — Live
+
+Real `eks`, `armcontainerservice`, and `container/apiv1` clients drive the control plane end-to-end:
+
+| Provider | Control-plane coverage |
+|----------|------------------------|
+| AWS EKS | Clusters, managed node groups, Fargate profiles, addons |
+| Azure AKS | Managed clusters, agent pools, maintenance configs |
+| GCP GKE | Clusters, node pools, config setters, operations |
+
+See [SDK-Compat](/docs/sdk-compat) for the full per-operation list.
