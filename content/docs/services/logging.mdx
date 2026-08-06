@@ -10,11 +10,11 @@ Emulates a managed log store — the CloudWatch Logs pipeline your app writes ev
 
 Reach for it in tests when your code emits log events, sets retention, or queries a window of history — so you can exercise those paths without a live logging backend. Under the hood a group is a named container, a stream is an ordered sequence of timestamped events inside it, and a query filters that sequence by time.
 
-| Provider | Service | Driver |
-|----------|---------|--------|
-| AWS | CloudWatch Logs | `aws.CloudWatchLogs` |
-| Azure | Log Analytics | `azure.LogAnalytics` |
-| GCP | Cloud Logging | `gcp.CloudLogging` |
+| Provider | Service | SDK-compat | Driver |
+|----------|---------|:----------:|--------|
+| AWS | CloudWatch Logs | ✓ Live | `aws.CloudWatchLogs` |
+| Azure | Log Analytics | ✓ Live | `azure.LogAnalytics` |
+| GCP | Cloud Logging | ✓ Live | `gcp.CloudLogging` |
 
 ## Create groups and streams, then write events
 
@@ -55,6 +55,11 @@ To test retention or time-windowed queries without waiting, drive time with the 
 
 ## Behavior & fidelity
 
-- **Events are timestamped and time-ordered.** A query filters a stream by `StartTime` and caps results with `Limit`, so you can assert on exactly the window your code reads.
-- **Groups and streams are addressed by name.** Events live under a group name and a stream name, matching how CloudWatch Logs namespaces a source.
-- **SDK-compat status — Portable Go API only.** Real `aws-sdk-go-v2/service/cloudwatchlogs`, Log Analytics REST, and Cloud Logging REST clients can't talk to cloudemu yet — logging SDK-compat handlers will ship in lockstep across all three providers in a future phase. Groups, streams, and event queries are available today through the Portable Go API shown above.
+| Behavior | What happens |
+|----------|--------------|
+| Timestamped, time-ordered events | A query filters a stream by `StartTime` and caps results with `Limit`, so you assert on exactly the window your code reads. |
+| Named groups and streams | Events live under a group name and a stream name, matching how CloudWatch Logs namespaces a source. |
+
+## SDK-compat — Live
+
+Real CloudWatch Logs, Log Analytics, and Cloud Logging clients drive it end-to-end. See [SDK-Compat](/docs/sdk-compat) for the full operation list.
