@@ -10,11 +10,11 @@ Emulates a managed pub/sub notification service — the topic you publish one me
 
 Reach for it in tests when your code announces an event to several independent consumers and you don't want a queue's pull-and-ack cycle — publish is fire-and-forget fan-out. Unlike the [message queue](/docs/services/messagequeue), there's no per-consumer acknowledgement: a subscriber either matches the message or it doesn't.
 
-| Provider | Service | Driver |
-|----------|---------|--------|
-| AWS | SNS | `aws.SNS` |
-| Azure | Notification Hubs | `azure.NotificationHubs` |
-| GCP | FCM | `gcp.FCM` |
+| Provider | Service | SDK-compat | Driver |
+|----------|---------|:----------:|--------|
+| AWS | SNS | ✓ Live | `aws.SNS` |
+| Azure | Notification Hubs | ✓ Live | `azure.NotificationHubs` |
+| GCP | FCM | ✓ Live | `gcp.FCM` |
 
 ## Create a topic and subscribe endpoints
 
@@ -48,7 +48,12 @@ aws.SNS.Publish(ctx, notifdriver.PublishInput{
 
 ## Behavior & fidelity
 
-- **Fan-out delivery.** One `Publish` is delivered to every subscription on the topic; adding or removing a subscription changes the recipient set for subsequent publishes with no change to the producer.
-- **Attribute filtering.** Message `Attributes` are matched against each subscription's filter policy, so a single topic can route to different subscribers by attribute — mirroring SNS message-attribute filtering.
-- **Subscription status.** New subscriptions carry a `confirmed`/`pending` status, matching the SNS confirmation handshake rather than assuming every endpoint is immediately live.
-- **SDK-compat status — Portable Go API only.** Real `aws-sdk-go-v2/service/sns`, Notification Hubs ARM, and FCM REST clients can't talk to cloudemu yet; notification SDK-compat handlers will ship in lockstep across all three providers in a later phase. Topics, subscriptions, fan-out, and attribute filtering are fully available today through the Portable Go API shown above.
+| Behavior | What happens |
+|----------|--------------|
+| Fan-out delivery | One `Publish` reaches every subscription on the topic; adding or removing a subscription changes the recipient set for later publishes with no change to the producer. |
+| Attribute filtering | Message `Attributes` are matched against each subscription's filter policy, so one topic can route to different subscribers by attribute — mirroring SNS message-attribute filtering. |
+| Subscription status | New subscriptions carry a `confirmed`/`pending` status, matching the SNS confirmation handshake rather than assuming every endpoint is immediately live. |
+
+## SDK-compat — Live
+
+Real SNS, Notification Hubs, and FCM clients drive it end-to-end. See [SDK-Compat](/docs/sdk-compat) for the full operation list.
