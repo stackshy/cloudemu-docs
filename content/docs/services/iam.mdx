@@ -69,6 +69,11 @@ The wildcard in the policy's `Resource` (`my-bucket/*`) matches the concrete obj
 
 ## Behavior & fidelity
 
-- **JSON policy evaluation.** Documents are parsed with wildcard matching in actions and resources (`s3:*`, `arn:aws:s3:::*`), support for multiple statements with differing effects, and **explicit Deny overriding Allow** — matching real IAM precedence.
-- **Thread-safe.** Every operation is safe for concurrent use across goroutines and providers.
-- **SDK-compat status — Live.** Real `aws-sdk-go-v2/service/iam`, Azure `Microsoft.Authorization` (RBAC), and GCP IAM clients can point at the [SDK-compat server](/docs/sdk-compat). The full driver semantics (policy evaluation, wildcards, explicit-deny override, instance profiles) are also available today through the Portable Go API shown above.
+| Behavior | What happens |
+|----------|--------------|
+| JSON policy evaluation | Documents are parsed with wildcard matching in actions and resources (`s3:*`, `arn:aws:s3:::*`), multiple statements with differing effects, and explicit Deny overriding Allow — matching real IAM precedence. |
+| Thread-safe | Every operation is safe for concurrent use across goroutines and providers. |
+
+## SDK-compat — Live
+
+Real `aws-sdk-go-v2/service/iam`, Azure `Microsoft.Authorization` (RBAC), and GCP IAM clients drive it end-to-end. The full driver semantics — policy evaluation, wildcards, explicit-deny override, and instance profiles — are also available through the Portable Go API shown above. See [SDK-Compat](/docs/sdk-compat).

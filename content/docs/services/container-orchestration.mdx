@@ -1,0 +1,108 @@
+---
+title: Container Orchestration
+description: In-memory ECS control plane — clusters, task definitions, tasks, and services with real EC2/Fargate placement, driven with the real AWS SDK
+aws: ECS
+azure: —
+gcp: —
+---
+
+Emulates the ECS control plane — the clusters, task definitions, tasks, and services you call to schedule containers on AWS. You register a task definition, then run tasks or stand up a service; the emulator places EC2-launch-type tasks onto container instances with spare capacity, or synthesizes a Fargate ENI attachment, exactly the way the real scheduler would decide. Everything lives in memory, so a run starts empty and converges synchronously — no eventual-consistency waits.
+
+Reach for it in tests when your code provisions clusters, registers task definitions, or scales services up and down and then asserts on the resulting tasks and deployments — without a real ECS account or a container runtime. It is AWS-only: there is no cross-cloud abstraction, because ECS has no Azure or GCP counterpart to model.
+
+| Provider | Service | SDK-compat | Driver |
+|----------|---------|:----------:|--------|
+| AWS | ECS | ✓ Live | `aws.ECS` |
+| Azure | — | – | — |
+| GCP | — | – | — |
+
+## Drive it with the real SDK
+
+The recommended path drops the SDK-compat server in front of cloudemu and points a stock `aws-sdk-go-v2/service/ecs` client at it. This example registers a container instance so the cluster has EC2 capacity, registers a task definition, and runs a task that gets first-fit placed onto that instance:
+
+```go
+import (
+    "github.com/aws/aws-sdk-go-v2/aws"
+    "github.com/aws/aws-sdk-go-v2/service/ecs"
+    ecstypes "github.com/aws/aws-sdk-go-v2/service/ecs/types"
+    "github.com/stackshy/cloudemu/v2"
+    awsserver "github.com/stackshy/cloudemu/v2/server/aws"
+)
+
+cloud := cloudemu.NewAWS()
+ts := httptest.NewServer(awsserver.New(awsserver.Drivers{
+    ECS: cloud.ECS, EC2: cloud.EC2,
+}))
+defer ts.Close()
+
+client := ecs.NewFromConfig(cfg, func(o *ecs.Options) {
+    o.BaseEndpoint = aws.String(ts.URL)
+})
+
+client.CreateCluster(ctx, &ecs.CreateClusterInput{ClusterName: aws.String("prod")})
+client.RegisterTaskDefinition(ctx, &ecs.RegisterTaskDefinitionInput{
+    Family: aws.String("web"),
+    ContainerDefinitions: []ecstypes.ContainerDefinition{{
+        Name: aws.String("app"), Image: aws.String("nginx"),
+        Cpu: 256, Memory: aws.Int32(512),
+    }},
+})
+
+out, _ := client.RunTask(ctx, &ecs.RunTaskInput{
+    Cluster:        aws.String("prod"),
+    TaskDefinition: aws.String("web"),
+    LaunchType:     ecstypes.LaunchTypeEc2,
+})
+// out.Tasks[0] is placed on a container instance; out.Failures is empty.
+```
+
+See the [SDK-Compat Server page](/docs/sdk-compat) for the full quick start.
+
+## Call the driver directly
+
+For in-process setup, skip the HTTP hop and call the driver with its own input structs — the same flow, minus the client boilerplate:
+
+```go
+import ecsdriver "github.com/stackshy/cloudemu/v2/services/ecs/driver"
+
+aws.ECS.CreateCluster(ctx, ecsdriver.CreateClusterInput{ClusterName: "prod"})
+aws.ECS.RegisterTaskDefinition(ctx, ecsdriver.RegisterTaskDefinitionInput{Family: "web"})
+tasks, failures, _ := aws.ECS.RunTask(ctx, ecsdriver.RunTaskInput{
+    Cluster: "prod", TaskDefinition: "web", LaunchType: "EC2",
+})
+```
+
+Batch reads (`DescribeClusters`, `DescribeTasks`, `DescribeServices`) and `RunTask` return a partial-success `failures` slice alongside the results, rather than erroring — matching how the real API reports per-item problems.
+
+## Behavior & fidelity
+
+The scheduler is real: it places tasks against actual container-instance capacity and converges services synchronously, so a run reaches its end state before the call returns — no polling for `RUNNING`.
+
+| Behavior | What happens |
+|----------|--------------|
+| Task definitions auto-increment revisions | `RegisterTaskDefinition` bumps `family:revision` on each call. |
+| Full runtime surface round-trips | portMappings, environment, secrets, healthCheck, volumes, and the rest are stored on the task definition, though launched containers carry only name/image/status. |
+| EC2 tasks are first-fit placed | A task lands on the first container instance with enough CPU/memory, reserving it and releasing on stop. |
+| No capacity is a soft failure | A task that can't be placed lands in `failures[]` (`AGENT` / `RESOURCE:*`); a service stays `PENDING`. |
+| Fargate synthesizes its networking | A `FARGATE` task needs `awsvpcConfiguration` and an `awsvpc` task-def with cpu+memory; the emulator adds an ENI attachment and a `platformVersion`. |
+| Launch type is validated | `launchType` is checked against the task-def's `requiresCompatibilities`, and Fargate task-level cpu/memory against the supported-configuration table. |
+| Services converge synchronously | `CreateService` launches `desiredCount` tasks and records a PRIMARY deployment; `UpdateService` reconciles and promotes a new deployment as superseded ones drain. |
+| DAEMON runs one task per instance | A `DAEMON` service places a task on every container instance and rejects a caller-supplied `desiredCount`. |
+| ECS composes with EC2 | `RegisterContainerInstance` provisions a backing managed EC2 instance, discoverable as a real instance under [managed-resource visibility](/docs/services/compute) — wire `EC2: cloud.EC2` into the server to see it. |
+| Typed exceptions match the SDK | Missing clusters, services, and bad parameters surface as the same named errors a real client would catch. |
+| Accepted but not simulated | `capacityProviderStrategy`, `loadBalancers` / `serviceRegistries`, and the deployment circuit-breaker are stored and round-tripped so SDK calls succeed, but have no behavioral effect. |
+
+## SDK-compat — Live
+
+Real `aws-sdk-go-v2/service/ecs` clients drive the control plane end-to-end:
+
+| Family | Coverage |
+|--------|----------|
+| Clusters | Lifecycle, settings, capacity providers |
+| Task definitions | Registration with auto-incrementing revisions |
+| Tasks | Placement, lifecycle, and command execution |
+| Services | Creation and rolling-update convergence |
+| Container instances | Registration, draining, and inspection |
+| Tagging & account settings | Full |
+
+See [SDK-Compat](/docs/sdk-compat) for the full per-operation list.

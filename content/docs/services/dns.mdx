@@ -1,24 +1,64 @@
 ---
 title: DNS
-description: Emulated DNS zones and records, including weighted routing, modelled on Route53, Azure DNS, and Cloud DNS
+description: Emulated DNS zones, records, and health checks — driven with the real Route53, Azure DNS, and Cloud DNS SDKs, with weighted routing
 aws: Route53
 azure: DNS
 gcp: Cloud DNS
 ---
 
-Emulates managed DNS — the hosted zones and resource records you'd create in Route53 to point a name at an address. You create a zone for a domain, then add records (A, CNAME, MX, TXT, and so on) that resolve names within it.
+Emulates managed DNS — the hosted zones and resource records you'd create in Route53 to point a name at an address. You create a zone for a domain, then add records (A, CNAME, MX, TXT, and so on) that resolve names within it, and optionally attach health checks that gate which records serve traffic.
 
-Reach for it in tests when your code provisions zones, writes records, or depends on weighted routing to split traffic across endpoints — so you can exercise those paths without a live DNS provider. Under the hood a zone is a named container and each record is a name/type/value set with an optional TTL.
+Reach for it in tests when your code provisions zones, writes records, or depends on weighted routing to split traffic across endpoints — so you can exercise those paths without a live DNS provider. Because the SDK-compat server speaks the real wire protocol, your production DNS-management code runs unchanged against it. Under the hood a zone is a named container and each record is a name/type/value set with an optional TTL.
 
-| Provider | Service | Driver |
-|----------|---------|--------|
-| AWS | Route53 | `aws.Route53` |
-| Azure | DNS | `azure.DNS` |
-| GCP | Cloud DNS | `gcp.CloudDNS` |
+| Provider | Service | SDK-compat | Driver |
+|----------|---------|:----------:|--------|
+| AWS | Route53 | ✓ Live | `aws.Route53` |
+| Azure | DNS | ✓ Live | `azure.DNS` |
+| GCP | Cloud DNS | ✓ Live | `gcp.CloudDNS` |
 
-## Create a zone
+## Drive it with the real SDK
 
-A zone is the container your records live in — the equivalent of a Route53 hosted zone for a domain. Create one before adding any records:
+The recommended path is to drop the SDK-compat server in front of cloudemu and point your existing production code at it — no code changes, just a rewritten endpoint. This example stands up an in-memory Route53, creates a hosted zone, and adds a record exactly as the real client would:
+
+```go
+import (
+    "github.com/aws/aws-sdk-go-v2/aws"
+    awsr53 "github.com/aws/aws-sdk-go-v2/service/route53"
+    r53types "github.com/aws/aws-sdk-go-v2/service/route53/types"
+    "github.com/stackshy/cloudemu/v2"
+    awsserver "github.com/stackshy/cloudemu/v2/server/aws"
+)
+
+cloud := cloudemu.NewAWS()
+ts := httptest.NewServer(awsserver.New(awsserver.Drivers{Route53: cloud.Route53}))
+defer ts.Close()
+
+client := awsr53.NewFromConfig(cfg, func(o *awsr53.Options) {
+    o.BaseEndpoint = aws.String(ts.URL)
+})
+
+zone, _ := client.CreateHostedZone(ctx, &awsr53.CreateHostedZoneInput{
+    Name:            aws.String("example.com."),
+    CallerReference: aws.String("ref-1"),
+})
+
+client.ChangeResourceRecordSets(ctx, &awsr53.ChangeResourceRecordSetsInput{
+    HostedZoneId: zone.HostedZone.Id,
+    ChangeBatch: &r53types.ChangeBatch{Changes: []r53types.Change{{
+        Action: r53types.ChangeActionCreate,
+        ResourceRecordSet: &r53types.ResourceRecordSet{
+            Name: aws.String("api.example.com."), Type: r53types.RRTypeA, TTL: aws.Int64(300),
+            ResourceRecords: []r53types.ResourceRecord{{Value: aws.String("10.0.0.1")}},
+        },
+    }}},
+})
+```
+
+The same pattern works with `armdns` (Azure) and `cloud.google.com/go/dns` (GCP) — only the endpoint changes. See the [SDK-Compat Server page](/docs/sdk-compat).
+
+## Call the driver directly
+
+When you don't need to drive a real SDK — for example in cloudemu-only setup code — skip the HTTP hop and call the driver. A zone is the container your records live in; create one before adding any records:
 
 ```go
 import (
@@ -26,28 +66,16 @@ import (
     "github.com/stackshy/cloudemu/v2/services/scope"
 )
 
-zone, _ := aws.Route53.CreateZone(ctx, dnsdriver.ZoneConfig{
-    Name: "example.com",
+zone, _ := aws.Route53.CreateZone(ctx, dnsdriver.ZoneConfig{Name: "example.com"})
+
+aws.Route53.CreateRecord(ctx, dnsdriver.RecordConfig{
+    ZoneID: zone.ID, Name: "api.example.com", Type: "A", TTL: 300,
+    Values: []string{"10.0.0.1", "10.0.0.2"},
 })
 
 // scope.Scope{} lists every zone; pass a subscription/resource group or
 // project to narrow the results.
 zones, _ := aws.Route53.ListZones(ctx, scope.Scope{})
-```
-
-## Create and list records
-
-A record maps a name and type to one or more values, mirroring a Route53 resource record set. `ListRecords` returns them in a stable order for the zone:
-
-```go
-aws.Route53.CreateRecord(ctx, dnsdriver.RecordConfig{
-    ZoneID: zone.ID,
-    Name:   "api.example.com",
-    Type:   "A",
-    TTL:    300,
-    Values: []string{"10.0.0.1", "10.0.0.2"},
-})
-
 records, _ := aws.Route53.ListRecords(ctx, zone.ID)
 ```
 
@@ -60,30 +88,51 @@ w70 := 70
 w30 := 30
 
 aws.Route53.CreateRecord(ctx, dnsdriver.RecordConfig{
-    ZoneID: zone.ID,
-    Name:   "www.example.com",
-    Type:   "A",
-    TTL:    300,
-    Values: []string{"1.1.1.1"},
-    Weight: &w70,
-    SetID:  "primary",
+    ZoneID: zone.ID, Name: "www.example.com", Type: "A", TTL: 300,
+    Values: []string{"1.1.1.1"}, Weight: &w70, SetID: "primary",
 })
 
 aws.Route53.CreateRecord(ctx, dnsdriver.RecordConfig{
-    ZoneID: zone.ID,
-    Name:   "www.example.com",
-    Type:   "A",
-    TTL:    300,
-    Values: []string{"2.2.2.2"},
-    Weight: &w30,
-    SetID:  "secondary",
+    ZoneID: zone.ID, Name: "www.example.com", Type: "A", TTL: 300,
+    Values: []string{"2.2.2.2"}, Weight: &w30, SetID: "secondary",
 })
 ```
 
 `Weight` is a `*int`, so leaving it `nil` marks a record as unweighted; the `SetID` is what keeps two records at the same name from colliding.
 
+## Health checks
+
+Route53 health checks let a record serve traffic only while its endpoint is healthy. The driver models the full lifecycle — create, read, list, update, delete — plus a test-only `SetHealthCheckStatus` so you can flip an endpoint healthy or unhealthy and assert your failover logic reacts:
+
+```go
+hc, _ := aws.Route53.CreateHealthCheck(ctx, dnsdriver.HealthCheckConfig{
+    Type: "HTTP", Port: 80, ResourcePath: "/healthz", FQDN: "api.example.com",
+})
+
+// Drive the endpoint unhealthy, then back, without any real probing.
+aws.Route53.SetHealthCheckStatus(ctx, hc.ID, "unhealthy")
+
+checks, _ := aws.Route53.ListHealthChecks(ctx)
+aws.Route53.UpdateHealthCheck(ctx, hc.ID, dnsdriver.HealthCheckConfig{ResourcePath: "/ready"})
+aws.Route53.DeleteHealthCheck(ctx, hc.ID)
+```
+
 ## Behavior & fidelity
 
-- **Records key on name, type, and set ID.** An unweighted record is a single entry per name+type; weighted records sharing a name+type each carry a distinct `SetID`, and a plain `GetRecord` resolves to a stable one of them rather than a random pick.
-- **Deleting a name+type removes its whole set.** Removing a record by name and type clears every weighted variant under it, matching how a resource record set is a single unit.
-- **SDK-compat status — Portable Go API only.** Real `aws-sdk-go-v2/service/route53`, `armdns`, and Cloud DNS REST clients can't talk to cloudemu yet — DNS SDK-compat handlers will ship in lockstep across all three providers in a future phase. The full driver semantics above (zones, records, weighted routing) are available today through the Portable Go API.
+| Behavior | What happens |
+|----------|--------------|
+| Records key on name, type, and set ID | Weighted records at one name each carry a distinct `SetID`, and `GetRecord` resolves to a stable one rather than picking at random. |
+| Deleting a name+type removes its whole set | Every weighted variant under it goes at once, matching how a resource record set is a single unit. |
+| Health-check status is settable, not probed | `SetHealthCheckStatus` flips a check healthy or unhealthy on demand, so failover state is deterministic with no real polling. |
+
+## SDK-compat — Live
+
+Real `route53`, `armdns`, and Cloud DNS clients drive the emulator end-to-end:
+
+| Provider | Coverage |
+|----------|----------|
+| AWS Route53 | Hosted zones, record sets, weighted routing, and health checks |
+| Azure DNS | Zones and record sets via ARM |
+| GCP Cloud DNS | Managed zones and record sets via REST |
+
+See [SDK-Compat](/docs/sdk-compat) for the full per-operation list.

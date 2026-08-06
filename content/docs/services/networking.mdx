@@ -1,6 +1,6 @@
 ---
 title: Networking
-description: Virtual networks for AWS VPC, Azure Virtual Network, and GCP VPC — subnets, security groups, firewalls, peering, and connectivity queries
+description: Virtual networks for AWS VPC, Azure Virtual Network, and GCP VPC — subnets, security groups, peering, IPAM, Transit Gateway, and connectivity queries
 aws: VPC
 azure: Virtual Network
 gcp: VPC
@@ -12,13 +12,13 @@ Reach for it in tests when your code provisions network scaffolding, or when you
 
 | Provider | Service | SDK-compat | Driver |
 |----------|---------|:----------:|--------|
-| AWS | VPC, Subnets, SGs, IGW, RT, NAT, Peering, Flow Logs, ACLs | ✓ Live | `aws.VPC` |
+| AWS | VPC (+ Transit Gateway, VPN, IPAM, PrivateLink, …) | ✓ Live | `aws.VPC` |
 | Azure | Virtual Network | ✓ Live | `azure.VNet` |
 | GCP | VPC, Subnetworks, Firewalls, Routes | ✓ Live | `gcp.VPC` |
 
-## Build a network
+## Drive it with the real SDK
 
-The recommended path points the real SDK at the SDK-compat server. A VPC gives you an address space; subnets carve it up; a security group is the rule set you attach to instances — build them in that order because each references the last:
+The recommended path points the real SDK at the SDK-compat server. A VPC gives you an address space; subnets carve it up; a security group is the rule set you attach to instances — build them in that order because each references the last. AWS VPC is served by the EC2 handler, so one server serves both instances and their networks:
 
 ```go
 import (
@@ -36,14 +36,10 @@ client := ec2.NewFromConfig(cfg, func(o *ec2.Options) {
     o.BaseEndpoint = aws.String(ts.URL)
 })
 
-vpc, _ := client.CreateVpc(ctx, &ec2.CreateVpcInput{
-    CidrBlock: aws.String("10.0.0.0/16"),
-})
-
+vpc, _ := client.CreateVpc(ctx, &ec2.CreateVpcInput{CidrBlock: aws.String("10.0.0.0/16")})
 client.CreateSubnet(ctx, &ec2.CreateSubnetInput{
     VpcId: vpc.Vpc.VpcId, CidrBlock: aws.String("10.0.1.0/24"),
 })
-
 client.CreateSecurityGroup(ctx, &ec2.CreateSecurityGroupInput{
     VpcId: vpc.Vpc.VpcId, GroupName: aws.String("web-sg"),
     Description: aws.String("Web traffic"),
@@ -52,9 +48,9 @@ client.CreateSecurityGroup(ctx, &ec2.CreateSecurityGroupInput{
 
 Azure (`armnetwork.NewVirtualNetworksClient`) and GCP (`gcpcompute.NewNetworksRESTClient`) follow the same endpoint-only-changes pattern — see the [SDK-Compat Server](/docs/sdk-compat).
 
-## Portable Go API
+## Call the driver directly
 
-Use the Portable API for direct in-process calls without the HTTP hop. `CreateVPC` returns the VPC whose `ID` you feed into `CreateSubnet` — the same parent/child wiring the SDK enforces, minus the request round-trip:
+Skip the HTTP hop for cloudemu-only setup code. `CreateVPC` returns the VPC whose `ID` you feed into `CreateSubnet` — the same parent/child wiring the SDK enforces:
 
 ```go
 import netdriver "github.com/stackshy/cloudemu/v2/services/networking/driver"
@@ -65,9 +61,34 @@ subnet, _ := aws.VPC.CreateSubnet(ctx, netdriver.SubnetConfig{
 })
 ```
 
+The core driver covers all three clouds — VPCs, subnets, security groups, peering, NAT gateways, flow logs, route tables, network ACLs, and internet gateways — plus elastic IPs, VPC endpoints, VPC attributes, route-table associations, and network interfaces. Two behaviors are worth calling out:
+
+- **Main route table.** Every VPC is born with one; a subnet with no explicit association is governed by it, and `DescribeRouteTables` is the only way to discover an association ID.
+- **ENI drain.** An attached network interface can't be deleted — a NAT gateway holds one for its whole life, so a caller draining a VPC learns from the failure that the drain isn't finished.
+
+## AWS-specific networking
+
+AWS models several networking resources that don't map cleanly across clouds. These are AWS-only optional capability interfaces — discovered by type assertion on `aws.VPC`, implemented by the AWS VPC provider, and served by the EC2 handler (no Azure/GCP stubs).
+
+| Family | Coverage |
+|--------|----------|
+| Transit Gateway | Gateways, VPC attachments, route tables, and route propagation |
+| VPN | Customer and VPN gateways, plus site-to-site connections and routes |
+| DHCP option sets | Option sets bound to a VPC |
+| Managed prefix lists | Shareable CIDR lists with versioned entries |
+| Egress-only internet gateways | Outbound-only IPv6 egress |
+| VPC endpoint services (PrivateLink) | Endpoint services and their permissions |
+| Client VPN | Endpoints, target networks, and authorization rules |
+| Traffic Mirroring | Targets, filters, and sessions |
+| Network Insights | Reachability Analyzer and Network Access Analyzer |
+| VPC Block Public Access | Account options and per-subnet/VPC exclusions |
+| IPAM | Full IP Address Manager — scopes, pools, allocations, discovery, BYOASN/BYOIP, and policies |
+
+IPAM's cross-account and live-network features are modeled against the emulator's own single-account state. It also publishes derived CloudWatch metrics under the `AWS/IPAM` namespace — pool and scope utilization, public-IP insights, and per-resource IP usage, all computed live from IPAM plus VPC/subnet/EIP state.
+
 ## Query connectivity
 
-Once the network is built, the topology engine answers "can A reach B?" over the same drivers — so you can assert that a security-group change actually opens (or blocks) a path without launching traffic. `CanConnect` walks peering, security groups, route tables, and ACLs, then returns whether the flow is allowed and, if not, why:
+Once the network is built, the topology engine answers "can A reach B?" over the same drivers — so you can assert that a security-group change actually opens (or blocks) a path without launching traffic:
 
 ```go
 import "github.com/stackshy/cloudemu/v2/features/topology"
@@ -82,7 +103,20 @@ fmt.Println(result.Allowed, result.Reason)
 
 ## Behavior & fidelity
 
-- **Parent/child integrity is enforced.** Subnets belong to a VPC, rules belong to a security group; the drivers track those relationships so a connectivity query resolves them exactly as the real control plane would.
-- **Connectivity is evaluated, not simulated.** `CanConnect` reasons over VPC peering, security-group ingress/egress, route tables, and network ACLs — it returns `Allowed` plus a human-readable `Reason` (and the SG verdict), so a blocked flow tells you which layer stopped it.
-- **AWS VPC is served by the EC2 handler.** VPC operations share the EC2 SDK-compat endpoint, so one server serves both instances and their networks.
-- **SDK-compat status — Live.** Real `ec2`, `armnetwork`, and `compute/apiv1` clients drive the emulator. AWS covers VPCs, Subnets, Security Groups + ingress/egress rules, Internet Gateways, Route Tables + Routes, NAT Gateways, VPC Peering Connections, Flow Logs, and Network ACLs; Azure covers virtual networks + subnets CRUD via ARM; GCP covers Networks, Subnetworks, Firewalls, and Routes via REST with LRO envelopes.
+| Behavior | What happens |
+|----------|--------------|
+| Parent/child integrity | Subnets belong to a VPC and rules to a security group, so a connectivity query resolves those links the way the real control plane would. |
+| Connectivity is evaluated, not simulated | `CanConnect` reasons over peering, security groups, route tables, and ACLs, returning `Allowed` plus a `Reason` that names the layer that stopped a blocked flow. |
+| AWS VPC served by the EC2 handler | Core and AWS-specific operations share the EC2 endpoint, so one server serves instances and their networks. |
+
+## SDK-compat — Live
+
+Real `ec2`, `armnetwork`, and `compute/apiv1` clients drive the emulator end-to-end:
+
+| Provider | Coverage |
+|----------|----------|
+| AWS VPC | Core VPC surface plus the AWS-specific families above |
+| Azure VNet | Virtual networks and subnets via ARM |
+| GCP VPC | Networks, subnetworks, firewalls, and routes via REST |
+
+See [SDK-Compat](/docs/sdk-compat) for the full per-operation list.

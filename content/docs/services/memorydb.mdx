@@ -1,0 +1,82 @@
+---
+title: MemoryDB
+description: In-memory control plane for AWS MemoryDB for Redis/Valkey — clusters, ACLs, parameter/subnet groups, and snapshots, driven with the real SDK
+aws: MemoryDB
+---
+
+Emulates the *control plane* of AWS MemoryDB for Redis/Valkey — the API that provisions a durable, in-VPC cluster, manages its ACLs and users, and snapshots it. Unlike [Cache](/docs/services/cache), MemoryDB is control-plane only: there's no `Set`/`Get` data plane, so it has its own driver rather than reusing the cache service. A cluster is modelled as shards of nodes reachable through a cluster endpoint.
+
+Reach for it in tests when your provisioning or IaC code creates a MemoryDB cluster, wires an ACL, waits for it to become available, or snapshots and restores it — so you can exercise those paths without a real (billed) cluster. Served as AWS JSON 1.1 on the `AmazonMemoryDB.` target prefix, so a real `aws-sdk-go-v2/service/memorydb` client with a custom endpoint works unchanged.
+
+| Provider | Service | SDK-compat | Driver |
+|----------|---------|:----------:|--------|
+| AWS | MemoryDB for Redis/Valkey | ✓ Live | `aws.MemoryDB` |
+
+## Drive it with the real SDK
+
+The recommended path is to point the stock AWS SDK at the SDK-compat server — only the endpoint changes. This provisions a two-shard cluster against an in-memory control plane:
+
+```go
+import (
+    "github.com/aws/aws-sdk-go-v2/aws"
+    "github.com/aws/aws-sdk-go-v2/service/memorydb"
+    "github.com/stackshy/cloudemu/v2"
+    awsserver "github.com/stackshy/cloudemu/v2/server/aws"
+)
+
+cloud := cloudemu.NewAWS()
+ts := httptest.NewServer(awsserver.New(awsserver.Drivers{MemoryDB: cloud.MemoryDB}))
+defer ts.Close()
+
+client := memorydb.NewFromConfig(cfg, func(o *memorydb.Options) {
+    o.BaseEndpoint = aws.String(ts.URL)
+})
+
+client.CreateCluster(ctx, &memorydb.CreateClusterInput{
+    ClusterName:         aws.String("orders"),
+    NodeType:            aws.String("db.r6g.large"),
+    ACLName:             aws.String("open-access"),
+    NumShards:           aws.Int32(2),
+    NumReplicasPerShard: aws.Int32(1),
+})
+```
+
+See the [SDK-Compat Server page](/docs/sdk-compat) for the full quick start.
+
+## Call the driver directly
+
+For in-process setup or assertions you can skip the HTTP hop and call the driver:
+
+```go
+import mdbdriver "github.com/stackshy/cloudemu/v2/services/memorydb/driver"
+
+cluster, _ := aws.MemoryDB.CreateCluster(ctx, mdbdriver.CreateClusterConfig{
+    Name:                "orders",
+    NodeType:            "db.r6g.large",
+    ACLName:             "open-access",
+    NumShards:           2,
+    NumReplicasPerShard: 1,
+})
+
+aws.MemoryDB.CreateSnapshot(ctx, mdbdriver.CreateSnapshotConfig{
+    Name: "orders-snap", ClusterName: "orders",
+})
+```
+
+`DeleteCluster` takes an optional final-snapshot name; `FailoverShard` promotes a replica within a shard.
+
+## Behavior & fidelity
+
+| Behavior | What happens |
+|----------|--------------|
+| Clusters own shards and nodes | A cluster lays out `NumShards` × (`NumReplicasPerShard` + 1) nodes and populates the endpoint callers build a connection string from. |
+| Scaling and failover | Clusters can be resized, failed over per shard, and queried for allowed node-type changes. |
+| ACLs and users | Redis ACLs and users round-trip with full CRUD, and a cluster references its ACL by name. |
+| Parameter/subnet groups, snapshots | Parameter groups, subnet groups, and snapshots round-trip, including snapshot copy and restore-on-create. |
+| Tags, catalogs, and events | Resources are tagged by ARN, with engine-version and event reference reads. |
+| AWS-only optional capabilities | Multi-region clusters, reserved nodes, and service updates are type-asserted extras; batch updates use AWS partial-success semantics. |
+| Deterministic pagination | Every list honors `MaxResults`/`NextToken` over a sorted result set; a malformed token yields `InvalidParameterValueException`. |
+
+## SDK-compat — Live
+
+Real `aws-sdk-go-v2/service/memorydb` clients drive it end-to-end (AWS JSON 1.1, `AmazonMemoryDB.` prefix) — see [SDK-Compat](/docs/sdk-compat) for the full operation list.

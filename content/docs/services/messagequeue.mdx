@@ -70,7 +70,10 @@ msgs, _ := aws.SQS.ReceiveMessages(ctx, mqdriver.ReceiveMessageInput{
 
 ## Behavior & fidelity
 
-- **FIFO ordering and dedup.** FIFO queues deliver messages in order within a `GroupID` and drop duplicates sharing a `DeduplicationID` within a 5-minute window — drive that window with the [fake clock](/docs/features/fake-clock) instead of waiting on wall time.
-- **Visibility timeout.** A received message is invisible to other consumers until it's deleted or the timeout expires, at which point it becomes receivable again — so an un-acked message is redelivered rather than lost.
-- **Dead-letter queues.** A message received more than `MaxReceiveCount` times moves automatically to the configured DLQ, mirroring the redrive policy on real SQS.
-- **SDK-compat status — Live across all three providers.** SQS, Service Bus, and Pub/Sub all accept their real SDK/REST clients today for the operations listed above (CreateQueue, GetQueueUrl, ListQueues, DeleteQueue, SendMessage, ReceiveMessage, DeleteMessage on SQS; ARM `Microsoft.ServiceBus/namespaces[/queues]` CRUD plus the REST data plane on Service Bus; topic/subscription lifecycle, `:publish`, `:pull`, `:acknowledge` on Pub/Sub). Batch ops, `ChangeMessageVisibility`, queue attributes, and `PurgeQueue` are available through the Portable Go API but not yet on the SDK-compat surface.
+| Behavior | What happens |
+|----------|--------------|
+| FIFO ordering and dedup | FIFO queues deliver in order within a `GroupID` and drop duplicates sharing a `DeduplicationID` within a 5-minute window — drive that window with the [fake clock](/docs/features/fake-clock). |
+| Visibility timeout | A received message stays invisible to other consumers until it's deleted or the timeout expires, then becomes receivable again — so an un-acked message is redelivered, not lost. |
+| Dead-letter queues | A message received more than `MaxReceiveCount` times moves automatically to the configured DLQ, mirroring the redrive policy on real SQS. |
+
+**SDK-compat status — Live across all three providers.** SQS, Service Bus, and Pub/Sub all accept their real SDK/REST clients today for the operations listed above (CreateQueue, GetQueueUrl, ListQueues, DeleteQueue, SendMessage, ReceiveMessage, DeleteMessage on SQS; ARM `Microsoft.ServiceBus/namespaces[/queues]` CRUD plus the REST data plane on Service Bus; topic/subscription lifecycle, `:publish`, `:pull`, `:acknowledge` on Pub/Sub). Batch ops, `ChangeMessageVisibility`, queue attributes, and `PurgeQueue` are available through the Portable Go API but not yet on the SDK-compat surface.

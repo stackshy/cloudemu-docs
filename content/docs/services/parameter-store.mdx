@@ -1,0 +1,112 @@
+---
+title: Parameter Store
+description: In-memory SSM Parameter Store with versions, labels, hierarchies, and Run Command, driven with the real AWS SDK
+aws: SSM Parameter Store
+---
+
+Emulates AWS Systems Manager Parameter Store — the hierarchical config store your app reads settings and secrets out of at startup instead of baking them into the image. You put named parameters (`String`, `StringList`, `SecureString`), read them back by name, version, or label, fetch a whole path prefix at once, and walk a parameter's version history. Everything lives in memory, so a test run starts from an empty store and leaves nothing behind.
+
+Reach for it in tests whenever your code loads config from `/app/prod/...`, resolves a `SecureString` credential, or pins a specific parameter version or label — so you can exercise those paths without a real SSM account or network. Because the SDK-compat server speaks the real wire protocol, your production config-loading code runs unchanged against it. Parameter Store is an **AWS-only** service; there is no Azure or GCP equivalent in cloudemu.
+
+| Provider | Service | SDK-compat | Driver |
+|----------|---------|:----------:|--------|
+| AWS | SSM Parameter Store | ✓ Live | `aws.SSM` |
+
+## Drive it with the real SDK
+
+The recommended path is to drop the SDK-compat server in front of cloudemu and point your existing production code at it — no code changes, just a rewritten endpoint. The handler matches the `AmazonSSM.` `X-Amz-Target` prefix (AWS JSON 1.1), so a real `aws-sdk-go-v2/service/ssm` client with a custom endpoint works unchanged:
+
+```go
+import (
+    "github.com/aws/aws-sdk-go-v2/aws"
+    "github.com/aws/aws-sdk-go-v2/service/ssm"
+    "github.com/aws/aws-sdk-go-v2/service/ssm/types"
+    "github.com/stackshy/cloudemu/v2"
+    awsserver "github.com/stackshy/cloudemu/v2/server/aws"
+)
+
+cloud := cloudemu.NewAWS()
+ts := httptest.NewServer(awsserver.New(awsserver.Drivers{SSM: cloud.SSM}))
+defer ts.Close()
+
+client := ssm.NewFromConfig(cfg, func(o *ssm.Options) {
+    o.BaseEndpoint = aws.String(ts.URL)
+})
+
+client.PutParameter(ctx, &ssm.PutParameterInput{
+    Name:  aws.String("/app/prod/db-url"),
+    Value: aws.String("postgres://db:5432/app"),
+    Type:  types.ParameterTypeString,
+})
+
+out, _ := client.GetParameter(ctx, &ssm.GetParameterInput{
+    Name: aws.String("/app/prod/db-url"),
+})
+// out.Parameter.Value == "postgres://db:5432/app"
+```
+
+## Call the driver directly
+
+When you don't need to drive a real SDK — for example in cloudemu-only setup code — skip the HTTP hop and call the driver. The same operations, minus the client boilerplate:
+
+```go
+import ssmdriver "github.com/stackshy/cloudemu/v2/services/parameterstore/driver"
+
+aws.SSM.PutParameter(ctx, ssmdriver.PutConfig{
+    Name:  "/app/prod/db-url",
+    Value: "postgres://db:5432/app",
+    Type:  ssmdriver.TypeString,
+})
+
+param, _ := aws.SSM.GetParameter(ctx, "/app/prod/db-url", false)
+```
+
+`PutParameter`'s config carries the type (`String` / `StringList` / `SecureString`), an `Overwrite` flag (a second put to an existing name without it is rejected, as on the real service), and an optional `Tier`. `GetParameter`'s `withDecryption` argument mirrors the SDK flag — cloudemu stores `SecureString` values as-is (there is no real KMS integration), so decryption is a no-op that returns the stored value.
+
+## Read many parameters, or a whole path
+
+`GetParameters` resolves a batch by name in one call, returning the found parameters and the invalid names separately, and `GetParametersByPath` fetches every parameter under a hierarchy prefix — the call an app makes to load its entire config namespace at boot:
+
+```go
+found, invalid, _ := aws.SSM.GetParameters(ctx,
+    []string{"/app/prod/db-url", "/app/prod/missing"}, false)
+// found has db-url; invalid == ["/app/prod/missing"]
+
+all, _ := aws.SSM.GetParametersByPath(ctx, ssmdriver.GetByPathInput{
+    Path:      "/app/prod/",
+    Recursive: true,
+})
+```
+
+## Versions and labels
+
+Every overwrite creates a new version rather than replacing in place, so you can read history and pin a specific version or a moving label — the mechanism config rollouts lean on:
+
+```go
+// Each Overwrite put bumps the version
+aws.SSM.PutParameter(ctx, ssmdriver.PutConfig{
+    Name: "/app/prod/db-url", Value: "postgres://new:5432/app",
+    Type: ssmdriver.TypeString, Overwrite: true,
+})
+
+history, _ := aws.SSM.GetParameterHistory(ctx, "/app/prod/db-url") // oldest first
+
+// Attach a label to a version (0 = latest), then address it as name:label
+aws.SSM.LabelParameterVersion(ctx, "/app/prod/db-url", 0, []string{"prod"})
+param, _ := aws.SSM.GetParameter(ctx, "/app/prod/db-url:prod", false)
+```
+
+## Behavior & fidelity
+
+| Behavior | What happens |
+|----------|--------------|
+| Versioned, not destructive | Each `Overwrite` put appends a version, and `GetParameterHistory` returns every version oldest-first. |
+| Addressable by version or label | A name resolves as `name:3` (version) or `name:prod` (label); a missing one returns `ParameterVersionNotFound`, distinct from `ParameterNotFound`. |
+| Hierarchies | `GetParametersByPath` walks a `/`-delimited prefix (optionally recursive), matching how Parameter Store namespaces config trees. |
+| Public parameters | Reads under `/aws/service/` (Amazon Linux, EKS-optimized, Ubuntu/Debian/Bottlerocket AMI aliases) resolve synthetic values, so AMI-by-alias lookups work without a real account. |
+| Tags | Parameters can be tagged, and their tags listed or removed, the same way the real service exposes it. |
+| Run Command (optional) | An optional send-and-poll surface, discovered by type assertion; targeting a nonexistent instance returns `InvalidInstanceId`, but nothing executes — invocations report success with empty output, exercising orchestration rather than the script. |
+
+## SDK-compat — Live
+
+Real `ssm` clients drive it end-to-end. See [SDK-Compat](/docs/sdk-compat) for the full operation list.
