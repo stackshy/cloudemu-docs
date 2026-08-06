@@ -33,8 +33,8 @@ export async function Contributors() {
   const people = await fetchContributors();
   if (people.length === 0) return null;
 
+  // Show only the top contributors; no "+N more" overflow bubble.
   const shown = people.slice(0, MAX_SHOWN);
-  const overflow = people.length - shown.length;
 
   return (
     <div className="flex flex-col gap-4">
@@ -66,21 +66,6 @@ export async function Contributors() {
             </a>
           </li>
         ))}
-        {overflow > 0 && (
-          <li>
-            <a
-              href={`https://github.com/${REPO}/graphs/contributors`}
-              target="_blank"
-              rel="noreferrer"
-              className="flex w-16 flex-col items-center gap-2 text-center"
-            >
-              <span className="flex size-10 items-center justify-center rounded-full border border-line bg-surface text-sm font-semibold text-ink-2">
-                +{overflow}
-              </span>
-              <span className="text-xs text-ink-3">more</span>
-            </a>
-          </li>
-        )}
       </ul>
     </div>
   );

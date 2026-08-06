@@ -40,7 +40,7 @@ export async function SiteFooter() {
               GitHub
             </a>
             <a
-              href="https://github.com/stackshy/cloudemu/blob/main/LICENSE"
+              href="https://github.com/stackshy/cloudemu/blob/master/LICENSE"
               target="_blank"
               rel="noreferrer"
               className="text-sm text-ink-2 transition-colors hover:text-ink"
