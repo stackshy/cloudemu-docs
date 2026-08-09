@@ -8,6 +8,16 @@ import { cloudemuDark, cloudemuLight } from '@/lib/shiki-themes';
 
 const blogDir = path.join(process.cwd(), 'content/blog');
 
+// Pre-render one page per content/blog/*.mdx at build time so the route is
+// fully static (required by output: 'export'; also removes the last on-demand
+// server render). Same URLs as before.
+export function generateStaticParams() {
+  return fs
+    .readdirSync(blogDir)
+    .filter((file) => file.endsWith('.mdx'))
+    .map((file) => ({ slug: file.replace(/\.mdx$/, '') }));
+}
+
 async function getBlogPost(slug: string) {
   const filePath = path.join(blogDir, `${slug}.mdx`);
   if (!fs.existsSync(filePath)) return null;
