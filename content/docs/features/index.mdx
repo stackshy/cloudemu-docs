@@ -1,8 +1,8 @@
 ---
-title: Features Overview
+title: Cross-Cutting Features
 description: Recording, metrics, rate limiting, error injection, and more
 ---
-Wrap any cloudemu service in a portable API layer that adds test-oriented features. These features compose together and work identically across all providers.
+Every cloudemu service can be wrapped with a portable API layer that adds test-oriented features. These features compose together and work identically across all providers.
 
 ```go
 bucket := storage.NewBucket(aws.S3,
@@ -14,7 +14,7 @@ bucket := storage.NewBucket(aws.S3,
 )
 ```
 
-## Available features
+## Available Features
 
 | Feature | What It Does |
 |---------|-------------|

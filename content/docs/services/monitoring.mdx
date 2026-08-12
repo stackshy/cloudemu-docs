@@ -1,37 +1,41 @@
 ---
 title: Monitoring
-description: Metric ingest and threshold alarms that transition OK/ALARM as data arrives, modelled on CloudWatch, Azure Monitor, and Cloud Monitoring
-aws: CloudWatch
-azure: Azure Monitor
-gcp: Cloud Monitoring
+description: Emulate CloudWatch, Azure Monitor, and Cloud Monitoring — drive them with the real cloud SDK.
 ---
 
-Emulates a managed metrics and alarms service — the place you push time-series datapoints and define thresholds that flip an alarm between `OK` and `ALARM`. You publish metric data under a namespace, define an alarm over one metric, and the alarm re-evaluates itself every time new data lands.
+Ingest metrics, define alarms, and read back time series entirely in memory. cloudemu implements the **monitoring plane** of all three clouds — publishing metric data, listing metrics, computing statistics, and evaluating alarms as data crosses their thresholds. The same SDK code you'd write against real CloudWatch, Azure Monitor, or Cloud Monitoring runs against a local server instead: nothing is billed, and alarms fire the moment you publish a breaching datapoint.
 
-Reach for it in tests when your code emits custom metrics or reacts to alarm state, so you can assert an alarm fired without waiting on a real evaluation cycle. Because the emulator drives evaluation on every write, you control alarm state directly by controlling the datapoints you push.
+| Provider | Real service | cloudemu driver |
+|---|---|---|
+| **AWS** | CloudWatch — metrics + alarms (Smithy `rpc-v2-cbor`) | `aws.CloudWatch` |
+| **Azure** | Azure Monitor — `microsoft.insights` metric alerts | `azure.Monitor` |
+| **GCP** | Cloud Monitoring — time series + alert policies | `gcp.CloudMonitoring` |
 
-| Provider | Service | SDK-compat | Driver |
-|----------|---------|:----------:|--------|
-| AWS | CloudWatch (Smithy `rpc-v2-cbor`) | ✓ Live | `aws.CloudWatch` |
-| Azure | Azure Monitor | ✓ Live | `azure.Monitor` |
-| GCP | Cloud Monitoring | ✓ Live | `gcp.CloudMonitoring` |
+There are two ways to drive it, both backed by the same in-memory state:
+
+- **Real cloud SDK** — point your existing `aws-sdk-go-v2`, `azure-sdk-for-go`, or `cloud.google.com/go` client at a local server. Only the endpoint changes; your real code is untouched — the same client works in a test, a local dev server, or your running app.
+- **Portable Go API** — call cloudemu's Go interface directly from your application code — discover resources, perform actions, skip the HTTP hop entirely. The same method shape works across every cloud, so you can switch providers by changing one field.
 
 ## Drive it with the real SDK
 
-This is the recommended path: point the AWS SDK at a cloudemu test server and the production `cloudwatch` client talks to the emulator. `PutMetricData` ingests datapoints under a namespace; `PutMetricAlarm` defines a threshold over one of them, and the alarm evaluates as soon as matching data arrives.
+cloudemu ships an HTTP server per cloud that speaks that provider's real wire protocol. Run it with `httptest` in a test or behind a real `http.Server` in your app, hand it the drivers you need, and point your normal SDK client at its URL — nothing else in your code changes.
+
+<Tabs items={['AWS', 'Azure', 'GCP']}>
+
+<Tab value="AWS">
 
 ```go
 import (
     "github.com/aws/aws-sdk-go-v2/service/cloudwatch"
     "github.com/aws/aws-sdk-go-v2/service/cloudwatch/types"
-    awsserver "github.com/stackshy/cloudemu/v2/server/aws"
+    awsserver "github.com/stackshy/cloudemu/server/aws"
 )
 
 cloud := cloudemu.NewAWS()
 ts := httptest.NewServer(awsserver.New(awsserver.Drivers{CloudWatch: cloud.CloudWatch}))
 
 client := cloudwatch.NewFromConfig(cfg, func(o *cloudwatch.Options) {
-    o.BaseEndpoint = aws.String(ts.URL)
+    o.BaseEndpoint = aws.String(ts.URL) // the only change from real AWS
 })
 
 client.PutMetricData(ctx, &cloudwatch.PutMetricDataInput{
@@ -53,24 +57,140 @@ client.PutMetricAlarm(ctx, &cloudwatch.PutMetricAlarmInput{
 })
 ```
 
-## Use the Portable Go API
+</Tab>
 
-When you don't need a real SDK client, the same driver is callable directly — the leanest way to seed metric data inside a test. Each `MetricDatum` carries its own namespace, name, value, and unit.
+<Tab value="Azure">
 
 ```go
-import mondriver "github.com/stackshy/cloudemu/v2/services/monitoring/driver"
+import (
+    "github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/monitor/armmonitor"
+    azureserver "github.com/stackshy/cloudemu/server/azure"
+)
+
+cloud := cloudemu.NewAzure()
+ts := httptest.NewTLSServer(azureserver.New(azureserver.Drivers{Monitor: cloud.Monitor}))
+
+// Point the real armmonitor client at ts (endpoint + ts.Client()).
+client, _ := armmonitor.NewMetricAlertsClient("sub-1", cred, optsFor(ts))
+
+alert, _ := client.CreateOrUpdate(ctx, "my-rg", "HighCPU", armmonitor.MetricAlertResource{
+    Location: to.Ptr("global"),
+    Properties: &armmonitor.MetricAlertProperties{
+        Severity:            to.Ptr[int32](3),
+        Enabled:             to.Ptr(true),
+        Scopes:              []*string{to.Ptr("/subscriptions/sub-1/resourceGroups/my-rg")},
+        EvaluationFrequency: to.Ptr("PT1M"),
+        WindowSize:          to.Ptr("PT5M"),
+    },
+}, nil)
+```
+
+</Tab>
+
+<Tab value="GCP">
+
+```go
+import (
+    monitoring "cloud.google.com/go/monitoring/apiv3/v2"
+    "cloud.google.com/go/monitoring/apiv3/v2/monitoringpb"
+    gcpserver "github.com/stackshy/cloudemu/server/gcp"
+)
+
+cloud := cloudemu.NewGCP()
+ts := httptest.NewServer(gcpserver.New(gcpserver.Drivers{Monitoring: cloud.CloudMonitoring}))
+
+client, _ := monitoring.NewAlertPolicyRESTClient(ctx,
+    option.WithEndpoint(ts.URL), // the only change from real GCP
+    option.WithoutAuthentication(),
+    option.WithHTTPClient(ts.Client()),
+)
+
+policy, _ := client.CreateAlertPolicy(ctx, &monitoringpb.CreateAlertPolicyRequest{
+    Name: "projects/my-project",
+    AlertPolicy: &monitoringpb.AlertPolicy{
+        DisplayName: "HighCPU",
+    },
+})
+```
+
+</Tab>
+
+</Tabs>
+
+## What each provider supports
+
+Not every provider exposes the same operations — cloudemu matches what each cloud's own API offers.
+
+<Tabs items={['AWS', 'Azure', 'GCP']}>
+
+<Tab value="AWS">
+
+**CloudWatch** — publish datapoints with `PutMetricData`, discover them with `ListMetrics`, and roll them up with `GetMetricStatistics`. Alarms are full CRUD: `PutMetricAlarm`, `DescribeAlarms`, and `DeleteAlarms`, with the standard comparison operators and evaluation periods.
+
+</Tab>
+
+<Tab value="Azure">
+
+**Azure Monitor** — metric alerts as `microsoft.insights/metricAlerts` ARM resources, with create, get, list, and delete. Metric data can be ingested and read back the same way it flows through real Azure Monitor.
+
+</Tab>
+
+<Tab value="GCP">
+
+**Cloud Monitoring** — time-series ingest and read under `/v3/projects/.../`, plus alert policies (create, get, list, delete) that mirror CloudWatch alarm semantics under GCP's richer policy shape.
+
+</Tab>
+
+</Tabs>
+
+## How the emulator behaves
+
+cloudemu doesn't just store metrics — it reproduces the side effects of the real service, so your code exercises realistic behavior instead of a dumb key-value store:
+
+- **Metrics arrive on their own.** `RunInstances` on the compute service automatically pushes 5 metrics — CPU, NetworkIn, NetworkOut, DiskReadOps, DiskWriteOps — each with 5 backfill datapoints at 1-minute intervals, so your code can assert on an instance's metrics without any extra setup.
+- **Alarms evaluate as data lands.** Every `PutMetricData` re-evaluates the alarms watching that namespace and metric, transitioning them between `OK` and `ALARM` on the threshold comparison — no polling or background timer required.
+- **Transitions are recorded.** `GetAlarmHistory` returns the sequence of state changes with timestamps, exactly as CloudWatch would report them.
+
+## Or call the Portable Go API directly
+
+When you don't need the HTTP layer, call cloudemu's Go interface directly inside your application — discovery, provisioning, teardown — no server, no wire protocol. The method shape is identical across clouds, so switching providers is a one-line change.
+
+<Tabs items={['AWS', 'Azure', 'GCP']}>
+
+<Tab value="AWS">
+
+```go
+import mondriver "github.com/stackshy/cloudemu/monitoring/driver"
 
 aws.CloudWatch.PutMetricData(ctx, []mondriver.MetricDatum{
     {Namespace: "App", MetricName: "CPU", Value: 45.2, Unit: "Percent"},
 })
 ```
 
-## Behavior & fidelity
+</Tab>
 
-| Behavior | What happens |
-|----------|--------------|
-| Alarms auto-evaluate on write | Every `PutMetricData` runs `evaluateAlarms()` for the affected namespace+metric, moving alarms between `OK` and `ALARM` against their threshold — assert alarm state by the datapoints you push, not a timer. |
-| Auto-metrics from compute | `RunInstances` emits five metrics per instance (`CPUUtilization`, `NetworkIn`, `NetworkOut`, `DiskReadOps`, `DiskWriteOps`) with five backfilled one-minute datapoints, so new instances have history to query and alarm on. |
-| Alarm history | `GetAlarmHistory` returns each state transition with a timestamp — drive them deterministically with the [fake clock](/docs/features/fake-clock) rather than wall time. |
+<Tab value="Azure">
 
-**SDK-compat status — Live across all three providers.** CloudWatch, Azure Monitor, and Cloud Monitoring all accept their real SDK/REST clients today: CloudWatch `PutMetricData`, `GetMetricStatistics`, `ListMetrics`, `PutMetricAlarm`, `DescribeAlarms`, `DeleteAlarms`; Azure Monitor `microsoft.insights/metricAlerts` CRUD plus metric ingest/read; Cloud Monitoring time-series ingest/read at `/v3/projects/.../` plus alert policies.
+```go
+import mondriver "github.com/stackshy/cloudemu/monitoring/driver"
+
+azure.Monitor.PutMetricData(ctx, []mondriver.MetricDatum{
+    {Namespace: "App", MetricName: "CPU", Value: 45.2, Unit: "Percent"},
+})
+```
+
+</Tab>
+
+<Tab value="GCP">
+
+```go
+import mondriver "github.com/stackshy/cloudemu/monitoring/driver"
+
+gcp.CloudMonitoring.PutMetricData(ctx, []mondriver.MetricDatum{
+    {Namespace: "App", MetricName: "CPU", Value: 45.2, Unit: "Percent"},
+})
+```
+
+</Tab>
+
+</Tabs>

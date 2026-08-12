@@ -2,14 +2,12 @@
 title: Fake Clock
 description: Deterministic time control for TTL, dedup, and alarms
 ---
-Advance or set the clock by hand to test TTL expiry, dedup windows, and alarms — no `time.Sleep`.
-
-<FeatureGlyph kind="clock" label="config.WithClock(config.NewFakeClock(t0))" />
+Control time programmatically for deterministic testing.
 
 ## Setup
 
 ```go
-import "github.com/stackshy/cloudemu/v2/config"
+import "github.com/stackshy/cloudemu/config"
 
 clock := config.NewFakeClock(time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC))
 
@@ -18,7 +16,7 @@ aws := cloudemu.NewAWS(
 )
 ```
 
-## Manipulating time
+## Manipulating Time
 
 ```go
 // Move forward by a duration
@@ -31,9 +29,9 @@ clock.Set(time.Date(2025, 6, 15, 12, 0, 0, 0, time.UTC))
 now := clock.Now()
 ```
 
-## Use cases
+## Use Cases
 
-### TTL expiry
+### TTL Expiry
 
 ```go
 clock := config.NewFakeClock(time.Now())
@@ -56,7 +54,7 @@ item, _ = aws.DynamoDB.GetItem(ctx, "sessions", map[string]any{"id": "s-1"})
 // item == nil
 ```
 
-### FIFO deduplication
+### FIFO Deduplication
 
 ```go
 // Send a message
@@ -80,6 +78,6 @@ aws.SQS.SendMessage(ctx, "queue.fifo", mqdriver.SendMessageInput{
 // 2 messages in queue
 ```
 
-## Thread safety
+## Thread Safety
 
 `FakeClock` is thread-safe — it uses a mutex internally. You can safely share one clock across multiple goroutines and providers.

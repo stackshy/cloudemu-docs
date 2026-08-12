@@ -2,11 +2,9 @@
 title: Latency Simulation
 description: Add delays to test timeout handling and performance
 ---
-Add fixed delays per provider or per service to test timeouts and context cancellation.
+Add artificial latency to simulate real-world network conditions.
 
-<FeatureGlyph kind="latency" label="config.WithLatency(800 * time.Millisecond)" />
-
-## Provider-level latency
+## Provider-Level Latency
 
 Add latency to all operations on a provider:
 
@@ -16,7 +14,7 @@ aws := cloudemu.NewAWS(
 )
 ```
 
-## Service-level latency
+## Service-Level Latency
 
 Add latency to specific services using the portable API:
 
@@ -26,11 +24,11 @@ bucket := storage.NewBucket(aws.S3,
 )
 ```
 
-## Use cases
+## Use Cases
 
 - Test timeout handling — verify your code handles slow responses correctly
 - Test context cancellation — ensure operations respect `context.WithTimeout`
-- Performance testing — measure how your code behaves at different latencies
+- Performance testing — measure how your code behaves under various latency conditions
 
 ```go
 ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)

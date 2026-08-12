@@ -1,24 +1,152 @@
 ---
 title: Container Registry
-description: Container image storage with tags, lifecycle policies, and vulnerability scanning, modelled on ECR, ACR, and Artifact Registry
-aws: ECR
-azure: ACR
-gcp: Artifact Registry
+description: Emulate ECR, Azure Container Registry, and Artifact Registry — repositories, images, lifecycle policies, and scans, all in memory.
 ---
 
-Emulates a managed container registry — the ECR, ACR, or Artifact Registry you push images to before a deploy. You create named repositories, put image manifests into them under tags or digests, and manage their lifecycle; each repository tracks its images the way the real registries do, down to tag mutability and scan-on-push settings.
+Store and manage container images entirely in memory. cloudemu emulates the **registry control plane** of all three clouds — creating repositories, pushing and listing image manifests, tagging, and the lifecycle and vulnerability-scan machinery around them. No registry is stood up, no layers are uploaded, and every call returns in milliseconds, so tests that depend on a repository or an image can set one up without touching a real registry.
 
-Reach for it in tests when your code creates repositories, pushes or lists images, or depends on lifecycle cleanup or scan results — so you can exercise those paths without a real registry or real image layers. You store a manifest (digest, tags, size), not actual bytes, which is all a test double needs.
+| Provider | Real service | cloudemu driver |
+|---|---|---|
+| **AWS** | Elastic Container Registry (ECR) | `aws.ECR` |
+| **Azure** | Azure Container Registry (ACR) | `azure.ACR` |
+| **GCP** | Artifact Registry | `gcp.ArtifactRegistry` |
 
-| Provider | Service | SDK-compat | Driver |
-|----------|---------|:----------:|--------|
-| AWS | ECR (repositories + images) | ✓ Live | `aws.ECR` |
-| Azure | ACR (registries + repositories + tags) | ✓ Live | `azure.ACR` |
-| GCP | Artifact Registry (repositories + Docker images) | ✓ Live | `gcp.ArtifactRegistry` |
+There are two ways to drive it, both backed by the same in-memory state:
 
-## Create repositories
+- **Real cloud SDK** — point your existing `aws-sdk-go-v2`, `azure-sdk-for-go`, or `google.golang.org/api` client at a local server. Only the endpoint changes; your real code is untouched — the same client works in a test, a local dev server, or your running app.
+- **Portable Go API** — call cloudemu's Go interface directly from your application code — discover resources, perform actions, skip the HTTP hop entirely. The same method shape works across every cloud, so you can switch providers by changing one field.
 
-A repository is the container your images live in — the equivalent of an ECR repository or an Artifact Registry repo. `ImageScanOnPush` and `ImageTagMutability` mirror the real create-time knobs, so a test can assert your provisioning sets them:
+## Drive it with the real SDK
+
+cloudemu ships an HTTP server per cloud that speaks that provider's real registry wire protocol. Run it with `httptest` in a test or behind a real `http.Server` in your app, hand it the drivers you need, and point your normal SDK client at its URL — nothing else in your code changes.
+
+<Tabs items={['AWS', 'Azure', 'GCP']}>
+
+<Tab value="AWS">
+
+```go
+import (
+    "github.com/aws/aws-sdk-go-v2/aws"
+    awsecr "github.com/aws/aws-sdk-go-v2/service/ecr"
+    awsserver "github.com/stackshy/cloudemu/v2/server/aws"
+)
+
+cloud := cloudemu.NewAWS()
+ts := httptest.NewServer(awsserver.New(awsserver.Drivers{ECR: cloud.ECR}))
+
+client := awsecr.NewFromConfig(cfg, func(o *awsecr.Options) {
+    o.BaseEndpoint = aws.String(ts.URL) // the only change from real AWS
+})
+
+client.CreateRepository(ctx, &awsecr.CreateRepositoryInput{
+    RepositoryName: aws.String("app"),
+})
+client.PutImage(ctx, &awsecr.PutImageInput{
+    RepositoryName: aws.String("app"),
+    ImageManifest:  aws.String(manifestJSON),
+    ImageTag:       aws.String("v1"),
+})
+```
+
+</Tab>
+
+<Tab value="Azure">
+
+```go
+import (
+    "github.com/Azure/azure-sdk-for-go/sdk/azcore"
+    azacr "github.com/Azure/azure-sdk-for-go/sdk/containers/azcontainerregistry"
+    azureserver "github.com/stackshy/cloudemu/v2/server/azure"
+)
+
+cloud := cloudemu.NewAzure()
+ts := httptest.NewTLSServer(azureserver.New(azureserver.Drivers{ACR: cloud.ACR}))
+
+// Point the real azcontainerregistry client at ts (endpoint + ts.Client()).
+client, _ := azacr.NewClient(ts.URL, cred, &azacr.ClientOptions{
+    ClientOptions: azcore.ClientOptions{Transport: ts.Client()},
+})
+
+// ACR has no data-plane create — repositories appear on push, then you read them back.
+pager := client.NewListRepositoriesPager(nil)
+for pager.More() {
+    page, _ := pager.NextPage(ctx)
+    for _, name := range page.Repositories.Names {
+        _ = *name
+    }
+}
+```
+
+</Tab>
+
+<Tab value="GCP">
+
+```go
+import (
+    gcpserver "github.com/stackshy/cloudemu/v2/server/gcp"
+    ar "google.golang.org/api/artifactregistry/v1"
+    "google.golang.org/api/option"
+)
+
+cloud := cloudemu.NewGCP()
+ts := httptest.NewServer(gcpserver.New(gcpserver.Drivers{ArtifactRegistry: cloud.ArtifactRegistry}))
+
+svc, _ := ar.NewService(ctx,
+    option.WithEndpoint(ts.URL), // the only change from real GCP
+    option.WithoutAuthentication(),
+)
+
+op, _ := svc.Projects.Locations.Repositories.
+    Create("projects/demo/locations/us", &ar.Repository{Format: "DOCKER"}).
+    RepositoryId("myrepo").Context(ctx).Do()
+_ = op.Done
+```
+
+</Tab>
+
+</Tabs>
+
+## What each provider supports
+
+All three drivers implement the same registry interface, so the operations line up across clouds — only the real service they stand in for differs.
+
+<Tabs items={['AWS', 'Azure', 'GCP']}>
+
+<Tab value="AWS">
+
+**ECR** — full repository CRUD (`CreateRepository`, `GetRepository`, `ListRepositories`, `DeleteRepository`, with `force` to delete a repository that still holds images), plus tag-mutability and scan-on-push settings on create. Images are managed with `PutImage`, `GetImage`, `ListImages`, `DeleteImage`, and `TagImage`, referenced by tag or digest. Lifecycle policies (`PutLifecyclePolicy` / `GetLifecyclePolicy` / `EvaluateLifecyclePolicy`) and image scans (`StartImageScan` / `GetImageScanResults`) round it out.
+
+</Tab>
+
+<Tab value="Azure">
+
+**ACR** — the same shape as ECR: repositories via `CreateRepository` / `GetRepository` / `ListRepositories` / `DeleteRepository`, images via `PutImage` / `GetImage` / `ListImages` / `DeleteImage` / `TagImage`, addressed by tag or digest. Lifecycle policies and vulnerability scans are exposed through the same `PutLifecyclePolicy` / `EvaluateLifecyclePolicy` and `StartImageScan` / `GetImageScanResults` methods.
+
+</Tab>
+
+<Tab value="GCP">
+
+**Artifact Registry** — repository and image management mirror the other two clouds: `CreateRepository` / `GetRepository` / `ListRepositories` / `DeleteRepository` for repositories, and `PutImage` / `GetImage` / `ListImages` / `DeleteImage` / `TagImage` for images. Lifecycle cleanup and image scanning use the same lifecycle-policy and scan methods.
+
+</Tab>
+
+</Tabs>
+
+## How the emulator behaves
+
+cloudemu reproduces the side effects a real registry has, not just the storage:
+
+- **Scan-on-push is honored.** Create a repository with `ImageScanOnPush: true` and each pushed image gets a scan result you can read back with `GetImageScanResults` — no separate `StartImageScan` call needed.
+- **Lifecycle policies actually evaluate.** `EvaluateLifecyclePolicy` applies the rules you set (tag status, count-more-than / since-pushed thresholds) and returns the image references that would be expired, so you can assert on cleanup logic.
+- **Images are addressable by tag or digest.** `GetImage`, `DeleteImage`, and `TagImage` accept either a tag or a `sha256:` digest, and repository counts track the images they hold.
+
+## Or call the Portable Go API directly
+
+When you don't need the HTTP layer, call cloudemu's Go interface directly inside your application — discovery, provisioning, teardown — no server, no wire protocol. The method shape is identical across clouds, so switching providers is a one-line change.
+
+<Tabs items={['AWS', 'Azure', 'GCP']}>
+
+<Tab value="AWS">
 
 ```go
 import crdriver "github.com/stackshy/cloudemu/v2/services/containerregistry/driver"
@@ -29,14 +157,6 @@ aws.ECR.CreateRepository(ctx, crdriver.RepositoryConfig{
     Tags:            map[string]string{"team": "platform"},
 })
 
-repos, _ := aws.ECR.ListRepositories(ctx)
-```
-
-## Push and list images
-
-`PutImage` records a manifest — digest, tag, size, and layers — against a repository, the way `docker push` registers an image without you shipping real bytes. `ListImages` returns everything in the repo so a test can assert what landed:
-
-```go
 aws.ECR.PutImage(ctx, &crdriver.ImageManifest{
     Repository: "my-app",
     Tag:        "v1.0.0",
@@ -47,43 +167,52 @@ aws.ECR.PutImage(ctx, &crdriver.ImageManifest{
 images, _ := aws.ECR.ListImages(ctx, "my-app")
 ```
 
-## Configure lifecycle policies
+</Tab>
 
-Lifecycle policies model the automatic cleanup real registries run — expiring untagged or over-quota images. `PutLifecyclePolicy` stores the rules, and `EvaluateLifecyclePolicy` returns the image references that *would* be expired, so a test can assert the policy prunes what you expect without waiting on a background sweep:
+<Tab value="Azure">
 
 ```go
-aws.ECR.PutLifecyclePolicy(ctx, "my-app", crdriver.LifecyclePolicy{
-    Rules: []crdriver.LifecycleRule{{
-        Priority:   1,
-        TagStatus:  "untagged",
-        CountType:  "imageCountMoreThan",
-        CountValue: 10,
-        Action:     "expire",
-    }},
+import crdriver "github.com/stackshy/cloudemu/v2/services/containerregistry/driver"
+
+azure.ACR.CreateRepository(ctx, crdriver.RepositoryConfig{
+    Name:            "my-app",
+    ImageScanOnPush: true,
+    Tags:            map[string]string{"team": "platform"},
 })
 
-expired, _ := aws.ECR.EvaluateLifecyclePolicy(ctx, "my-app")
+azure.ACR.PutImage(ctx, &crdriver.ImageManifest{
+    Repository: "my-app",
+    Tag:        "v1.0.0",
+    Digest:     "sha256:abc123...",
+    SizeBytes:  10 << 20,
+})
+
+images, _ := azure.ACR.ListImages(ctx, "my-app")
 ```
 
-## Scan images
+</Tab>
 
-`StartImageScan` kicks off a vulnerability scan and `GetImageScanResults` reads it back — the same scan-on-push / scan-on-demand flow ECR exposes. The result carries a status and per-severity finding counts, so your code can gate a deploy on scan output:
+<Tab value="GCP">
 
 ```go
-aws.ECR.StartImageScan(ctx, "my-app", "v1.0.0")
+import crdriver "github.com/stackshy/cloudemu/v2/services/containerregistry/driver"
 
-result, _ := aws.ECR.GetImageScanResults(ctx, "my-app", "v1.0.0")
-fmt.Println(result.Status, result.FindingCounts["CRITICAL"])
+gcp.ArtifactRegistry.CreateRepository(ctx, crdriver.RepositoryConfig{
+    Name:            "my-app",
+    ImageScanOnPush: true,
+    Tags:            map[string]string{"team": "platform"},
+})
+
+gcp.ArtifactRegistry.PutImage(ctx, &crdriver.ImageManifest{
+    Repository: "my-app",
+    Tag:        "v1.0.0",
+    Digest:     "sha256:abc123...",
+    SizeBytes:  10 << 20,
+})
+
+images, _ := gcp.ArtifactRegistry.ListImages(ctx, "my-app")
 ```
 
-## Behavior & fidelity
+</Tab>
 
-| Behavior | What happens |
-|----------|--------------|
-| References resolve by tag or digest | `GetImage`, `TagImage`, and the scan calls accept either a tag or a `sha256:` digest, matching how the real registries address images. |
-| Explicit lifecycle evaluation | `EvaluateLifecyclePolicy` computes the expiry set on demand and returns it rather than deleting in the background, so tests are deterministic and you see exactly what a rule matches. |
-| Manifests, not bytes | Images are stored as manifests (digest, tags, size, layers); there's no layer blob storage, which is all a control-plane test double needs. |
-
-## SDK-compat — Live
-
-Real `aws-sdk-go-v2/service/ecr`, `armcontainerregistry`, and Artifact Registry clients drive the repository, image, and tag operations end-to-end. See [SDK-Compat](/docs/sdk-compat) for the full operation list.
+</Tabs>

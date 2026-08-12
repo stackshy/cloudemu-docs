@@ -2,14 +2,12 @@
 title: Metrics Collection
 description: Track call counts, durations, and errors per operation
 ---
-Count calls, time durations, and track errors per operation — then query them in your tests.
-
-<FeatureGlyph kind="metrics" label="metrics.Collector · counts, durations, errors" />
+Collect metrics about API calls for monitoring and assertions.
 
 ## Setup
 
 ```go
-import "github.com/stackshy/cloudemu/v2/features/metrics"
+import "github.com/stackshy/cloudemu/metrics"
 
 mc := &metrics.Collector{}
 
@@ -18,7 +16,7 @@ bucket := storage.NewBucket(aws.S3,
 )
 ```
 
-## Automatic metrics
+## Automatic Metrics
 
 Every operation automatically records:
 - `calls_total` — counter incremented on each call
@@ -27,7 +25,7 @@ Every operation automatically records:
 
 All metrics include labels: `service` and `operation`.
 
-## Querying metrics
+## Querying Metrics
 
 ```go
 // Get all counters
@@ -44,7 +42,7 @@ storagePuts := mc.Query(metrics.Query{
 })
 ```
 
-## Metric types
+## Metric Types
 
 | Type | Description |
 |------|-------------|

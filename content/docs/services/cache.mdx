@@ -1,63 +1,194 @@
 ---
 title: Cache
-description: In-memory key-value cache with TTL, modelled on ElastiCache, Azure Cache for Redis, and Memorystore
-aws: ElastiCache
-azure: Cache for Redis
-gcp: Memorystore
+description: Emulate ElastiCache, Azure Cache for Redis, and Memorystore as an in-memory key-value cache with real TTL expiry.
 ---
 
-Emulates a managed in-memory cache — the Redis/Memcached instance you'd put in front of a database for sessions, rate counters, or hot lookups. You create a named cache instance, then store, read, and expire keys against it.
+Store and expire cached values entirely in memory. cloudemu emulates the **cache management and data plane** of all three clouds — creating cache instances, then setting, reading, and deleting keyed values with time-to-live. Items expire on their own and every call returns in milliseconds, so code that depends on caching behaviour never needs Redis, Memcached, or a real cloud account.
 
-Reach for it in tests when your code does cache-aside reads, sets values with a TTL, or depends on eviction — so you can exercise those paths without standing up a real Redis. Under the hood each instance is a plain key-value store: keys map to byte values, each with an optional expiry.
+| Provider | Real service | cloudemu driver |
+|---|---|---|
+| **AWS** | ElastiCache | `aws.ElastiCache` |
+| **Azure** | Cache for Redis | `azure.Cache` |
+| **GCP** | Memorystore | `gcp.Memorystore` |
 
-| Provider | Service | SDK-compat | Driver |
-|----------|---------|:----------:|--------|
-| AWS | ElastiCache | ✓ Live | `aws.ElastiCache` |
-| Azure | Cache for Redis | ✓ Live | `azure.Cache` |
-| GCP | Memorystore | ✓ Live | `gcp.Memorystore` |
+There are two ways to drive it, both backed by the same in-memory state:
 
-## Create an instance
+- **Real cloud SDK** — point your existing `aws-sdk-go-v2`, `azure-sdk-for-go`, or `google.golang.org/api` client at a local server. Only the endpoint changes; your real code is untouched — the same client works in a test, a local dev server, or your running app.
+- **Portable Go API** — call cloudemu's Go interface directly from your application code — discover resources, perform actions, skip the HTTP hop entirely. The same method shape works across every cloud, so you can switch providers by changing one field.
 
-A cache instance is the container your keys live in — the equivalent of provisioning an ElastiCache cluster or a Memorystore instance. Create one before storing anything:
+## Drive it with the real SDK
+
+cloudemu ships an HTTP server per cloud that speaks that provider's real cache management API. Run it with `httptest` in a test or behind a real `http.Server` in your app, hand it the drivers you need, and point your normal SDK client at its URL — nothing else in your code changes.
+
+<Tabs items={['AWS', 'Azure', 'GCP']}>
+
+<Tab value="AWS">
 
 ```go
-import cachedriver "github.com/stackshy/cloudemu/v2/services/cache/driver"
+import (
+    "github.com/aws/aws-sdk-go-v2/aws"
+    "github.com/aws/aws-sdk-go-v2/service/elasticache"
+    awsserver "github.com/stackshy/cloudemu/server/aws"
+)
 
-aws.ElastiCache.CreateCache(ctx, cachedriver.CacheConfig{
-    Name:     "session-cache",
-    NodeType: "cache.t3.micro",
+cloud := cloudemu.NewAWS()
+ts := httptest.NewServer(awsserver.New(awsserver.Drivers{ElastiCache: cloud.ElastiCache}))
+
+client := elasticache.NewFromConfig(cfg, func(o *elasticache.Options) {
+    o.BaseEndpoint = aws.String(ts.URL) // the only change from real AWS
+})
+
+client.CreateCacheCluster(ctx, &elasticache.CreateCacheClusterInput{
+    CacheClusterId: aws.String("session-cache"),
+    Engine:         aws.String("redis"),
+    CacheNodeType:  aws.String("cache.t3.micro"),
+    NumCacheNodes:  aws.Int32(1),
 })
 ```
 
-## Store, read, and expire keys
+</Tab>
 
-`Set` takes a TTL — once it elapses the key is gone, which is how you model session timeouts or short-lived caches. A `Get` on a missing or expired key returns no value:
+<Tab value="Azure">
 
 ```go
-// Store a value that lives for 30 minutes
+import (
+    "github.com/Azure/azure-sdk-for-go/sdk/azcore/to"
+    "github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/redis/armredis/v3"
+    azureserver "github.com/stackshy/cloudemu/server/azure"
+)
+
+cloud := cloudemu.NewAzure()
+ts := httptest.NewTLSServer(azureserver.New(azureserver.Drivers{Cache: cloud.Cache}))
+
+// Point the real armredis client at ts (endpoint + ts.Client()).
+cf, _ := armredis.NewClientFactory("sub-1", cred, optsFor(ts))
+client := cf.NewClient()
+
+poller, _ := client.BeginCreate(ctx, "my-rg", "my-cache", armredis.CreateParameters{
+    Location: to.Ptr("eastus"),
+    Properties: &armredis.CreateProperties{
+        SKU: &armredis.SKU{
+            Name:     to.Ptr(armredis.SKUNameStandard),
+            Family:   to.Ptr(armredis.SKUFamilyC),
+            Capacity: to.Ptr(int32(1)),
+        },
+    },
+}, nil)
+cache, _ := poller.PollUntilDone(ctx, nil)
+```
+
+</Tab>
+
+<Tab value="GCP">
+
+```go
+import (
+    redis "google.golang.org/api/redis/v1"
+    "google.golang.org/api/option"
+    gcpserver "github.com/stackshy/cloudemu/server/gcp"
+)
+
+cloud := cloudemu.NewGCP()
+ts := httptest.NewServer(gcpserver.New(gcpserver.Drivers{Memorystore: cloud.Memorystore}))
+
+svc, _ := redis.NewService(ctx,
+    option.WithEndpoint(ts.URL), // the only change from real GCP
+    option.WithoutAuthentication(),
+)
+
+parent := "projects/demo/locations/us-central1"
+op, _ := svc.Projects.Locations.Instances.Create(parent, &redis.Instance{
+    Tier:         "BASIC",
+    MemorySizeGb: 1,
+}).InstanceId("cache1").Context(ctx).Do()
+```
+
+</Tab>
+
+</Tabs>
+
+## What each provider supports
+
+Every provider exposes the same shape: create a cache instance, then set, get, and delete keyed values with an optional TTL.
+
+<Tabs items={['AWS', 'Azure', 'GCP']}>
+
+<Tab value="AWS">
+
+**ElastiCache** — `CreateCache` to provision a cache (with a node type such as `cache.t3.micro`), then `Set` a value with a TTL, `Get` it back, and `Delete` it by key.
+
+</Tab>
+
+<Tab value="Azure">
+
+**Cache for Redis** — the same lifecycle: `CreateCache` to provision the cache, then `Set` / `Get` / `Delete` against keyed values with TTL support.
+
+</Tab>
+
+<Tab value="GCP">
+
+**Memorystore** — `CreateCache` provisions the instance, and `Set` / `Get` / `Delete` manage keyed values with the same TTL semantics as the other providers.
+
+</Tab>
+
+</Tabs>
+
+## How the emulator behaves
+
+cloudemu reproduces the parts of caching your code actually depends on, not just a plain map:
+
+- **TTL is enforced.** Items are expired once their TTL elapses, with lazy cleanup on the next read — so your code can set a short TTL and assert the value is gone afterward.
+- **Concurrency is safe.** All cache operations are guarded for concurrent access, so parallel readers and writers behave predictably.
+
+## Or call the Portable Go API directly
+
+Call cloudemu's Go interface directly and skip the HTTP hop. The method shape is identical across clouds, so switching providers is a one-line change.
+
+<Tabs items={['AWS', 'Azure', 'GCP']}>
+
+<Tab value="AWS">
+
+```go
+import cachedriver "github.com/stackshy/cloudemu/cache/driver"
+
+aws.ElastiCache.CreateCache(ctx, cachedriver.CacheConfig{
+    Name: "session-cache", NodeType: "cache.t3.micro",
+})
 aws.ElastiCache.Set(ctx, "session-cache", "user:123", []byte("session-data"), 30*time.Minute)
-
-// Read it back — Get returns *Item; the payload is item.Value
-item, _ := aws.ElastiCache.Get(ctx, "session-cache", "user:123")
-_ = item.Value
-
-// Remove it early
+data, _ := aws.ElastiCache.Get(ctx, "session-cache", "user:123")
 aws.ElastiCache.Delete(ctx, "session-cache", "user:123")
 ```
 
-To test expiry without an actual 30-minute wait, drive time with the [fake clock](/docs/features/fake-clock): advance past the TTL and the next `Get` sees the key as gone.
+</Tab>
 
-## Behavior & fidelity
+<Tab value="Azure">
 
-| Behavior | What happens |
-|----------|--------------|
-| Full instance and data surface | Beyond store/read/delete, the driver covers instance management, key enumeration, TTL management, and atomic counters — enough for rate-limit buckets and hot-key patterns. |
-| Lazy TTL expiry | An item past its TTL reads as absent and is cleaned up then, so a `Get` never returns stale data and expiry costs nothing until you touch the key. |
-| AWS-only optional capabilities | ElastiCache adds subnet groups and replication groups (a primary plus replicas behind one endpoint); Azure and GCP don't implement them. |
-| Thread-safe | Every operation is safe for concurrent use across goroutines and providers. |
+```go
+import cachedriver "github.com/stackshy/cloudemu/cache/driver"
 
-## SDK-compat — Live
+azure.Cache.CreateCache(ctx, cachedriver.CacheConfig{
+    Name: "session-cache", NodeType: "Standard_C1",
+})
+azure.Cache.Set(ctx, "session-cache", "user:123", []byte("session-data"), 30*time.Minute)
+data, _ := azure.Cache.Get(ctx, "session-cache", "user:123")
+azure.Cache.Delete(ctx, "session-cache", "user:123")
+```
 
-The **management** API is served — real `elasticache`, `armredis`, and Memorystore admin clients drive cache-cluster, subnet-group, and replication-group lifecycle end-to-end. See [SDK-Compat](/docs/sdk-compat) for the full operation list.
+</Tab>
 
-The cache **data plane** (the Redis/Memcached `GET`/`SET` wire protocol) is TCP, not HTTP, so it stays on the [Portable Go API](/docs/portable-api) — `Set`, `Get`, `Incr`, `Expire`, and the rest.
+<Tab value="GCP">
+
+```go
+import cachedriver "github.com/stackshy/cloudemu/cache/driver"
+
+gcp.Memorystore.CreateCache(ctx, cachedriver.CacheConfig{
+    Name: "session-cache", NodeType: "M1_STANDARD",
+})
+gcp.Memorystore.Set(ctx, "session-cache", "user:123", []byte("session-data"), 30*time.Minute)
+data, _ := gcp.Memorystore.Get(ctx, "session-cache", "user:123")
+gcp.Memorystore.Delete(ctx, "session-cache", "user:123")
+```
+
+</Tab>
+
+</Tabs>

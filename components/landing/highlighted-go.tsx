@@ -3,10 +3,11 @@ import { Fragment, type ReactNode } from 'react';
 /**
  * Tiny Go syntax highlighter for landing-page code panels. Tokenizes a
  * code string with a single regex (comments, string/raw-string literals,
- * numbers, identifiers) and tags each token with a tailwind color class.
+ * numbers, identifiers) and tags each token with a color.
  *
- * Lighter than pulling in Shiki or Prism for what is effectively six
- * static snippets across the home page.
+ * Lighter than pulling in Shiki or Prism for what is effectively a handful of
+ * static snippets across the home page. Colors mirror the `vesper` theme the
+ * docs code blocks use, so the home panels read identically to the docs.
  */
 
 const KEYWORDS = new Set([
@@ -17,6 +18,14 @@ const KEYWORDS = new Set([
 ]);
 
 const BUILTIN_LITERALS = new Set(['true', 'false', 'nil', 'iota']);
+
+// Vesper palette — matches the docs' Shiki theme exactly.
+const VESPER = {
+  comment: '#8b8b8b',
+  keyword: '#A0A0A0',
+  peach: '#FFC799', // functions, types, exported names, numbers, constants
+  string: '#99FFE4',
+};
 
 // Match (in order): line comment, string literal, raw-string literal,
 // number, identifier. Anything that doesn't match is passed through.
@@ -40,11 +49,11 @@ export function HighlightedGo({ code }: { code: string }) {
     }
 
     const token = match[0];
-    const cls = classify(token);
+    const color = classify(token);
 
-    if (cls) {
+    if (color) {
       parts.push(
-        <span key={key++} className={cls}>
+        <span key={key++} style={{ color }}>
           {token}
         </span>,
       );
@@ -63,16 +72,16 @@ export function HighlightedGo({ code }: { code: string }) {
 }
 
 /**
- * Token classes map to the --code-* palette in tokens.css — the exact same
- * colors the Shiki theme uses, so hand-rendered panels match docs code.
+ * Neutral vesper mapping: gray keywords, warm-peach types/functions/numbers,
+ * mint strings, muted comments. Everything else inherits the panel foreground.
  */
 function classify(token: string): string {
-  if (token.startsWith('//')) return 'tok-c';
-  if (token.startsWith('"') || token.startsWith('`')) return 'tok-s';
-  if (KEYWORDS.has(token)) return 'tok-k';
-  if (BUILTIN_LITERALS.has(token)) return 'tok-n';
-  if (/^\d/.test(token)) return 'tok-n';
+  if (token.startsWith('//')) return VESPER.comment;
+  if (token.startsWith('"') || token.startsWith('`')) return VESPER.string;
+  if (KEYWORDS.has(token)) return VESPER.keyword;
+  if (BUILTIN_LITERALS.has(token)) return VESPER.peach;
+  if (/^\d/.test(token)) return VESPER.peach;
   // Pascal-case identifiers — types, constructors, exported names.
-  if (/^[A-Z]/.test(token)) return 'tok-t';
+  if (/^[A-Z]/.test(token)) return VESPER.peach;
   return '';
 }

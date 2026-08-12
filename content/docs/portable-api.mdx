@@ -2,19 +2,17 @@
 title: Portable API
 description: Wrap any driver with recording, metrics, rate limiting, and error injection
 ---
-Wrap any driver with recording, metrics, rate limiting, latency, and error injection — no HTTP involved. Every service category has its own portable wrapper.
+The portable API layer wraps driver implementations with test-oriented cross-cutting concerns. Every service category has its own portable wrapper.
 
-<PortableFlow />
-
-## Basic usage
+## Basic Usage
 
 ```go
 import (
-    "github.com/stackshy/cloudemu/v2/services/storage"
-    "github.com/stackshy/cloudemu/v2/features/recorder"
-    "github.com/stackshy/cloudemu/v2/features/metrics"
-    "github.com/stackshy/cloudemu/v2/features/inject"
-    "github.com/stackshy/cloudemu/v2/features/ratelimit"
+    "github.com/stackshy/cloudemu/storage"
+    "github.com/stackshy/cloudemu/recorder"
+    "github.com/stackshy/cloudemu/metrics"
+    "github.com/stackshy/cloudemu/inject"
+    "github.com/stackshy/cloudemu/ratelimit"
 )
 
 rec := &recorder.Recorder{}
@@ -35,7 +33,7 @@ bucket.CreateBucket(ctx, "my-bucket")
 bucket.PutObject(ctx, "my-bucket", "key", data, "text/plain", nil)
 ```
 
-## How it works
+## How It Works
 
 Every operation passes through a middleware chain:
 
@@ -46,25 +44,25 @@ Every operation passes through a middleware chain:
 5. **Metrics** — records `calls_total`, `call_duration`, `errors_total`
 6. **Recording** — logs service, operation, input, output, error, duration
 
-## Available wrappers
+## Available Wrappers
 
 Each service has its own portable type:
 
 | Service | Portable Type | Import |
 |---------|--------------|--------|
-| Storage | `storage.Bucket` | `cloudemu/v2/services/storage` |
-| Compute | `compute.Compute` | `cloudemu/v2/services/compute` |
-| Database | `database.Database` | `cloudemu/v2/services/database` |
-| Serverless | `serverless.Serverless` | `cloudemu/v2/services/serverless` |
-| Monitoring | `monitoring.Monitoring` | `cloudemu/v2/services/monitoring` |
-| Message Queue | `messagequeue.MessageQueue` | `cloudemu/v2/services/messagequeue` |
+| Storage | `storage.Bucket` | `cloudemu/storage` |
+| Compute | `compute.Compute` | `cloudemu/compute` |
+| Database | `database.Database` | `cloudemu/database` |
+| Serverless | `serverless.Serverless` | `cloudemu/serverless` |
+| Monitoring | `monitoring.Monitoring` | `cloudemu/monitoring` |
+| Message Queue | `messagequeue.MessageQueue` | `cloudemu/messagequeue` |
 | And more... | | |
 
 All wrappers support the same set of `With*` options.
 
-## Cross-provider testing
+## Cross-Provider Testing
 
-The portable API lets one test body run against all three providers:
+The portable API enables true cross-provider testing:
 
 ```go
 func testStorage(t *testing.T, bucket *storage.Bucket) {

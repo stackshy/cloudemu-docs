@@ -1,126 +1,192 @@
 'use client';
 
-import { useEffect, useState, type CSSProperties } from 'react';
-import Link from '@/components/link';
+import { useRef } from 'react';
+import Link from 'next/link';
+import {
+  motion,
+  useReducedMotion,
+  useScroll,
+  useTransform,
+  type Variants,
+} from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
-import { PacketFlow } from '@/components/diagrams/packet-flow';
-import { TerminalTypeOn } from './terminal-typeon';
-import { LatencyTicker } from './latency-ticker';
-import { CountUp } from './count-up';
+import { EASE, fadeUp, staggerContainer } from '@/lib/motion';
+import { useMagnetic } from '@/lib/interactions';
+import { AnimatedBackground } from './animated-background';
+import { SDKFlowDiagram } from './sdk-flow-diagram';
+import { Kicker } from './section';
+import { Logo } from '../logo';
 
-/**
- * Hero: asymmetric two-column. Left — mono eyebrow, display headline with one
- * accent phrase, subhead, CTAs, and the type-on install terminal (the install
- * command IS the hero CTA). Right — the Packet Flow diagram. Below: mono stat
- * strip with the live Latency Ticker and one-time count-ups.
- *
- * Left-column entrance: each element plays the house 8px fade-rise on mount
- * (above the fold, so no IntersectionObserver), staggered 70ms apart —
- * eyebrow → h1 → subhead → buttons → terminal. Plays once. Skipped entirely
- * under prefers-reduced-motion (final state renders immediately).
- */
+// Motion-enabled Link so buttons can lift/scale while staying real anchors.
+const MotionLink = motion.create(Link);
+
 export function Hero() {
-  const [mounted, setMounted] = useState(false);
-  const [reduced, setReduced] = useState(false);
+  const reduce = useReducedMotion();
 
-  useEffect(() => {
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      setReduced(true);
-    }
-    setMounted(true);
-  }, []);
+  // Section ref drives the right-column scroll parallax.
+  const sectionRef = useRef<HTMLElement>(null);
+  const { scrollYProgress } = useScroll({
+    target: sectionRef,
+    offset: ['start start', 'end start'],
+  });
+  // Gentle, small-amplitude drift as the hero scrolls out of view.
+  const parallaxY = useTransform(scrollYProgress, [0, 1], [-20, 20]);
 
-  // House 8px fade-rise as an inline transition, staggered per step.
-  const enter = (step: number): CSSProperties =>
-    reduced
-      ? {}
-      : {
-          opacity: mounted ? 1 : 0,
-          transform: mounted ? 'translateY(0)' : 'translateY(8px)',
-          transition: `opacity 250ms var(--ease-out) ${step * 70}ms, transform 250ms var(--ease-out) ${step * 70}ms`,
-        };
+  // Left column orchestrates a staggered reveal of its children.
+  const container = staggerContainer(0.12, 0.05);
+  const item = fadeUp();
+  // The logo "flies in" from the left — its built-in speed streaks sell the motion.
+  const logoItem: Variants = {
+    hidden: { opacity: 0, x: -64, scale: 0.9 },
+    show: {
+      opacity: 1,
+      x: 0,
+      scale: 1,
+      transition: { type: 'spring', stiffness: 130, damping: 13 },
+    },
+  };
+  // Nested stagger so the headline reveals word-group by word-group.
+  const headline = staggerContainer(0.1);
+  const line = fadeUp();
+
+  // Pointer-magnetic drift for the two CTAs — gentle, on top of their whileHover lift.
+  const primaryMagnetic = useMagnetic(0.25);
+  const secondaryMagnetic = useMagnetic(0.25);
 
   return (
-    <section className="w-full">
-      <div className="mx-auto w-full max-w-[1120px] px-6 pb-14 pt-20">
-        <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-[1.05fr_1fr] lg:gap-14">
+    <section ref={sectionRef} className="relative w-full overflow-hidden">
+      <div className="absolute inset-0 -z-10">
+        <AnimatedBackground />
+      </div>
+
+      <div className="w-full max-w-6xl mx-auto px-6 pt-24 pb-20">
+        <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] gap-12 lg:gap-16 items-center">
           {/* Left: copy */}
-          <div>
-            <p className="u-eyebrow mb-5" style={enter(0)}>
-              zero-cost cloud emulation for Go
-            </p>
-
-            <h1
-              className="text-[2.6rem] font-semibold leading-[1.08] tracking-[-0.02em] text-ink sm:text-[3.4rem]"
-              style={enter(1)}
+          <motion.div
+            variants={reduce ? undefined : container}
+            initial={reduce ? false : 'hidden'}
+            animate={reduce ? false : 'show'}
+            className="text-center lg:text-left"
+          >
+            <motion.div
+              variants={reduce ? undefined : logoItem}
+              whileHover={reduce ? undefined : { scale: 1.06, rotate: -3 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 15 }}
+              className="mb-6 flex justify-center lg:justify-start"
+              style={{ transformOrigin: 'left center' }}
             >
-              Test against real cloud SDKs{' '}
-              <span className="text-ink-2">without a real cloud</span>.
-            </h1>
+              <Logo width={56} height={56} />
+            </motion.div>
 
-            <p
-              className="mt-5 max-w-xl text-base leading-relaxed text-ink-2 sm:text-lg"
-              style={enter(2)}
+            <motion.div
+              variants={reduce ? undefined : item}
+              className="mb-4 flex justify-center lg:justify-start"
             >
-              Point the real AWS, Azure, and GCP Go SDKs at an in-memory
-              server that speaks their wire protocols. Production code,
-              unchanged. No mocks, no Docker, no bill.
-            </p>
+              <Kicker>cloudemu — in-memory cloud for Go</Kicker>
+            </motion.div>
 
-            <div
-              className="mt-7 flex flex-wrap items-center gap-3"
-              style={enter(3)}
+            <motion.h1
+              variants={reduce ? undefined : headline}
+              className="text-4xl sm:text-5xl lg:text-[3.25rem] font-extrabold tracking-tight leading-[1.1]"
             >
-              <Link href="/docs/quick-start" className="u-btn u-btn-primary group">
-                Quick Start
-                <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
-              </Link>
-              <Link href="/docs/sdk-compat" className="u-btn u-btn-secondary">
-                SDK-compat coverage
-              </Link>
-            </div>
+              <motion.span variants={reduce ? undefined : line} className="inline-block">
+                Run
+              </motion.span>{' '}
+              <motion.span variants={reduce ? undefined : line} className="inline-block">
+                <GradientText>real cloud SDKs</GradientText>
+              </motion.span>
+              <br />
+              <motion.span variants={reduce ? undefined : line} className="inline-block">
+                without a real cloud.
+              </motion.span>
+            </motion.h1>
 
-            <div className="mt-5 max-w-md" style={enter(4)}>
-              <TerminalTypeOn />
-            </div>
-          </div>
+            <motion.p
+              variants={reduce ? undefined : item}
+              className="mt-5 text-base sm:text-lg text-fd-muted-foreground leading-relaxed max-w-xl mx-auto lg:mx-0"
+            >
+              Point <CodePill>aws-sdk-go-v2</CodePill>, <CodePill>azure-sdk-for-go</CodePill>, or{' '}
+              <CodePill>cloud.google.com/go</CodePill> at a local{' '}
+              <code className="font-mono text-[0.95em]">cloudemu</code> server. Runs in a test or your app. Calls return in ~10ms.
+            </motion.p>
 
-          {/* Right: the wire */}
-          <PacketFlow />
-        </div>
+            <motion.div
+              variants={reduce ? undefined : item}
+              className="mt-8 flex items-center justify-center lg:justify-start gap-3 flex-wrap"
+            >
+              <motion.span
+                ref={primaryMagnetic.ref as React.RefObject<HTMLSpanElement>}
+                style={primaryMagnetic.style}
+                onMouseMove={primaryMagnetic.onMouseMove}
+                onMouseLeave={primaryMagnetic.onMouseLeave}
+                className="inline-flex"
+              >
+                <MotionLink
+                  href="/docs/sdk-compat"
+                  whileHover={reduce ? undefined : { y: -2, scale: 1.03 }}
+                  whileTap={reduce ? undefined : { scale: 0.97 }}
+                  transition={{ duration: 0.2, ease: EASE }}
+                  className="group px-6 py-2.5 rounded-lg bg-fd-foreground text-fd-background font-semibold inline-flex items-center gap-2 hover:opacity-90 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fd-ring focus-visible:ring-offset-2 focus-visible:ring-offset-fd-background"
+                >
+                  Use Real SDKs
+                  <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                </MotionLink>
+              </motion.span>
+              <motion.span
+                ref={secondaryMagnetic.ref as React.RefObject<HTMLSpanElement>}
+                style={secondaryMagnetic.style}
+                onMouseMove={secondaryMagnetic.onMouseMove}
+                onMouseLeave={secondaryMagnetic.onMouseLeave}
+                className="inline-flex"
+              >
+                <MotionLink
+                  href="/docs/quick-start"
+                  whileHover={reduce ? undefined : { y: -2, scale: 1.03 }}
+                  whileTap={reduce ? undefined : { scale: 0.97 }}
+                  transition={{ duration: 0.2, ease: EASE }}
+                  className="px-6 py-2.5 rounded-lg border border-fd-border bg-fd-card font-semibold hover:bg-fd-accent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fd-ring focus-visible:ring-offset-2 focus-visible:ring-offset-fd-background"
+                >
+                  Quick Start
+                </MotionLink>
+              </motion.span>
+            </motion.div>
+          </motion.div>
 
-        {/* Stat strip */}
-        <div className="mt-16 flex flex-wrap items-center gap-x-8 gap-y-3 border-t border-line pt-6 font-mono text-xs tracking-[0.08em] text-ink-muted">
-          <span>
-            <span className="text-ink">
-              <CountUp to={3} />
-            </span>{' '}
-            PROVIDERS
-          </span>
-          <span aria-hidden className="text-line-strong">·</span>
-          <span>
-            <span className="text-ink">
-              <CountUp to={21} />
-            </span>{' '}
-            DOMAINS
-          </span>
-          <span aria-hidden className="text-line-strong">·</span>
-          <span>
-            <span className="text-ink">
-              <CountUp to={60} suffix="+" />
-            </span>{' '}
-            SERVICES
-          </span>
-          <span aria-hidden className="text-line-strong">·</span>
-          <span className="text-sm">
-            <LatencyTicker />
-          </span>
-          <span aria-hidden className="text-line-strong">·</span>
-          <span>
-            <span className="text-ink">0</span> DEPS
-          </span>
+          {/* Right: animated diagram — no card, no border, sits directly on the page */}
+          <motion.div
+            initial={reduce ? false : { opacity: 0, scale: 0.96 }}
+            animate={reduce ? false : { opacity: 1, scale: 1 }}
+            transition={{ duration: 0.7, delay: 0.25, ease: EASE }}
+            style={reduce ? undefined : { y: parallaxY }}
+          >
+            <SDKFlowDiagram />
+          </motion.div>
         </div>
       </div>
     </section>
+  );
+}
+
+/**
+ * GradientText: the ember headline highlight. Uses an explicit inline gradient
+ * (rather than Tailwind gradient utilities) so the clipped text is always filled
+ * and never renders transparent/invisible.
+ */
+function GradientText({ children }: { children: React.ReactNode }) {
+  return (
+    <span
+      className="bg-clip-text text-transparent whitespace-nowrap"
+      style={{ backgroundImage: 'linear-gradient(90deg, #ff6b2c, #d64d17)' }}
+    >
+      {children}
+    </span>
+  );
+}
+
+function CodePill({ children }: { children: React.ReactNode }) {
+  return (
+    <code className="font-mono text-[0.95em] px-1.5 py-0.5 rounded bg-fd-card border border-fd-border whitespace-nowrap">
+      {children}
+    </code>
   );
 }

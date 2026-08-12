@@ -2,26 +2,19 @@
 title: Installation
 description: How to install cloudemu in your Go project
 ---
-Install cloudemu with one `go get`, verify it with one test, and migrate v1 imports if needed.
-
-<Callout type="warn" title="Migrating to v2">
-  As of **v2.0.0**, the module path is <code>github.com/stackshy/cloudemu/v2</code> and the public
-  packages are grouped by role. If you are upgrading from v1, see [Migrating to v2](#migrating-to-v2) below.
-</Callout>
-
-## Install the package
+## Install the Package
 
 Add cloudemu to your Go module:
 
 ```bash
-go get github.com/stackshy/cloudemu/v2
+go get github.com/stackshy/cloudemu
 ```
 
 This installs the library and all service packages. There are no external dependencies beyond the Go standard library.
 
-## Verify installation
+## Verify Installation
 
-Create a test file to verify the install:
+Create a simple test file to verify everything works:
 
 ```go title="main_test.go"
 package main
@@ -30,7 +23,7 @@ import (
     "context"
     "testing"
 
-    "github.com/stackshy/cloudemu/v2"
+    "github.com/stackshy/cloudemu"
 )
 
 func TestCloudemu(t *testing.T) {
@@ -61,62 +54,25 @@ go test -v ./...
 
 If you see `PASS`, cloudemu is ready to use.
 
-## Import paths
+## Import Paths
 
 The main package and common sub-packages:
 
 ```go
 import (
-    "github.com/stackshy/cloudemu/v2"                    // NewAWS, NewAzure, NewGCP
-    "github.com/stackshy/cloudemu/v2/config"              // WithRegion, WithClock, etc.
-    cerrors "github.com/stackshy/cloudemu/v2/errors"      // Error codes and helpers
-    "github.com/stackshy/cloudemu/v2/services/compute/driver"      // Compute types
-    "github.com/stackshy/cloudemu/v2/services/storage/driver"      // Storage types
-    "github.com/stackshy/cloudemu/v2/services/database/driver"     // Database types
-    "github.com/stackshy/cloudemu/v2/services/monitoring/driver"   // Monitoring types
+    "github.com/stackshy/cloudemu"                    // NewAWS, NewAzure, NewGCP
+    "github.com/stackshy/cloudemu/config"              // WithRegion, WithClock, etc.
+    cerrors "github.com/stackshy/cloudemu/errors"      // Error codes and helpers
+    "github.com/stackshy/cloudemu/compute/driver"      // Compute types
+    "github.com/stackshy/cloudemu/storage/driver"      // Storage types
+    "github.com/stackshy/cloudemu/database/driver"     // Database types
+    "github.com/stackshy/cloudemu/monitoring/driver"   // Monitoring types
 )
 ```
 
 Each service has its own `driver` sub-package containing the types and interfaces you need.
 
-## Migrating to v2
-
-**v2.0.0** reorganizes the repository by role so it stays legible as it grows. This changes public
-import paths, so the module is now `github.com/stackshy/cloudemu/v2`. Behavior is unchanged — the
-entrypoints (`NewAWS`, `NewAzure`, `NewGCP`), every driver, wire protocol, and error type are
-identical. Upgrading is a find-and-replace of the import prefix.
-
-### 1. Update the dependency
-
-```bash
-go get github.com/stackshy/cloudemu/v2@v2.0.0
-```
-
-### 2. Rewrite import paths
-
-Add the `/v2` suffix and point service packages at their new homes:
-
-```go title="imports.go"
-import "github.com/stackshy/cloudemu/storage" // [!code --]
-import "github.com/stackshy/cloudemu/v2/services/storage" // [!code ++]
-```
-
-Where packages moved:
-
-| v1 location | v2 location |
-| --- | --- |
-| `<service>` (e.g. `storage`, `compute`, `kubernetes`, `cost`) | `services/<service>` |
-| `chaos`, `recorder`, `metrics`, `ratelimit`, `inject`, `topology` | `features/<name>` |
-| `statemachine`, `pagination` | `internal/<name>` |
-| `providers/{aws,azure,gcp}`, `server/{aws,azure,gcp}` | unchanged (only the `/v2` prefix is added) |
-
-<Callout type="info">
-  A quick way to update a whole codebase: replace the import prefix
-  `github.com/stackshy/cloudemu/` with `github.com/stackshy/cloudemu/v2/`, then move any bare service
-  imports under `services/` and the cross-cutting wrappers under `features/`.
-</Callout>
-
-## Next steps
+## Next Steps
 
 - [Quick Start](/docs/quick-start) — build a complete example
 - [Configuration](/docs/configuration) — customize your providers

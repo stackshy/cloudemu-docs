@@ -2,13 +2,13 @@
 title: Configuration
 description: Configure cloudemu providers with regions, clocks, latency, and more
 ---
-Set region, account, project ID, latency, and clock — the same functional options work on all three providers.
+All three providers accept the same functional options from the `config` package.
 
 ```go
-import "github.com/stackshy/cloudemu/v2/config"
+import "github.com/stackshy/cloudemu/config"
 ```
 
-## Available options
+## Available Options
 
 ### WithRegion
 
@@ -75,7 +75,7 @@ The fake clock is thread-safe and useful for testing:
 - Alarm evaluation in monitoring
 - Lifecycle policy evaluation in storage
 
-## Combining options
+## Combining Options
 
 Pass multiple options to any provider:
 

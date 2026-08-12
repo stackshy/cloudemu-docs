@@ -2,19 +2,13 @@
 title: SDK-Compatible Server
 description: Point real aws-sdk-go-v2, azure-sdk-for-go, and Google Cloud SDKs at cloudemu without changing your application code
 ---
-Point a real `aws-sdk-go-v2`, `azure-sdk-for-go`, or `cloud.google.com/go` client at cloudemu and run production code unchanged. The HTTP servers speak each provider's actual wire protocol; the custom endpoint is the only change.
-
-<WireProtocols />
+cloudemu ships HTTP servers that speak the real cloud SDK wire protocols across all three providers — **AWS**, **Azure**, and **GCP**. Point the actual `aws-sdk-go-v2`, `azure-sdk-for-go`, or `cloud.google.com/go` clients at it (via custom endpoint) and your production code runs unchanged against the in-memory backend.
 
 Nothing to mock. No Docker. No accounts. The same SDK calls you'd run against real cloud APIs hit a local `httptest.NewServer` and get back SDK-decodable responses.
 
-<Callout type="info">
-Want a long-lived, out-of-process server that any language's SDK can point at? See [Standalone Server](/docs/standalone-server).
-</Callout>
-
 ## Why
 
-cloudemu's [Portable API](/docs/portable-api) works well for new code you write for testing. But most real apps already use the official cloud SDKs directly. Rewriting those call sites just to test against an emulator is friction. The SDK-compat server removes that friction — change the endpoint, done.
+cloudemu's [Portable API](/docs/portable-api) is great for new code you write for testing. But most real apps already use the official cloud SDKs directly. Rewriting those call sites just to test against an emulator is friction. The SDK-compat server removes that friction — change the endpoint, done.
 
 ## Quick start (AWS)
 
@@ -30,8 +24,8 @@ import (
     "github.com/aws/aws-sdk-go-v2/credentials"
     "github.com/aws/aws-sdk-go-v2/service/s3"
 
-    "github.com/stackshy/cloudemu/v2"
-    awsserver "github.com/stackshy/cloudemu/v2/server/aws"
+    "github.com/stackshy/cloudemu"
+    awsserver "github.com/stackshy/cloudemu/server/aws"
 )
 
 func main() {
@@ -80,8 +74,8 @@ import (
     "github.com/Azure/azure-sdk-for-go/sdk/azcore/cloud"
     "github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/compute/armcompute/v5"
 
-    "github.com/stackshy/cloudemu/v2"
-    azureserver "github.com/stackshy/cloudemu/v2/server/azure"
+    "github.com/stackshy/cloudemu"
+    azureserver "github.com/stackshy/cloudemu/server/azure"
 )
 
 cp := cloudemu.NewAzure()
@@ -120,8 +114,8 @@ client, _ := armcompute.NewVirtualMachinesClient("sub-1", fakeCred{}, opts)
 ```go
 import (
     gcpcompute "cloud.google.com/go/compute/apiv1"
-    "github.com/stackshy/cloudemu/v2"
-    gcpserver "github.com/stackshy/cloudemu/v2/server/gcp"
+    "github.com/stackshy/cloudemu"
+    gcpserver "github.com/stackshy/cloudemu/server/gcp"
     "google.golang.org/api/option"
 )
 
@@ -163,28 +157,6 @@ client, _ := gcpcompute.NewInstancesRESTClient(ctx, opts...)
 | **Lambda** *(REST + JSON)* | CreateFunction, GetFunction, ListFunctions, DeleteFunction, Invoke (sync) |
 | **SQS** *(JSON-RPC AwsJson1_0)* | CreateQueue, GetQueueUrl, ListQueues, DeleteQueue, SendMessage, ReceiveMessage, DeleteMessage |
 | **CloudWatch** *(Smithy rpc-v2-cbor)* | PutMetricData, GetMetricStatistics, ListMetrics, PutMetricAlarm, DescribeAlarms, DeleteAlarms |
-| **RDS** | CreateDBInstance, DescribeDBInstances, Modify/Delete/Start/Stop/RebootDBInstance; DB clusters (Create/Describe/Modify/Delete/Start/Stop); DB + cluster snapshots + restore (Aurora, Neptune, DocumentDB engines) |
-| **Redshift** | CreateCluster, DescribeClusters, Modify/Delete/RebootCluster; cluster snapshots (Create/Describe/Delete) + RestoreFromClusterSnapshot |
-| **EKS** | Clusters (Create/Describe/List/UpdateConfig/UpdateVersion/Delete); managed node groups; Fargate profiles; addons. Issues kubeconfigs pointing at the shared Kubernetes data plane |
-| **IAM** | Users, groups, roles, managed policies (+ versions) & attach/detach, access keys, instance profiles |
-| **ECR** | CreateRepository, DescribeRepositories, DeleteRepository; PutImage, ListImages, DescribeImages, BatchDeleteImage |
-| **Bedrock** *(+ bedrock-runtime)* | ListFoundationModels, GetFoundationModel; custom models, guardrails, provisioned throughput, invocation logging; runtime InvokeModel, Converse (deterministic echo responses) |
-| **SageMaker** *(+ sagemaker-runtime)* | Models, endpoint configs, endpoints, inference components; training/tuning/transform/AutoML jobs; registry, Studio, notebooks, Feature Store, pipelines; runtime InvokeEndpoint / InvokeEndpointAsync |
-| **Resource Explorer 2** | CreateView, DeleteView, ListViews, GetView, Search, ListResources, ListIndexes, GetIndex (`service:` / `tag.k:v` / `region:` filters) |
-| **Resource Groups Tagging API** | GetResources, GetTagKeys, GetTagValues, TagResources, UntagResources |
-| **Route 53** *(DNS)* | Hosted zones (Create/Get/List/Delete); resource record sets (ChangeResourceRecordSets, ListResourceRecordSets); health checks |
-| **ELBv2** *(Load Balancer)* | Load balancers, target groups, listeners, rules; RegisterTargets/DeregisterTargets, DescribeTargetHealth; Modify/DescribeLoadBalancerAttributes |
-| **ElastiCache** *(Cache)* | Cache clusters + replication groups + subnet groups (Create/Describe/Modify/Delete) |
-| **Secrets Manager** | CreateSecret, GetSecretValue, PutSecretValue, DescribeSecret, ListSecrets, ListSecretVersionIds, DeleteSecret |
-| **CloudWatch Logs** | Log groups + log streams (Create/Delete/Describe); PutLogEvents, GetLogEvents, FilterLogEvents; metric filters |
-| **SNS** *(Notification)* | CreateTopic, DeleteTopic, ListTopics, Subscribe, Unsubscribe, ListSubscriptions, Publish |
-| **EventBridge** *(Event Bus)* | Event buses (Create/Delete/List); PutRule, DeleteRule, Enable/DisableRule, ListRules; PutTargets, RemoveTargets, ListTargets; PutEvents |
-| **ECS** | Clusters, task definitions, services, tasks (register/run/list/describe/update/delete) |
-| **SSM** *(Parameter Store)* | PutParameter, GetParameter(s), GetParametersByPath, DescribeParameters, DeleteParameter(s), label/history |
-| **STS** | GetCallerIdentity, AssumeRole, GetSessionToken (identity reported by the emulator) |
-| **Keyspaces** *(Cassandra)* | Keyspaces + tables (Create/Get/List/Update/Delete) — AWS JSON 1.0 |
-| **MemoryDB** *(Redis/Valkey)* | Clusters (Create/Describe/Update/Delete, FailoverShard), ACLs + users, subnet/parameter groups — AWS JSON 1.1 |
-| **Network Firewall** | Firewalls, firewall policies, rule groups (Create/Describe/Update/Delete) |
 
 ### Azure handlers
 
@@ -200,25 +172,6 @@ All speak ARM JSON over HTTPS unless noted.
 | **Azure Monitor** | `microsoft.insights/metricAlerts` and metric data ingest/read |
 | **Functions** | `Microsoft.Web/sites` (Function Apps): CreateOrUpdate, Get, List, Delete + non-ARM `/api/{name}` invoke |
 | **Service Bus** | `Microsoft.ServiceBus/namespaces[/queues]` ARM CRUD + raw-HTTP REST data plane (`POST /{ns}/{queue}/messages`, `DELETE /messages/head`) |
-| **SQL Database** | `Microsoft.Sql/servers` + `.../databases` — PUT/GET/PATCH/DELETE/LIST |
-| **PostgreSQL / MySQL Flexible Server** | `Microsoft.DBforPostgreSQL/flexibleServers`, `Microsoft.DBforMySQL/flexibleServers` — CRUD + start/stop/restart |
-| **AKS** | `Microsoft.ContainerService/managedClusters` — CreateOrUpdate/Get/List/UpdateTags/Delete/RotateCertificates; agent pools; maintenance configs. Issues kubeconfigs for the shared Kubernetes data plane |
-| **IAM** | `Microsoft.Authorization` — role assignments + role definitions |
-| **ACR** | `Microsoft.ContainerRegistry/registries` — registries + repositories + tags |
-| **Databricks** *(ARM + data plane)* | `Microsoft.Databricks/workspaces` control plane + workspace REST data plane (clusters, jobs, runs, instance pools, policies, libraries, permissions, DBFS, repos, secrets, Unity Catalog, SQL warehouses, …) |
-| **Resource Graph** | `POST /providers/Microsoft.ResourceGraph/resources` — KQL subset over the `Resources` table (`where type ==`, `in~`, `location`, `tags[…]`, `limit`/`take`) |
-| **Azure DNS** | `Microsoft.Network/dnsZones` + record sets — CreateOrUpdate/Get/List/Delete |
-| **Load Balancer** | `Microsoft.Network/loadBalancers` — CreateOrUpdate/Get/List/Delete + rules, probes, backend pools |
-| **Azure Cache for Redis** | `Microsoft.Cache/redis` — CreateOrUpdate/Get/List/Delete + keys |
-| **Key Vault** *(Secrets)* | `Microsoft.KeyVault/vaults` control plane + secrets data plane (Set/Get/List/Delete versions) |
-| **Log Analytics** | `Microsoft.OperationalInsights/workspaces` + data-plane ingest/query |
-| **Notification Hubs** | `Microsoft.NotificationHubs/namespaces[/notificationHubs]` — CRUD + send |
-| **Event Grid** | `Microsoft.EventGrid/topics` + event subscriptions; event publish |
-| **Azure AI** | `Microsoft.CognitiveServices/accounts` (AI Foundry / AI Studio) — accounts + deployments |
-| **Azure AI Search** | `Microsoft.Search/searchServices` — CreateOrUpdate/Get/List/Delete |
-| **Table Storage** *(data plane)* | Tables + entities — Create/Query/Insert/Merge/Delete |
-| **Cosmos DB for PostgreSQL** | `Microsoft.DBforPostgreSQL/serverGroupsv2` (Citus) — CRUD |
-| **Managed Cassandra** | `Microsoft.DocumentDB/cassandraClusters[/dataCenters]` — CRUD |
 
 ### GCP handlers
 
@@ -233,27 +186,8 @@ All speak REST + JSON.
 | **Cloud Monitoring** | Time-series ingest/read, alert policies |
 | **Cloud Functions v1** | Create (LRO), Get, List, Delete (LRO), `:call` (sync invoke) |
 | **Pub/Sub** | Topics + Subscriptions lifecycle, `:publish`, `:pull`, `:acknowledge` |
-| **Cloud SQL** | Instances insert/get/list/update/delete, restart, restoreBackup; backup runs; operations (MySQL/PostgreSQL/SQL Server) |
-| **GKE** | Clusters (Create/Get/List/Update/Delete) + config setters; node pools (Create/Get/List/Update/Delete, SetSize/Autoscaling/Management, Rollback); operations. Issues kubeconfigs for the shared Kubernetes data plane |
-| **IAM** | Service accounts + roles (`getIamPolicy` / `setIamPolicy` bindings) |
-| **Artifact Registry** | Repositories + Docker images |
-| **Vertex AI** | Models, endpoints (Deploy/Undeploy), datasets, jobs, pipelines, Feature Store, Vector Search; runtime GenerateContent (Gemini), CountTokens, Predict, RawPredict |
-| **Cloud Asset Inventory** | `searchAllResources`, `searchAllIamPolicies`, `exportAssets`, `batchGetAssetsHistory`, `assets.list`, feeds CRUD |
-| **Cloud DNS** | Managed zones + resource record sets — create/get/list/delete + changes |
-| **Cloud Load Balancing** | Backend services, URL maps, target proxies, forwarding rules, health checks |
-| **Memorystore** *(Cache)* | Redis instances — create (LRO)/get/list/update/delete |
-| **Secret Manager** | Secrets + versions — create/get/list/delete, `:access`, `:addVersion` |
-| **Cloud Logging** | Log entries (`entries:write`, `entries:list`), log buckets/sinks |
-| **FCM** *(Notification)* | `projects/*/messages:send` — send to token / topic / condition |
-| **Eventarc** *(Event Bus)* | Triggers + channels — create (LRO)/get/list/delete |
-| **AlloyDB** | Clusters + instances — create (LRO)/get/list/delete |
-| **Bigtable** | Instances, clusters, tables — admin create/get/list/delete |
 
 Any operation not in these tables returns `501 Not Implemented` or the provider's native error code (`UnknownOperation`, `NotImplemented`, `NOT_FOUND`).
-
-### Kubernetes data plane (shared across providers)
-
-EKS, AKS, and GKE each issue kubeconfigs that point at a single shared in-memory **Kubernetes API server** (`kubernetes.NewAPIServer()`, passed as `K8sAPI` to each provider's `Drivers`). Real `client-go` / `kubectl` drive it end-to-end: **Namespace, Pod, Service, ConfigMap, Secret, ServiceAccount, Deployment** support Create/Get/List/Update/Delete/Patch (JSON-merge) + Watch streaming; **Endpoints** are read-only. API groups `core/v1` and `apps/v1`. See the [Kubernetes service page](/docs/services/kubernetes) for what's intentionally out of scope (no scheduler, controllers, RBAC, or PV/PVC).
 
 ## How it works
 
@@ -269,26 +203,15 @@ server/
 │   └── gcprest/                 # GCP REST URL parser + Operation LRO helpers
 ├── aws/
 │   ├── aws.go                   # awsserver.New(Drivers{...})
-│   ├── s3/  ec2/  dynamodb/  lambda/  sqs/  cloudwatch/  rds/  redshift/
-│   ├── eks/  iam/  ecr/  ecs/  ssm/  sts/  bedrock/  sagemaker/
-│   ├── bedrockagent/  bedrockagentruntime/  keyspaces/  memorydb/  networkfirewall/
-│   ├── route53/  elbv2/  elasticache/  secretsmanager/  cloudwatchlogs/  sns/  eventbridge/
-│   └── resourceexplorer2/  resourcegroupstaggingapi/
+│   ├── s3/  ec2/  dynamodb/  lambda/  sqs/  cloudwatch/
 ├── azure/
 │   ├── azure.go                 # azureserver.New(Drivers{...})
 │   ├── virtualmachines/  disks/  snapshots/  images/  sshpublickeys/
-│   ├── blobstorage/  cosmosdb/  cosmosaccount/  vnet/  monitor/  functions/  servicebus/  queue/
-│   ├── sql/  postgresflex/  mysqlflex/  cosmospostgresql/  managedcassandra/  aks/  iam/  acr/
-│   ├── dns/  loadbalancer/  cache/  keyvault/  loganalytics/  notificationhubs/  eventgrid/
-│   ├── ai/  search/  tablestorage/  storageaccount/  subscriptions/  resourcegroups/
-│   ├── databricks/              # ARM + workspace data plane (dbfs, repos, uc, …)
-│   └── resourcegraph/
+│   ├── blob/  cosmos/  network/  monitor/  functions/  servicebus/
 └── gcp/
     ├── gcp.go                   # gcpserver.New(Drivers{...})
-    ├── compute/  vpc/  gcs/  firestore/  monitoring/  lro/  servicenetworking/
-    ├── cloudfunctions/  pubsub/  cloudsql/  gke/  iam/  alloydb/  bigtable/
-    ├── clouddns/  loadbalancer/  memorystore/  secretmanager/  cloudlogging/  fcm/  eventarc/
-    └── artifactregistry/  vertexai/  cloudasset/
+    └── compute/  networks/  gcs/  firestore/  monitoring/
+        cloudfunctions/  pubsub/
 ```
 
 Each handler implements a two-method interface:
@@ -326,19 +249,17 @@ Each handler uses a different signal so dispatch is unambiguous within a provide
 | GCP Cloud Monitoring | `/v3/projects/.../` |
 | GCP GCS | Fallback (`/storage/v1/` and `/{bucket}/{object}` direct-media) |
 
-The newer handlers follow the same per-provider scheme: AWS RDS/Redshift use the query protocol (`Action=…`), Bedrock/SageMaker/Resource Explorer dispatch on `X-Amz-Target` or their REST path prefix; Azure SQL/Postgres/MySQL/AKS/ACR/Resource Graph match their `Microsoft.<Provider>/<Type>` ARM path, and Databricks data-plane calls match the `/api/2.x/` prefix; GCP Cloud SQL, GKE, Vertex AI, and Cloud Asset match their REST path prefixes.
-
-Registration order matters when handlers share a path prefix — the provider factories register more-specific handlers ahead of catch-alls (S3, Blob, GCS, Firestore) so first-match-wins resolves correctly.
+Registration order matters when handlers share a path prefix — the provider factories register more-specific handlers ahead of catch-alls (S3, Blob, GCS) so first-match-wins resolves correctly.
 
 ## Coverage status
 
 | Provider | Domains shipped |
 |----------|----------------|
-| AWS | Storage, Compute (full VPC stack), Database (+ Keyspaces/MemoryDB), Relational DB (RDS/Aurora/Redshift), Serverless, Kubernetes (EKS + data plane), Container Orchestration (ECS), Message Queue, Monitoring, Logging, DNS, Load Balancer, Cache, Secrets, Notification, Event Bus, IAM/STS, Parameter Store (SSM), Container Registry, Network Firewall, Resource Discovery, Bedrock, SageMaker |
-| Azure | Storage (+ Table Storage), Compute (+ Disks/Snapshots/Images/SSHKeys), Database (+ Managed Cassandra), Relational DB (SQL + Postgres/MySQL Flex + Cosmos-for-PostgreSQL), Serverless, Kubernetes (AKS + data plane), Message Queue (ARM + REST data plane), Networking, Monitoring, Logging, DNS, Load Balancer, Cache, Secrets (Key Vault), Notification, Event Bus, IAM, Container Registry, Resource Discovery, Azure AI, Azure AI Search, Databricks |
-| GCP | Storage, Compute (+ Disks/Snapshots/Images), Database (+ Bigtable), Relational DB (Cloud SQL + AlloyDB), Serverless, Kubernetes (GKE + data plane), Message Queue, Networking, Monitoring, Logging, DNS, Load Balancer, Cache, Secrets, Notification, Event Bus, IAM, Container Registry, Resource Discovery, Vertex AI |
+| AWS | Storage, Compute (full VPC stack), Database, Serverless, Message Queue, Monitoring |
+| Azure | Storage, Compute (+ Disks/Snapshots/Images/SSHKeys), Database, Serverless, Message Queue (ARM + REST data plane), Networking, Monitoring |
+| GCP | Storage, Compute (+ Disks/Snapshots/Images), Database, Serverless, Message Queue, Networking, Monitoring |
 
-Every core service domain now ships an SDK-compat handler across all three providers — including DNS, Load Balancer, Cache, Secrets, Logging, Notification, and Event Bus, which were the last cross-cloud domains to land. New services continue to drop in as self-contained handler packages without touching the core.
+The remaining 9 service domains (IAM, DNS, Load Balancer, Cache, Secrets, Logging, Notifications, Container Registry, Event Bus) have full driver implementations in `providers/{aws,azure,gcp}/`; SDK-compat handlers are added in lockstep across all 3 providers as each domain ships.
 
 ## Writing your own handler
 

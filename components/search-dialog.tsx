@@ -15,12 +15,9 @@ import {
 import type { SharedProps } from 'fumadocs-ui/contexts/search';
 
 export default function CustomSearchDialog(props: SharedProps) {
-  // Static search: download the prebuilt index from /api/search (the staticGET
-  // output) and run Orama in the browser. Same dialog, same results as the old
-  // server 'fetch' client — just no server round-trip, so the site can ship as
-  // static files.
   const { search, setSearch, query } = useDocsSearch({
-    type: 'static',
+    type: 'fetch',
+    api: '/api/search',
   });
 
   const items =
@@ -58,19 +55,8 @@ export default function CustomSearchDialog(props: SharedProps) {
             )
           }
         />
-        <SearchDialogFooter className="flex items-center gap-3 font-mono text-[11px] text-ink-3">
-        <span className="flex items-center gap-1">
-          <kbd>↑</kbd>
-          <kbd>↓</kbd> navigate
-        </span>
-        <span className="flex items-center gap-1">
-          <kbd>↵</kbd> open
-        </span>
-        <span className="flex items-center gap-1">
-          <kbd>esc</kbd> close
-        </span>
-        </SearchDialogFooter>
       </SearchDialogContent>
+      <SearchDialogFooter />
     </SearchDialog>
   );
 }

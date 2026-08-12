@@ -2,7 +2,7 @@
 title: Architecture
 description: How cloudemu serves real cloud SDKs from an in-memory backend
 ---
-Trace a request from an unmodified SDK client down to the in-memory store — and see where to plug in. The primary surface is the **SDK-compatible HTTP server**, which speaks each cloud's real wire protocol; underneath sits a small, deliberately boring three-layer core.
+cloudemu's primary surface is the **SDK-compatible HTTP server** — a layer that speaks each cloud's real wire protocol so unmodified SDK clients can drive the in-memory backend. Underneath sits a small, deliberately boring three-layer core.
 
 ```
 SDK-Compat HTTP Server   ←  the primary surface (real aws-sdk-go-v2 / azure-sdk-for-go / cloud.google.com/go)
@@ -20,9 +20,9 @@ Provider Mocks           ←  in-memory backends (AWS/Azure/GCP) using generic m
 
 The driver layer is the load-bearing contract. The HTTP server, Portable API, Chaos engine, and Topology engine all wrap or consume drivers — so a new feature lights up across every consumer at once.
 
-## Layer 1: provider mocks
+## Layer 1: Provider Mocks
 
-The bottom layer contains the actual in-memory implementations for each cloud provider. Each provider (AWS, Azure, GCP) exposes its services as typed fields.
+The bottom layer contains the actual in-memory implementations for each cloud provider. Each provider (AWS, Azure, GCP) implements all 16 service interfaces.
 
 ```go
 // providers/aws/aws.go
@@ -30,26 +30,21 @@ type Provider struct {
     S3         *s3.Mock
     EC2        *ec2.Mock
     DynamoDB   *dynamodb.Mock
-    RDS        *rds.Mock
     Lambda     *lambda.Mock
-    EKS        *eks.Mock
     SQS        *sqs.Mock
     CloudWatch *cloudwatch.Mock
-    Bedrock    *bedrock.Mock
-    // ... 30+ services in all — IAM, Route53, ELB, ECR, ECS, SNS, EventBridge,
-    //     ElastiCache, SecretsManager, CloudWatchLogs, Redshift, SageMaker,
-    //     Keyspaces, MemoryDB, NetworkFirewall, SSM, ResourceDiscovery, and more
+    // ... 16 services total
 }
 ```
 
 All mocks are backed by a generic, thread-safe `memstore.Store[V]` — an in-memory key-value store. Services are wired together at initialization (e.g. EC2 emits metrics into CloudWatch automatically).
 
-## Layer 2: driver interfaces
+## Layer 2: Driver Interfaces
 
 Each service category defines a minimal Go interface that all providers implement:
 
 ```go
-// services/compute/driver/driver.go
+// compute/driver/driver.go
 type Compute interface {
     RunInstances(ctx context.Context, config InstanceConfig, count int) ([]Instance, error)
     StopInstances(ctx context.Context, instanceIDs []string) error
@@ -60,7 +55,7 @@ type Compute interface {
 
 The driver is the contract — every consumer above this line sees the same interface, regardless of which provider is underneath.
 
-## Layer 3: SDK-compat HTTP server (the primary surface)
+## Layer 3: SDK-Compat HTTP Server (the primary surface)
 
 The `server/` package wraps drivers with handlers that speak each cloud's real wire protocol. Pointing a real SDK client at a local `httptest.NewServer` is the recommended way to use cloudemu:
 
@@ -79,9 +74,9 @@ client.PutObject(ctx, &s3.PutObjectInput{ /* real production code */ })
 
 Each handler is a self-contained package (`server/aws/s3`, `server/azure/cosmos`, `server/gcp/pubsub`, …). Adding a new service is one new package + one `Register` call — the core never changes. See [SDK-Compatible Server](/docs/sdk-compat) for the full coverage matrix and quick starts.
 
-## Alternative: portable Go API
+## Alternative: Portable Go API
 
-For in-process tests or code that doesn't go through an SDK, call the driver directly through the [Portable Go API](/docs/portable-api):
+For in-process tests, code that doesn't go through an SDK, or domains where SDK-compat isn't shipped yet (IAM, DNS, Load Balancer, Notification, Event Bus, Container Registry, Cache, Secrets, Logging), call the driver directly through the [Portable Go API](/docs/portable-api):
 
 ```go
 bucket := storage.NewBucket(aws.S3,
@@ -99,7 +94,7 @@ The Portable API also adds cross-cutting concerns (recording, metrics, rate limi
 Beyond the SDK-compat server and Portable API, two more packages consume the driver interface:
 
 - **`chaos/`** — drop-in driver wrappers that inject failures, latency, and throttling in time-bounded windows. Works under both the Portable API _and_ the SDK-compat server. See [Chaos Engineering](/docs/chaos).
-- **`topology/`** — cross-service network reachability engine. Consumes compute, networking, and DNS drivers to evaluate `CanConnect`, `TraceRoute`, `Resolve`. See [Network Topology](/docs/topology).
+- **`topology/`** — cross-service network reachability engine. Consumes compute, networking, and DNS drivers to evaluate `CanConnect`, `TraceRoute`, `Resolve`. See the networking service page for an example.
 
 All consumers are optional — importing cloudemu and only using the SDK-compat server (or only the Portable API) pulls none of the others.
 

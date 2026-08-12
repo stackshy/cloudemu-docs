@@ -1,89 +1,144 @@
-import { Reveal } from '@/components/reveal';
-import { MorphCode } from '@/components/code/morph-code';
+'use client';
 
-const SNIPPETS = {
-  aws: {
-    filename: 'portable_aws.go',
-    code: `cloud := cloudemu.NewAWS()
+import { useState } from 'react';
+import { HighlightedGo } from './highlighted-go';
 
-// Launch instances
-cloud.EC2.RunInstances(ctx, computedriver.InstanceConfig{
+const tabs = [
+  {
+    label: 'AWS',
+    color: '#FF9900',
+    code: `aws := cloudemu.NewAWS()
+
+// Launch EC2 instances
+instances, _ := aws.EC2.RunInstances(ctx, computedriver.InstanceConfig{
     ImageID:      "ami-0abcdef1234",
     InstanceType: "t3.large",
+    Tags:         map[string]string{"env": "production"},
 }, 3)
 
-// Object storage
-cloud.S3.CreateBucket(ctx, "app-data")
-cloud.S3.PutObject(ctx, "app-data", "config.yaml",
+// Create S3 bucket and upload
+aws.S3.CreateBucket(ctx, "app-data")
+aws.S3.PutObject(ctx, "app-data", "config.yaml",
     []byte("port: 8080"), "text/yaml", nil)
 
-// Metrics
-cloud.CloudWatch.PutMetricData(ctx, []mondriver.MetricDatum{
+// Push metrics to CloudWatch
+aws.CloudWatch.PutMetricData(ctx, []mondriver.MetricDatum{
     {Namespace: "App", MetricName: "CPU", Value: 45.2},
 })`,
   },
-  azure: {
-    filename: 'portable_azure.go',
-    code: `cloud := cloudemu.NewAzure()
+  {
+    label: 'Azure',
+    color: '#0078D4',
+    code: `azure := cloudemu.NewAzure()
 
-// Launch instances
-cloud.VirtualMachines.RunInstances(ctx, computedriver.InstanceConfig{
-    ImageID:      "Ubuntu-22.04",
-    InstanceType: "Standard_D2s_v3",
-}, 3)
+// Launch Virtual Machines
+instances, _ := azure.VirtualMachines.RunInstances(ctx,
+    computedriver.InstanceConfig{
+        ImageID:      "Ubuntu-22.04",
+        InstanceType: "Standard_D2s_v3",
+        Tags:         map[string]string{"env": "production"},
+    }, 3)
 
-// Object storage
-cloud.BlobStorage.CreateBucket(ctx, "app-data")
-cloud.BlobStorage.PutObject(ctx, "app-data", "config.yaml",
+// Create Blob Storage container
+azure.BlobStorage.CreateBucket(ctx, "app-data")
+azure.BlobStorage.PutObject(ctx, "app-data", "config.yaml",
     []byte("port: 8080"), "text/yaml", nil)
 
-// Metrics
-cloud.Monitor.PutMetricData(ctx, []mondriver.MetricDatum{
+// Push metrics to Azure Monitor
+azure.Monitor.PutMetricData(ctx, []mondriver.MetricDatum{
     {Namespace: "App", MetricName: "CPU", Value: 45.2},
 })`,
   },
-  gcp: {
-    filename: 'portable_gcp.go',
-    code: `cloud := cloudemu.NewGCP()
+  {
+    label: 'GCP',
+    color: '#4285F4',
+    code: `gcp := cloudemu.NewGCP()
 
-// Launch instances
-cloud.GCE.RunInstances(ctx, computedriver.InstanceConfig{
-    ImageID:      "debian-11",
-    InstanceType: "e2-standard-2",
-}, 3)
+// Launch GCE instances
+instances, _ := gcp.GCE.RunInstances(ctx,
+    computedriver.InstanceConfig{
+        ImageID:      "debian-11",
+        InstanceType: "e2-standard-2",
+        Tags:         map[string]string{"env": "production"},
+    }, 3)
 
-// Object storage
-cloud.GCS.CreateBucket(ctx, "app-data")
-cloud.GCS.PutObject(ctx, "app-data", "config.yaml",
+// Create GCS bucket
+gcp.GCS.CreateBucket(ctx, "app-data")
+gcp.GCS.PutObject(ctx, "app-data", "config.yaml",
     []byte("port: 8080"), "text/yaml", nil)
 
-// Metrics
-cloud.CloudMonitoring.PutMetricData(ctx, []mondriver.MetricDatum{
+// Push metrics to Cloud Monitoring
+gcp.CloudMonitoring.PutMetricData(ctx, []mondriver.MetricDatum{
     {Namespace: "App", MetricName: "CPU", Value: 45.2},
 })`,
   },
-};
+  {
+    label: 'OCI',
+    color: '#C74634',
+    code: `oci := cloudemu.NewOCI()
+
+// Networking — create a VCN and subnet
+vcn, _ := oci.VCN.CreateVPC(ctx, netdriver.VPCConfig{
+    CIDRBlock: "10.0.0.0/16",
+    Tags:      map[string]string{"env": "production"},
+})
+oci.VCN.CreateSubnet(ctx, vcn.ID, netdriver.SubnetConfig{
+    CIDRBlock: "10.0.1.0/24",
+})
+
+// Identity — create a user
+oci.Identity.CreateUser(ctx, iamdriver.UserConfig{Name: "svc-app"})
+
+// Push metrics to OCI Monitoring
+oci.Monitoring.PutMetricData(ctx, []mondriver.MetricDatum{
+    {Namespace: "App", MetricName: "CPU", Value: 45.2},
+})`,
+  },
+];
 
 export function CodeExample() {
+  const [active, setActive] = useState(0);
+
   return (
-    <section className="w-full border-t border-line">
-      <div className="mx-auto w-full max-w-[1120px] px-6 py-20">
-        <Reveal>
-          <p className="u-eyebrow mb-3">
-            <span className="text-ink-3">05</span> · portable go api
-          </p>
-          <h2 className="text-3xl font-bold tracking-[-0.01em] text-ink">
-            Or skip HTTP entirely.
-          </h2>
-          <p className="mt-4 max-w-[60ch] text-base leading-relaxed text-ink-2">
-            The same backend behind typed Go interfaces — one shape across all
-            three providers. Switch tabs: the calls don&apos;t change, only the
-            service names do.
-          </p>
-        </Reveal>
-        <Reveal delay={60} className="mt-8">
-          <MorphCode snippets={SNIPPETS} className="max-w-[860px]" />
-        </Reveal>
+    <section className="w-full max-w-4xl mx-auto px-6 py-16">
+      <h2 className="text-3xl font-bold text-center mb-2">Or use the Portable Go API</h2>
+      <p className="text-fd-muted-foreground text-center mb-10">
+        Same shape across AWS, Azure, GCP, and OCI — switch providers by changing one line
+      </p>
+      <div className="rounded-xl border border-fd-border bg-fd-card overflow-hidden shadow-lg">
+        {/* macOS-style window chrome */}
+        <div className="flex items-center gap-2 px-4 py-3 border-b border-fd-border bg-fd-secondary/50">
+          <span className="w-2.5 h-2.5 rounded-full bg-fd-muted-foreground/25" />
+          <span className="w-2.5 h-2.5 rounded-full bg-fd-muted-foreground/25" />
+          <span className="w-2.5 h-2.5 rounded-full bg-fd-muted-foreground/25" />
+          <span className="ml-2 text-xs text-fd-muted-foreground font-mono">
+            {tabs[active].label.toLowerCase()}_setup.go
+          </span>
+        </div>
+
+        {/* Provider tabs */}
+        <div className="flex border-b border-fd-border">
+          {tabs.map((tab, i) => (
+            <button
+              key={tab.label}
+              onClick={() => setActive(i)}
+              className={`px-6 py-3 text-sm font-medium transition-colors ${
+                active === i
+                  ? 'bg-fd-card border-b-2 text-fd-foreground'
+                  : 'text-fd-muted-foreground hover:text-fd-foreground hover:bg-fd-secondary/50'
+              }`}
+              style={active === i ? { borderBottomColor: tab.color } : undefined}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        <pre className="p-6 overflow-x-auto" style={{ background: 'hsl(26, 9%, 13%)' }}>
+          <code className="text-sm font-mono leading-relaxed" style={{ color: '#e6e6e6' }}>
+            <HighlightedGo code={tabs[active].code} />
+          </code>
+        </pre>
       </div>
     </section>
   );

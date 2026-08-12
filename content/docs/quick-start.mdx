@@ -2,21 +2,18 @@
 title: Quick Start
 description: Drop cloudemu in front of the real cloud SDK in 5 minutes
 ---
-
-Stand up the **SDK-compat HTTP server**, point a real `aws-sdk-go-v2` client at it, run production code unchanged.
+The fastest path to using cloudemu: spin up the **SDK-compat HTTP server**, point a real `aws-sdk-go-v2` (or Azure / GCP equivalent) client at it, and call your existing production code unchanged.
 
 No mocks. No Docker. No cloud accounts. Just `go get` and an `httptest.NewServer`.
 
-<div className="u-steps">
-
-## Install
+## 1. Install
 
 ```bash
-go get github.com/stackshy/cloudemu/v2
+go get github.com/stackshy/cloudemu
 go get github.com/aws/aws-sdk-go-v2/service/s3
 ```
 
-## Stand up cloudemu over HTTP
+## 2. Stand up cloudemu over HTTP
 
 ```go
 package main
@@ -32,8 +29,8 @@ import (
     "github.com/aws/aws-sdk-go-v2/credentials"
     "github.com/aws/aws-sdk-go-v2/service/s3"
 
-    "github.com/stackshy/cloudemu/v2"
-    awsserver "github.com/stackshy/cloudemu/v2/server/aws"
+    "github.com/stackshy/cloudemu"
+    awsserver "github.com/stackshy/cloudemu/server/aws"
 )
 
 func main() {
@@ -53,11 +50,11 @@ func main() {
     defer ts.Close()
 ```
 
-## Use the real `aws-sdk-go-v2` client
+## 3. Use the real `aws-sdk-go-v2` client
 
 The only thing that changes vs. real AWS is `BaseEndpoint`. Every other line of your production code stays identical.
 
-```go title="main.go"
+```go
     cfg, _ := awsconfig.LoadDefaultConfig(ctx,
         awsconfig.WithRegion("us-east-1"),
         awsconfig.WithCredentialsProvider(
@@ -66,7 +63,7 @@ The only thing that changes vs. real AWS is `BaseEndpoint`. Every other line of 
     )
 
     client := s3.NewFromConfig(cfg, func(o *s3.Options) {
-        o.BaseEndpoint = aws.String(ts.URL) // [!code focus]
+        o.BaseEndpoint = aws.String(ts.URL)
         o.UsePathStyle = true
     })
 
@@ -95,40 +92,29 @@ The only thing that changes vs. real AWS is `BaseEndpoint`. Every other line of 
 go run main.go
 ```
 
-Done. Real SDK, in-memory backend, ~10 ms per call.
-
-</div>
+Done. Real SDK, in-memory backend, ~10ms per call.
 
 ## What just happened
 
-<RequestFlow />
+```
+your test code
+   │
+   ▼
+real aws-sdk-go-v2 client  ──HTTP──▶  awsserver.New (httptest)
+                                          │
+                                          ▼
+                            cloudemu in-memory backend
+```
 
 The server speaks the actual AWS wire protocol (S3 REST + XML, DynamoDB JSON-RPC, EC2 query, SQS `AwsJson1_0`, CloudWatch Smithy CBOR, Lambda REST). The SDK can't tell the difference between this and `s3.amazonaws.com`.
 
 ## Same pattern, every provider
 
-The Azure and GCP servers are drop-in replacements. The tabs below stay in sync across the whole site — pick your provider once.
+The Azure and GCP servers are drop-in replacements:
 
-<ProviderTabs>
-<ProviderTab value="aws">
-
-```go title="aws_server.go"
-import awsserver "github.com/stackshy/cloudemu/v2/server/aws"
-
-cloud := cloudemu.NewAWS()
-ts := httptest.NewServer(awsserver.New(awsserver.Drivers{
-    S3: cloud.S3, DynamoDB: cloud.DynamoDB, EC2: cloud.EC2,
-    Lambda: cloud.Lambda, SQS: cloud.SQS, CloudWatch: cloud.CloudWatch,
-}))
-// s3.NewFromConfig with o.BaseEndpoint = ts.URL → done.
-```
-
-</ProviderTab>
-<ProviderTab value="azure">
-
-```go title="azure_server.go"
-// TLS required — the SDK rejects bearer tokens over plain HTTP.
-import azureserver "github.com/stackshy/cloudemu/v2/server/azure"
+```go
+// Azure — TLS required, the SDK rejects bearer tokens over plain HTTP.
+import azureserver "github.com/stackshy/cloudemu/server/azure"
 
 cp := cloudemu.NewAzure()
 ts := httptest.NewTLSServer(azureserver.New(azureserver.Drivers{
@@ -139,12 +125,9 @@ ts := httptest.NewTLSServer(azureserver.New(azureserver.Drivers{
 // armcompute.NewVirtualMachinesClient with ts.URL → done.
 ```
 
-</ProviderTab>
-<ProviderTab value="gcp">
-
-```go title="gcp_server.go"
-// REST endpoint via google.golang.org/api or the cloud.google.com/go SDKs.
-import gcpserver "github.com/stackshy/cloudemu/v2/server/gcp"
+```go
+// GCP — REST endpoint via google.golang.org/api or the cloud.google.com/go SDKs.
+import gcpserver "github.com/stackshy/cloudemu/server/gcp"
 
 cp := cloudemu.NewGCP()
 ts := httptest.NewServer(gcpserver.New(gcpserver.Drivers{
@@ -155,38 +138,21 @@ ts := httptest.NewServer(gcpserver.New(gcpserver.Drivers{
 // option.WithEndpoint(ts.URL) on any cloud.google.com/go client → done.
 ```
 
-</ProviderTab>
-</ProviderTabs>
+## Currently SDK-compat-shipped
 
-## SDK-compat coverage
-
-Every domain ships HTTP wire-format handlers across all 3 providers:
+7 service domains have HTTP wire-format handlers across all 3 providers:
 
 | Domain | AWS | Azure | GCP |
 |--------|-----|-------|-----|
 | Storage | S3 | Blob | GCS |
 | Compute | EC2 + full VPC stack | Virtual Machines + Disks/Snapshots/Images | Compute Engine + Disks/Snapshots/Images |
-| Database (NoSQL) | DynamoDB | Cosmos DB | Firestore |
-| Relational DB | RDS + Redshift | SQL + Postgres/MySQL Flex | Cloud SQL |
+| Database | DynamoDB | Cosmos DB | Firestore |
 | Networking | (in EC2) | VNet | VPC + Firewalls |
 | Monitoring | CloudWatch | Azure Monitor | Cloud Monitoring |
 | Serverless | Lambda | Functions | Cloud Functions |
-| Kubernetes | EKS | AKS | GKE |
 | Message Queue | SQS | Service Bus | Pub/Sub |
-| Logging | CloudWatch Logs | Log Analytics | Cloud Logging |
-| DNS | Route 53 | Azure DNS | Cloud DNS |
-| Load Balancer | ELBv2 | Load Balancer | Cloud Load Balancing |
-| Cache | ElastiCache | Azure Cache | Memorystore |
-| Secrets | Secrets Manager | Key Vault | Secret Manager |
-| Notification | SNS | Notification Hubs | FCM |
-| Event Bus | EventBridge | Event Grid | Eventarc |
-| IAM | IAM | IAM | IAM |
-| Container Registry | ECR | ACR | Artifact Registry |
-| Resource Discovery | Resource Explorer + Tagging | Resource Graph | Cloud Asset Inventory |
 
-Plus provider-specific **Generative AI** (Bedrock + SageMaker on AWS, Vertex AI on GCP) and **Databricks** (Azure). Kubernetes also ships a shared in-memory data plane that `client-go` / `kubectl` drive end-to-end.
-
-Everything is equally reachable through the [Portable Go API](/docs/portable-api) when you'd rather skip HTTP.
+The remaining 9 domains (IAM, DNS, Load Balancer, Notification, Event Bus, Container Registry, Cache, Secrets, Logging) are **available today via the [Portable Go API](/docs/portable-api)**; SDK-compat handlers ship in lockstep across all 3 providers as each domain lands.
 
 ## Next steps
 

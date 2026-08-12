@@ -2,14 +2,12 @@
 title: Error Injection
 description: Simulate cloud failures deterministically
 ---
-Inject failures — always, every Nth call, probabilistic, or first N — to test retries and error handling.
-
-<FeatureGlyph kind="injection" label="inject.NewNthCall(3)" />
+Simulate various failure modes to test your error handling and resilience.
 
 ## Setup
 
 ```go
-import "github.com/stackshy/cloudemu/v2/features/inject"
+import "github.com/stackshy/cloudemu/inject"
 
 inj := inject.NewInjector()
 
@@ -18,9 +16,9 @@ bucket := storage.NewBucket(aws.S3,
 )
 ```
 
-## Failure policies
+## Failure Policies
 
-### Always fail
+### Always Fail
 
 ```go
 inj.SetPolicy("storage", "PutObject", inject.AlwaysFail(
@@ -28,7 +26,7 @@ inj.SetPolicy("storage", "PutObject", inject.AlwaysFail(
 ))
 ```
 
-### Every nth call
+### Every Nth Call
 
 ```go
 // Fail every 3rd call
@@ -46,7 +44,7 @@ inj.SetPolicy("storage", "PutObject", inject.Probabilistic(0.1,
 ))
 ```
 
-### First N calls
+### First N Calls
 
 ```go
 // First 2 calls fail, rest succeed
@@ -55,14 +53,14 @@ inj.SetPolicy("storage", "PutObject", inject.FirstN(2,
 ))
 ```
 
-## Clear policies
+## Clear Policies
 
 ```go
 inj.ClearPolicy("storage", "PutObject")
 inj.ClearAll()
 ```
 
-## Use cases
+## Use Cases
 
 - Test retry logic with intermittent failures
 - Verify timeout handling when services are unavailable

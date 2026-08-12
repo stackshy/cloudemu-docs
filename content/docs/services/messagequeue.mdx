@@ -1,63 +1,159 @@
 ---
 title: Message Queue
-description: Point-to-point and pub/sub messaging with FIFO, visibility timeouts, and dead-letter queues, modelled on SQS, Service Bus, and Pub/Sub
-aws: SQS
-azure: Service Bus
-gcp: Pub/Sub
+description: Emulate SQS, Azure Service Bus, and Pub/Sub — drive them with the real cloud SDK.
 ---
 
-Emulates a managed message queue — the buffer you drop work onto so a producer and a consumer don't have to run at the same time. You create a named queue (or a Pub/Sub topic + subscription), send messages to it, then receive and delete them from the other side. Received messages stay hidden from other consumers until you delete them or their visibility timeout lapses.
+Send, receive, and acknowledge messages entirely in memory. cloudemu implements the **message-queue surface** of all three clouds — creating queues and topics, publishing and pulling messages, and deleting or acknowledging them once handled. The same SDK code you'd write against real AWS, Azure, or GCP runs against a local server instead: no broker is provisioned, nothing is billed, and every call returns in milliseconds.
 
-Reach for it in tests when your code enqueues jobs, drains a queue, relies on FIFO ordering, or leans on a dead-letter queue for poison messages — so you can exercise those paths without a live broker. Unlike the [event bus](/docs/services/eventbus), consumers pull messages and acknowledge each one, so nothing is lost if a worker crashes mid-batch.
+| Provider | Real service | cloudemu driver |
+|---|---|---|
+| **AWS** | SQS — queues over the `AwsJson1_0` protocol | `aws.SQS` |
+| **Azure** | Service Bus — ARM control plane + REST data plane | `azure.ServiceBus` |
+| **GCP** | Pub/Sub — topics and subscriptions over REST | `gcp.PubSub` |
 
-| Provider | Service | SDK-compat | Driver |
-|----------|---------|:----------:|--------|
-| AWS | SQS (`AwsJson1_0`) | ✓ Live | `aws.SQS` |
-| Azure | Service Bus (ARM control plane + REST data plane) | ✓ Live | `azure.ServiceBus` |
-| GCP | Pub/Sub (REST) | ✓ Live | `gcp.PubSub` |
+There are two ways to drive it, both backed by the same in-memory state:
+
+- **Real cloud SDK** — point your existing `aws-sdk-go-v2`, `azure-sdk-for-go`, or Google API client at a local server. Only the endpoint changes; your real code is untouched — the same client works in a test, a local dev server, or your running app.
+- **Portable Go API** — call cloudemu's Go interface directly from your application code — discover resources, perform actions, skip the HTTP hop entirely. The same method shape works across every cloud, so you can switch providers by changing one field.
 
 ## Drive it with the real SDK
 
-This is the recommended path: point the AWS SDK at a cloudemu test server and the same `sqs` client you use in production talks to the emulator. The create/send/receive/delete cycle below is the full lifecycle of a message — receiving it hides it from other consumers, and deleting it (via the receipt handle) is the acknowledgement that removes it for good.
+cloudemu ships an HTTP server per cloud that speaks that provider's real wire protocol. Run it with `httptest` in a test or behind a real `http.Server` in your app, hand it the drivers you need, and point your normal SDK client at its URL — nothing else in your code changes.
+
+<Tabs items={['AWS', 'Azure', 'GCP']}>
+
+<Tab value="AWS">
 
 ```go
 import (
     "github.com/aws/aws-sdk-go-v2/service/sqs"
-    awsserver "github.com/stackshy/cloudemu/v2/server/aws"
+    awsserver "github.com/stackshy/cloudemu/server/aws"
 )
 
 cloud := cloudemu.NewAWS()
 ts := httptest.NewServer(awsserver.New(awsserver.Drivers{SQS: cloud.SQS}))
 
 client := sqs.NewFromConfig(cfg, func(o *sqs.Options) {
-    o.BaseEndpoint = aws.String(ts.URL)
+    o.BaseEndpoint = aws.String(ts.URL) // the only change from real AWS
 })
 
 q, _ := client.CreateQueue(ctx, &sqs.CreateQueueInput{
     QueueName: aws.String("orders"),
 })
-
 client.SendMessage(ctx, &sqs.SendMessageInput{
     QueueUrl: q.QueueUrl, MessageBody: aws.String("order-123"),
 })
-
 rcv, _ := client.ReceiveMessage(ctx, &sqs.ReceiveMessageInput{
     QueueUrl: q.QueueUrl, MaxNumberOfMessages: 1,
 })
-
 client.DeleteMessage(ctx, &sqs.DeleteMessageInput{
     QueueUrl: q.QueueUrl, ReceiptHandle: rcv.Messages[0].ReceiptHandle,
 })
 ```
 
-The same pattern works for the other providers: `armservicebus` (Azure ARM control plane) plus raw HTTP for the Service Bus data plane — the modern `azservicebus` SDK is AMQP-only and out of scope — and `google.golang.org/api/pubsub/v1` for GCP Pub/Sub. See [SDK-Compat Server](/docs/sdk-compat).
+</Tab>
 
-## Use the Portable Go API
-
-When you don't need a real SDK client, the same driver is callable directly — no HTTP server, no client construction. It's the leanest way to seed a queue or assert on its contents inside a test.
+<Tab value="Azure">
 
 ```go
-import mqdriver "github.com/stackshy/cloudemu/v2/services/messagequeue/driver"
+import (
+    "github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/servicebus/armservicebus"
+    azureserver "github.com/stackshy/cloudemu/server/azure"
+)
+
+cloud := cloudemu.NewAzure()
+ts := httptest.NewTLSServer(azureserver.New(azureserver.Drivers{
+    ServiceBus: cloud.ServiceBus,
+}))
+
+// Point the real armservicebus client at ts (endpoint + ts.Client()).
+client, _ := armservicebus.NewQueuesClient("sub-1", cred, optsFor(ts))
+
+_, _ = client.CreateOrUpdate(ctx, "my-rg", "my-ns", "orders",
+    armservicebus.SBQueue{}, nil)
+
+// The Service Bus data plane is raw REST: POST /{ns}/{queue}/messages to
+// enqueue, DELETE /{ns}/{queue}/messages/head to receive-and-delete.
+```
+
+</Tab>
+
+<Tab value="GCP">
+
+```go
+import (
+    "google.golang.org/api/option"
+    "google.golang.org/api/pubsub/v1"
+    gcpserver "github.com/stackshy/cloudemu/server/gcp"
+)
+
+cloud := cloudemu.NewGCP()
+ts := httptest.NewServer(gcpserver.New(gcpserver.Drivers{PubSub: cloud.PubSub}))
+
+svc, _ := pubsub.NewService(ctx,
+    option.WithEndpoint(ts.URL), // the only change from real GCP
+    option.WithoutAuthentication(),
+    option.WithHTTPClient(ts.Client()),
+)
+
+svc.Projects.Topics.Create("projects/my-project/topics/orders",
+    &pubsub.Topic{}).Do()
+svc.Projects.Topics.Publish("projects/my-project/topics/orders",
+    &pubsub.PublishRequest{Messages: []*pubsub.PubsubMessage{
+        {Data: base64.StdEncoding.EncodeToString([]byte("order-123"))},
+    }}).Do()
+```
+
+</Tab>
+
+</Tabs>
+
+The `azservicebus` data-plane SDK is AMQP-only and out of scope, so Service Bus messages go over raw HTTP REST. See [SDK-Compat Server](/docs/sdk-compat).
+
+## What each provider supports
+
+Not every provider exposes the same operations — cloudemu matches what each cloud's own API offers.
+
+<Tabs items={['AWS', 'Azure', 'GCP']}>
+
+<Tab value="AWS">
+
+**SQS** — `CreateQueue`, `GetQueueUrl`, `ListQueues`, and `DeleteQueue` for the queue lifecycle, plus `SendMessage`, `ReceiveMessage`, and `DeleteMessage` to move messages through it.
+
+</Tab>
+
+<Tab value="Azure">
+
+**Service Bus** — the ARM control plane offers full CRUD over `Microsoft.ServiceBus/namespaces` and their queues. The data plane is raw REST: `POST /{ns}/{queue}/messages` to enqueue and `DELETE /{ns}/{queue}/messages/head` to receive-and-delete the message at the head of the queue.
+
+</Tab>
+
+<Tab value="GCP">
+
+**Pub/Sub** — the full topic and subscription lifecycle, plus the `:publish`, `:pull`, and `:acknowledge` actions to push messages onto a topic and pull them off a subscription.
+
+</Tab>
+
+</Tabs>
+
+## How the emulator behaves
+
+cloudemu doesn't just store messages — it reproduces the delivery semantics of the real service, so your code exercises realistic behavior instead of a dumb list:
+
+- **FIFO deduplication.** FIFO queues enforce a 5-minute deduplication window keyed on `MessageDeduplicationId`, so a message resent inside that window is silently dropped — exactly like real SQS.
+- **Visibility timeout.** A received message becomes invisible to other consumers until its timeout expires or it is deleted, so two concurrent pulls don't hand out the same message twice.
+- **Dead-letter queues.** A message that exceeds its `MaxReceiveCount` moves to the configured dead-letter queue automatically, instead of being redelivered forever.
+
+## Or call the Portable Go API directly
+
+When you don't need the HTTP layer, call cloudemu's Go interface directly inside your application — discovery, provisioning, teardown — no server, no wire protocol. The method shape is identical across clouds, so switching providers is a one-line change.
+
+<Tabs items={['AWS', 'Azure', 'GCP']}>
+
+<Tab value="AWS">
+
+```go
+import mqdriver "github.com/stackshy/cloudemu/messagequeue/driver"
 
 q, _ := aws.SQS.CreateQueue(ctx, mqdriver.QueueConfig{Name: "orders"})
 aws.SQS.SendMessage(ctx, mqdriver.SendMessageInput{
@@ -68,12 +164,40 @@ msgs, _ := aws.SQS.ReceiveMessages(ctx, mqdriver.ReceiveMessageInput{
 })
 ```
 
-## Behavior & fidelity
+</Tab>
 
-| Behavior | What happens |
-|----------|--------------|
-| FIFO ordering and dedup | FIFO queues deliver in order within a `GroupID` and drop duplicates sharing a `DeduplicationID` within a 5-minute window — drive that window with the [fake clock](/docs/features/fake-clock). |
-| Visibility timeout | A received message stays invisible to other consumers until it's deleted or the timeout expires, then becomes receivable again — so an un-acked message is redelivered, not lost. |
-| Dead-letter queues | A message received more than `MaxReceiveCount` times moves automatically to the configured DLQ, mirroring the redrive policy on real SQS. |
+<Tab value="Azure">
 
-**SDK-compat status — Live across all three providers.** SQS, Service Bus, and Pub/Sub all accept their real SDK/REST clients today for the operations listed above (CreateQueue, GetQueueUrl, ListQueues, DeleteQueue, SendMessage, ReceiveMessage, DeleteMessage on SQS; ARM `Microsoft.ServiceBus/namespaces[/queues]` CRUD plus the REST data plane on Service Bus; topic/subscription lifecycle, `:publish`, `:pull`, `:acknowledge` on Pub/Sub). Batch ops, `ChangeMessageVisibility`, queue attributes, and `PurgeQueue` are available through the Portable Go API but not yet on the SDK-compat surface.
+```go
+import mqdriver "github.com/stackshy/cloudemu/messagequeue/driver"
+
+q, _ := azure.ServiceBus.CreateQueue(ctx, mqdriver.QueueConfig{Name: "orders"})
+azure.ServiceBus.SendMessage(ctx, mqdriver.SendMessageInput{
+    QueueURL: q.URL, Body: "order-123",
+})
+msgs, _ := azure.ServiceBus.ReceiveMessages(ctx, mqdriver.ReceiveMessageInput{
+    QueueURL: q.URL, MaxMessages: 1,
+})
+```
+
+</Tab>
+
+<Tab value="GCP">
+
+```go
+import mqdriver "github.com/stackshy/cloudemu/messagequeue/driver"
+
+q, _ := gcp.PubSub.CreateQueue(ctx, mqdriver.QueueConfig{Name: "orders"})
+gcp.PubSub.SendMessage(ctx, mqdriver.SendMessageInput{
+    QueueURL: q.URL, Body: "order-123",
+})
+msgs, _ := gcp.PubSub.ReceiveMessages(ctx, mqdriver.ReceiveMessageInput{
+    QueueURL: q.URL, MaxMessages: 1,
+})
+```
+
+</Tab>
+
+</Tabs>
+
+Batch message operations (`SendMessageBatch`, `DeleteMessageBatch`) are available on the Portable Go API but not yet on the SDK-compat surface. Everything else — `ChangeMessageVisibility`, queue attributes, and `PurgeQueue` — works over both.

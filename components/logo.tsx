@@ -1,49 +1,61 @@
 import type { SVGProps } from 'react';
 
 /**
- * Logo: a cloud silhouette holding three connected nodes — the three
- * providers emulated inside cloudemu. Monochrome: the mark inherits
- * currentColor so it sits quietly in any context.
+ * Logo: the cloudemu mark — motion lines, a cloud, and a terminal prompt
+ * (chevron + cursor bar) inside it. "The cloud, in memory."
  *
- * Renders crisply from 16px (favicon) up to display sizes.
+ * Theme-adaptive: the cloud and chevron swap fills via CSS variables
+ * (`--logo-cloud` / `--logo-chevron`, defined in global.css) so the mark reads
+ * on both light and dark backgrounds. The cursor bar stays Ember on both — the
+ * one always-warm element. The icon's aspect ratio is ~1.9:1.
+ *
+ * Renders crisply from favicon sizes up to display sizes.
  */
 export function Logo({ style, ...rest }: SVGProps<SVGSVGElement>) {
   return (
     <svg
-      viewBox="0 0 32 32"
+      viewBox="0 0 150 78"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       aria-label="cloudemu"
       role="img"
-      style={{ display: 'block', flexShrink: 0, color: 'var(--text-1)', ...style }}
+      style={{ display: 'block', flexShrink: 0, ...style }}
       {...rest}
     >
-      {/* Cloud silhouette — overlapping circles + a rounded base */}
-      <g fill="currentColor">
-        <circle cx="9" cy="15" r="7" />
-        <circle cx="18" cy="11" r="9" />
-        <circle cx="25" cy="15" r="6" />
-        <rect x="6" y="14" width="22" height="10" rx="5" />
+      {/* Motion lines — the "in memory" speed streaks. Solid fills with a
+          descending opacity fade (no shared gradient <defs>) so they always
+          paint, even when several logos share a page. */}
+      <g fill="var(--logo-line, #ff6b2c)">
+        <rect x="16" y="34" width="53" height="4.5" rx="2.25" opacity="0.55" />
+        <rect x="10" y="46" width="49" height="4.5" rx="2.25" opacity="0.78" />
+        <rect x="6" y="58" width="50" height="4.5" rx="2.25" opacity="1" />
       </g>
 
-      {/* Three connected service nodes, knocked out of the silhouette */}
+      {/* Cloud body */}
+      <g fill="var(--logo-cloud, #f1efe7)">
+        <circle cx="96" cy="45" r="23" />
+        <circle cx="128" cy="53" r="16" />
+        <circle cx="76" cy="55" r="15" />
+        <rect x="76" y="51" width="68" height="20" rx="10" />
+      </g>
+
+      {/* Terminal prompt: chevron + Ember cursor bar */}
       <path
-        d="M11 19L18 22L25 19"
-        stroke="var(--bg)"
-        strokeWidth="1.2"
+        d="M90 40 L99 48.5 L90 57"
+        stroke="var(--logo-chevron, #101613)"
+        strokeWidth="6.5"
         strokeLinecap="round"
         strokeLinejoin="round"
         fill="none"
       />
-      <circle cx="11" cy="19" r="1.6" fill="var(--bg)" />
-      <circle cx="18" cy="22" r="1.6" fill="var(--bg)" />
-      <circle cx="25" cy="19" r="1.6" fill="var(--bg)" />
+      <rect x="105" y="51.5" width="17" height="6" rx="3" fill="#FF6B2C" />
     </svg>
   );
 }
 
 /**
- * LogoMark: icon + wordmark for nav bars. Solid ink — no accent letters.
+ * LogoMark: the icon paired with the wordmark, for nav bars. The wordmark uses
+ * the foreground color (matching the brand lockup); the icon carries the color.
  */
 export function LogoMark({
   className,
@@ -52,26 +64,21 @@ export function LogoMark({
   className?: string;
   size?: 'md' | 'lg';
 }) {
-  const iconPx = size === 'lg' ? 30 : 24;
-  const textCls = size === 'lg' ? 'text-xl' : 'text-[17px]';
+  const iconH = size === 'lg' ? 34 : 26;
+  const iconW = Math.round(iconH * 1.92);
+  const textCls = size === 'lg' ? 'text-2xl' : 'text-xl';
 
   return (
     <span
       className={`${className ?? ''}`}
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: 8,
-      }}
+      style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}
     >
       <Logo
-        width={iconPx}
-        height={iconPx}
-        style={{ width: iconPx, height: iconPx, flexShrink: 0, display: 'block' }}
+        width={iconW}
+        height={iconH}
+        style={{ width: iconW, height: iconH, flexShrink: 0, display: 'block' }}
       />
-      <span className={`font-semibold ${textCls} tracking-tight text-ink`}>
-        cloudemu
-      </span>
+      <span className={`font-extrabold ${textCls} tracking-tight`}>cloudemu</span>
     </span>
   );
 }

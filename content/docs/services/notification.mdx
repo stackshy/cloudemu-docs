@@ -1,59 +1,224 @@
 ---
 title: Notification
-description: Pub/sub topics with fan-out to multiple subscribers and attribute filtering, modelled on SNS, Notification Hubs, and FCM
-aws: SNS
-azure: Notification Hubs
-gcp: FCM
+description: Emulate SNS, Azure Notification Hubs, and FCM — topics, subscriptions, and message fan-out in memory.
 ---
 
-Emulates a managed pub/sub notification service — the topic you publish one message to and have it fanned out to every subscriber at once. You create a topic, attach subscriptions that each point at an endpoint (an email address, an HTTP webhook, an SQS queue), then publish; the message is delivered to all matching subscriptions.
+Model pub/sub notifications entirely in memory. cloudemu implements the **topic-and-subscription** shape of all three clouds — creating topics, subscribing endpoints to them, and publishing messages that fan out to every subscriber. No SNS topic is ever created, nothing is billed, and every call returns in milliseconds, so your code can wire up a topic, subscribe a queue, publish, and assert on delivery without touching a real cloud account.
 
-Reach for it in tests when your code announces an event to several independent consumers and you don't want a queue's pull-and-ack cycle — publish is fire-and-forget fan-out. Unlike the [message queue](/docs/services/messagequeue), there's no per-consumer acknowledgement: a subscriber either matches the message or it doesn't.
+| Provider | Real service | cloudemu driver |
+|---|---|---|
+| **AWS** | SNS — topics, subscriptions, and SNS → SQS fan-out | `aws.SNS` |
+| **Azure** | Notification Hubs | `azure.NotificationHubs` |
+| **GCP** | Firebase Cloud Messaging (FCM) | `gcp.FCM` |
 
-| Provider | Service | SDK-compat | Driver |
-|----------|---------|:----------:|--------|
-| AWS | SNS | ✓ Live | `aws.SNS` |
-| Azure | Notification Hubs | ✓ Live | `azure.NotificationHubs` |
-| GCP | FCM | ✓ Live | `gcp.FCM` |
+There are two ways to drive it, both backed by the same in-memory state:
 
-## Create a topic and subscribe endpoints
+- **Real cloud SDK** — point your existing `aws-sdk-go-v2/service/sns`, `armnotificationhubs`, or FCM (`google.golang.org/api/fcm/v1`) client at a local server. Only the endpoint changes; your real code is untouched — the same client works in a test, a local dev server, or your running app.
+- **Portable Go API** — call cloudemu's Go interface directly from your application code — discover resources, perform actions, skip the HTTP hop entirely. The same method shape works across every cloud, so you can switch providers by changing one field.
 
-A topic is the fan-out point; subscriptions are the endpoints it delivers to. Create the topic first, then attach one subscription per consumer — each names a `Protocol` (`email`, `sms`, `http`, `https`, `sqs`, `lambda`) and the `Endpoint` to reach it at.
+## Drive it with the real SDK
+
+cloudemu ships an HTTP server per cloud that speaks that provider's real wire protocol. Run it with `httptest` in a test or behind a real `http.Server` in your app, hand it the drivers you need, and point your normal SDK client at its URL — nothing else in your code changes.
+
+<Tabs items={['AWS', 'Azure', 'GCP']}>
+
+<Tab value="AWS">
 
 ```go
-import notifdriver "github.com/stackshy/cloudemu/v2/services/notification/driver"
+import (
+    "github.com/aws/aws-sdk-go-v2/aws"
+    awssns "github.com/aws/aws-sdk-go-v2/service/sns"
+    snstypes "github.com/aws/aws-sdk-go-v2/service/sns/types"
+    awsserver "github.com/stackshy/cloudemu/server/aws"
+)
+
+cloud := cloudemu.NewAWS()
+ts := httptest.NewServer(awsserver.New(awsserver.Drivers{SNS: cloud.SNS}))
+
+client := awssns.NewFromConfig(cfg, func(o *awssns.Options) {
+    o.BaseEndpoint = aws.String(ts.URL) // the only change from real AWS
+})
+
+topic, _ := client.CreateTopic(ctx, &awssns.CreateTopicInput{
+    Name: aws.String("order-events"),
+    Tags: []snstypes.Tag{{Key: aws.String("env"), Value: aws.String("test")}},
+})
+client.Subscribe(ctx, &awssns.SubscribeInput{
+    TopicArn: topic.TopicArn,
+    Protocol: aws.String("email"),
+    Endpoint: aws.String("ops@example.com"),
+})
+```
+
+</Tab>
+
+<Tab value="Azure">
+
+```go
+import (
+    "github.com/Azure/azure-sdk-for-go/sdk/azcore/to"
+    "github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/notificationhubs/armnotificationhubs"
+    azureserver "github.com/stackshy/cloudemu/server/azure"
+)
+
+cloud := cloudemu.NewAzure()
+ts := httptest.NewTLSServer(azureserver.New(azureserver.Drivers{
+    NotificationHubs: cloud.NotificationHubs,
+}))
+
+// Point the real armnotificationhubs factory at ts (endpoint + ts.Client()).
+cf, _ := armnotificationhubs.NewClientFactory("sub-1", cred, optsFor(ts))
+namespaces := cf.NewNamespacesClient()
+
+created, _ := namespaces.CreateOrUpdate(ctx, "rg-1", "my-ns",
+    armnotificationhubs.NamespaceCreateOrUpdateParameters{
+        Location: to.Ptr("global"),
+        Tags:     map[string]*string{"env": to.Ptr("test")},
+    }, nil)
+```
+
+</Tab>
+
+<Tab value="GCP">
+
+```go
+import (
+    fcm "google.golang.org/api/fcm/v1"
+    "google.golang.org/api/option"
+    gcpserver "github.com/stackshy/cloudemu/server/gcp"
+)
+
+cloud := cloudemu.NewGCP()
+ts := httptest.NewServer(gcpserver.New(gcpserver.Drivers{FCM: cloud.FCM}))
+
+svc, _ := fcm.NewService(ctx,
+    option.WithEndpoint(ts.URL), // the only change from real GCP
+    option.WithoutAuthentication(),
+)
+
+resp, _ := svc.Projects.Messages.Send("projects/demo", &fcm.SendMessageRequest{
+    Message: &fcm.Message{
+        Topic: "weather",
+        Notification: &fcm.Notification{
+            Title: "Storm warning",
+            Body:  "Batten down the hatches",
+        },
+        Data: map[string]string{"severity": "high"},
+    },
+}).Context(ctx).Do()
+```
+
+</Tab>
+
+</Tabs>
+
+## What each provider supports
+
+All three providers implement the same notification interface, so the operations are identical — cloudemu just maps them onto each cloud's own vocabulary.
+
+<Tabs items={['AWS', 'Azure', 'GCP']}>
+
+<Tab value="AWS">
+
+**SNS topics** — full CRUD via `CreateTopic`, `UpdateTopic` (display name and tags), `GetTopic`, `ListTopics`, and `DeleteTopic`.
+
+**Subscriptions** — `Subscribe`, `Unsubscribe`, and `ListSubscriptions`, with the standard SNS protocols: `email`, `sms`, `http`, `https`, `sqs`, and `lambda`.
+
+**Publishing** — `Publish` carries a subject, a message body, and arbitrary message attributes, and fans the message out to every subscriber on the topic.
+
+</Tab>
+
+<Tab value="Azure">
+
+**Topics** — full CRUD via `CreateTopic`, `UpdateTopic`, `GetTopic`, `ListTopics`, and `DeleteTopic`. `UpdateTopic` mirrors ARM's `CreateOrUpdate` on an existing resource, replacing the display name and tags. Topics are scoped to a subscription and resource group.
+
+**Subscriptions** — `Subscribe`, `Unsubscribe`, and `ListSubscriptions` register and enumerate the endpoints attached to a topic.
+
+**Publishing** — `Publish` sends a message with a subject, body, and attributes to the topic's subscribers.
+
+</Tab>
+
+<Tab value="GCP">
+
+**Topics** — full CRUD via `CreateTopic`, `UpdateTopic`, `GetTopic`, `ListTopics`, and `DeleteTopic`. Topics are scoped to a project.
+
+**Subscriptions** — `Subscribe`, `Unsubscribe`, and `ListSubscriptions` manage the endpoints subscribed to a topic.
+
+**Publishing** — `Publish` delivers a message, with a subject, body, and attributes, to every subscriber.
+
+</Tab>
+
+</Tabs>
+
+## How the emulator behaves
+
+cloudemu doesn't just store topics — it reproduces the side effects of publishing, so your code exercises realistic delivery instead of a dumb key-value store:
+
+- **Publishing fans out to SQS.** When the SNS backend is wired to the SQS backend, publishing to a topic delivers the SNS envelope JSON into every `sqs`-protocol subscription's queue — so your code can publish and then poll the queue, exactly like real SNS → SQS.
+- **Topics track their subscribers.** Each topic's `SubscriptionCount` reflects the subscriptions currently attached, and `ListSubscriptions` returns them with their protocol, endpoint, and confirmation status.
+- **Listing respects scope.** `ListTopics` filters by scope, so Azure subscription / resource-group and GCP project boundaries behave the way they do on the real API.
+
+## Or call the Portable Go API directly
+
+Call cloudemu's Go interface directly, in-process. The method shape is identical across clouds, so switching providers is a one-line change to the driver field.
+
+<Tabs items={['AWS', 'Azure', 'GCP']}>
+
+<Tab value="AWS">
+
+```go
+import notifdriver "github.com/stackshy/cloudemu/notification/driver"
 
 topic, _ := aws.SNS.CreateTopic(ctx, notifdriver.TopicConfig{
     Name: "order-events",
 })
-
-sub, _ := aws.SNS.Subscribe(ctx, notifdriver.SubscriptionConfig{
-    TopicID:  topic.ID,
-    Protocol: "email",
-    Endpoint: "team@example.com",
+aws.SNS.Subscribe(ctx, notifdriver.SubscriptionConfig{
+    TopicID: topic.ID, Protocol: "email", Endpoint: "team@example.com",
 })
-```
-
-## Publish a message
-
-`Publish` fans one message out to every subscription on the topic. The `Attributes` map rides along with the message so subscribers can filter on it — a subscription with a matching filter policy receives the message, others are skipped.
-
-```go
 aws.SNS.Publish(ctx, notifdriver.PublishInput{
-    TopicID: topic.ID,
-    Message: "New order received",
+    TopicID: topic.ID, Message: "New order received",
     Attributes: map[string]string{"orderType": "express"},
 })
 ```
 
-## Behavior & fidelity
+</Tab>
 
-| Behavior | What happens |
-|----------|--------------|
-| Fan-out delivery | One `Publish` reaches every subscription on the topic; adding or removing a subscription changes the recipient set for later publishes with no change to the producer. |
-| Attribute filtering | Message `Attributes` are matched against each subscription's filter policy, so one topic can route to different subscribers by attribute — mirroring SNS message-attribute filtering. |
-| Subscription status | New subscriptions carry a `confirmed`/`pending` status, matching the SNS confirmation handshake rather than assuming every endpoint is immediately live. |
+<Tab value="Azure">
 
-## SDK-compat — Live
+```go
+import notifdriver "github.com/stackshy/cloudemu/notification/driver"
 
-Real SNS, Notification Hubs, and FCM clients drive it end-to-end. See [SDK-Compat](/docs/sdk-compat) for the full operation list.
+topic, _ := azure.NotificationHubs.CreateTopic(ctx, notifdriver.TopicConfig{
+    Name: "order-events",
+})
+azure.NotificationHubs.Subscribe(ctx, notifdriver.SubscriptionConfig{
+    TopicID: topic.ID, Protocol: "email", Endpoint: "team@example.com",
+})
+azure.NotificationHubs.Publish(ctx, notifdriver.PublishInput{
+    TopicID: topic.ID, Message: "New order received",
+    Attributes: map[string]string{"orderType": "express"},
+})
+```
+
+</Tab>
+
+<Tab value="GCP">
+
+```go
+import notifdriver "github.com/stackshy/cloudemu/notification/driver"
+
+topic, _ := gcp.FCM.CreateTopic(ctx, notifdriver.TopicConfig{
+    Name: "order-events",
+})
+gcp.FCM.Subscribe(ctx, notifdriver.SubscriptionConfig{
+    TopicID: topic.ID, Protocol: "email", Endpoint: "team@example.com",
+})
+gcp.FCM.Publish(ctx, notifdriver.PublishInput{
+    TopicID: topic.ID, Message: "New order received",
+    Attributes: map[string]string{"orderType": "express"},
+})
+```
+
+</Tab>
+
+</Tabs>
