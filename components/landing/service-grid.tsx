@@ -1,13 +1,14 @@
 'use client';
 
 import Link from 'next/link';
-import { motion, useReducedMotion, type Variants } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import {
   Server, HardDrive, Database, Zap, Network, Activity,
   Shield, Globe, GitBranch, MessageSquare, Bell, Radio,
   Box, MemoryStick, Lock, FileText,
 } from 'lucide-react';
 import { services } from '@/lib/services';
+import { fadeUp, staggerContainer, viewportOnce } from '@/lib/motion';
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Server, HardDrive, Database, Zap, Network, Activity,
@@ -25,15 +26,6 @@ const PROVIDER = {
 export function ServiceGrid() {
   const reduce = useReducedMotion();
 
-  const container: Variants = {
-    hidden: {},
-    show: { transition: { staggerChildren: 0.04 } },
-  };
-  const item: Variants = {
-    hidden: { opacity: 0, y: 12 },
-    show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] } },
-  };
-
   return (
     <section className="w-full max-w-5xl mx-auto px-6 py-20">
       <div className="mb-4 max-w-2xl">
@@ -44,25 +36,43 @@ export function ServiceGrid() {
       </div>
 
       <motion.div
-        variants={reduce ? undefined : container}
+        variants={reduce ? undefined : staggerContainer(0.04)}
         initial={reduce ? false : 'hidden'}
         whileInView={reduce ? undefined : 'show'}
-        viewport={{ once: true, amount: 0.1 }}
+        viewport={viewportOnce}
         className="grid grid-cols-1 md:grid-cols-2 md:gap-x-10"
       >
         {services.map((service) => {
           const Icon = iconMap[service.icon];
           return (
-            <motion.div key={service.slug} variants={reduce ? undefined : item}>
+            <motion.div key={service.slug} variants={reduce ? undefined : fadeUp(0, 12)}>
               <Link
                 href={`/docs/services/${service.slug}`}
-                className="group flex items-baseline justify-between gap-4 py-4 border-t border-fd-border hover:border-fd-primary/50 transition-colors"
+                className="group relative flex items-baseline justify-between gap-4 py-4 border-t border-fd-border transition-colors duration-200 hover:border-ember-500/60"
               >
-                <span className="flex items-center gap-2.5 shrink-0">
+                <span
+                  aria-hidden
+                  className={
+                    'pointer-events-none absolute left-0 top-[-1px] h-[2px] rounded-full bg-ember-500 origin-left ' +
+                    'w-8 opacity-0 transition-[opacity,transform] duration-200 ease-out group-hover:opacity-100' +
+                    (reduce ? '' : ' -translate-x-2 group-hover:translate-x-0')
+                  }
+                />
+                <span
+                  className={
+                    'flex items-center gap-2.5 shrink-0 transition-transform duration-200 ease-out' +
+                    (reduce ? '' : ' group-hover:translate-x-[2px]')
+                  }
+                >
                   {Icon && (
-                    <Icon className="w-4 h-4 text-fd-muted-foreground group-hover:text-fd-primary transition-colors" />
+                    <Icon
+                      className={
+                        'w-4 h-4 text-fd-muted-foreground transition-[color,transform] duration-200 ease-out group-hover:text-ember-500' +
+                        (reduce ? '' : ' group-hover:-translate-y-[1px]')
+                      }
+                    />
                   )}
-                  <span className="font-medium group-hover:text-fd-primary transition-colors">
+                  <span className="font-medium transition-colors duration-200 group-hover:text-ember-500">
                     {service.category}
                   </span>
                 </span>
