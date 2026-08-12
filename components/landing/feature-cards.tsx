@@ -1,11 +1,14 @@
 'use client';
 
-import { motion, useReducedMotion, type Variants } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
+
+import { DUR, EASE, fadeUp, staggerContainer, viewportOnce } from '@/lib/motion';
 
 /**
  * FeatureCards: the eight behaviors that separate cloudemu from a dumb mock,
  * rendered as a clean monospace ledger — key · description · a small inline
- * visual — instead of boxed cards. Rows stagger in on scroll.
+ * visual — instead of boxed cards. Rows stagger in on scroll; each row's
+ * micro-visual animates itself into being when it scrolls into view.
  */
 
 const EMBER = '#FF6B2C';
@@ -60,15 +63,6 @@ const features: { key: string; desc: string; viz: VizKind }[] = [
 export function FeatureCards() {
   const reduce = useReducedMotion();
 
-  const container: Variants = {
-    hidden: {},
-    show: { transition: { staggerChildren: 0.08 } },
-  };
-  const row: Variants = {
-    hidden: { opacity: 0, y: 14 },
-    show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] } },
-  };
-
   return (
     <section className="w-full max-w-5xl mx-auto px-6 py-20">
       <div className="mb-4 max-w-2xl">
@@ -80,16 +74,16 @@ export function FeatureCards() {
       </div>
 
       <motion.div
-        variants={reduce ? undefined : container}
+        variants={reduce ? undefined : staggerContainer()}
         initial={reduce ? false : 'hidden'}
         whileInView={reduce ? undefined : 'show'}
-        viewport={{ once: true, amount: 0.15 }}
+        viewport={viewportOnce}
         className="border-b border-fd-border"
       >
         {features.map((f) => (
           <motion.div
             key={f.key}
-            variants={reduce ? undefined : row}
+            variants={reduce ? undefined : fadeUp(0, 14)}
             className="group grid grid-cols-[1fr_auto] md:grid-cols-[190px_1fr_120px] items-center gap-x-6 gap-y-1 py-5 border-t border-fd-border"
           >
             <span className="font-mono text-sm text-fd-foreground/90 col-start-1">
@@ -108,19 +102,44 @@ export function FeatureCards() {
   );
 }
 
-/** Small inline visuals — muted line-art with a single ember accent each. */
+/** Small inline visuals — muted line-art with a single ember accent each.
+ *  Each animates from a baseline into its final state when scrolled into view.
+ *  Reduced motion renders the final state with no animation. */
 function Spark({ kind, reduce }: { kind: VizKind; reduce: boolean }) {
   const W = 104;
   const H = 26;
   const mid = H / 2;
   const stroke = 'currentColor';
 
+  // Motion props for a single SVG primitive; empty when reduced (final state only).
+  const anim = (
+    initial: Record<string, number>,
+    to: Record<string, number>,
+    delay = 0,
+  ) =>
+    reduce
+      ? {}
+      : {
+          initial,
+          whileInView: to,
+          viewport: viewportOnce,
+          transition: { duration: DUR.base, ease: EASE, delay },
+        };
+
   switch (kind) {
     case 'slider':
       return (
         <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} fill="none">
           <line x1="4" y1={mid} x2={W - 4} y2={mid} stroke={stroke} strokeOpacity="0.35" />
-          <rect x={W - 34} y={mid - 5} width="10" height="10" rx="2" fill={EMBER} />
+          <motion.rect
+            x={W - 34}
+            y={mid - 5}
+            width="10"
+            height="10"
+            rx="2"
+            fill={EMBER}
+            {...anim({ x: 4 }, { x: W - 34 }, 0.1)}
+          />
         </svg>
       );
     case 'bars': {
@@ -129,7 +148,7 @@ function Spark({ kind, reduce }: { kind: VizKind; reduce: boolean }) {
       return (
         <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} fill="none">
           {xs.map((x, i) => (
-            <line
+            <motion.line
               key={x}
               x1={x}
               y1={mid - 8}
@@ -137,6 +156,7 @@ function Spark({ kind, reduce }: { kind: VizKind; reduce: boolean }) {
               y2={mid + 8}
               stroke={hot.has(i) ? EMBER : stroke}
               strokeOpacity={hot.has(i) ? 1 : 0.35}
+              {...anim({ y1: mid, y2: mid }, { y1: mid - 8, y2: mid + 8 }, i * 0.04)}
             />
           ))}
         </svg>
@@ -147,7 +167,7 @@ function Spark({ kind, reduce }: { kind: VizKind; reduce: boolean }) {
         <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} fill="none">
           <line x1="10" y1={mid} x2={W - 10} y2={mid} stroke={stroke} strokeOpacity="0.35" />
           {[10, W / 2, W - 10].map((cx, i) => (
-            <circle
+            <motion.circle
               key={cx}
               cx={cx}
               cy={mid}
@@ -155,6 +175,7 @@ function Spark({ kind, reduce }: { kind: VizKind; reduce: boolean }) {
               fill={i === 2 ? EMBER : 'none'}
               stroke={i === 2 ? EMBER : stroke}
               strokeOpacity={i === 2 ? 1 : 0.5}
+              {...anim({ r: 0, opacity: 0 }, { r: 4, opacity: 1 }, i * 0.14)}
             />
           ))}
         </svg>
@@ -164,7 +185,7 @@ function Spark({ kind, reduce }: { kind: VizKind; reduce: boolean }) {
       return (
         <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} fill="none">
           {data.map((h, i) => (
-            <line
+            <motion.line
               key={i}
               x1={8 + i * 15}
               y1={H - 4}
@@ -173,6 +194,7 @@ function Spark({ kind, reduce }: { kind: VizKind; reduce: boolean }) {
               stroke={i === 2 ? EMBER : stroke}
               strokeOpacity={i === 2 ? 1 : 0.4}
               strokeWidth="2"
+              {...anim({ y2: H - 4 }, { y2: H - 4 - h }, i * 0.05)}
             />
           ))}
         </svg>
@@ -183,13 +205,14 @@ function Spark({ kind, reduce }: { kind: VizKind; reduce: boolean }) {
       return (
         <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} fill="none">
           {Array.from({ length: 8 }).map((_, i) => (
-            <circle
+            <motion.circle
               key={i}
               cx={8 + i * 12}
               cy={mid}
               r="2.5"
               fill={hot.has(i) ? EMBER : stroke}
               fillOpacity={hot.has(i) ? 1 : 0.35}
+              {...anim({ r: 0, opacity: 0 }, { r: 2.5, opacity: 1 }, i * 0.06)}
             />
           ))}
         </svg>
@@ -198,18 +221,22 @@ function Spark({ kind, reduce }: { kind: VizKind; reduce: boolean }) {
     case 'wave':
       return (
         <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} fill="none">
-          <circle cx="8" cy={mid} r="3" fill={EMBER} />
-          {[mid - 4, mid, mid + 4].map((y, i) => (
-            <line
-              key={y}
-              x1="20"
-              y1={y}
-              x2={W - 8 - i * 14}
-              y2={y}
-              stroke={stroke}
-              strokeOpacity="0.35"
-            />
-          ))}
+          <motion.circle cx="8" cy={mid} r="3" fill={EMBER} {...anim({ opacity: 0 }, { opacity: 1 })} />
+          {[mid - 4, mid, mid + 4].map((y, i) => {
+            const x2 = W - 8 - i * 14;
+            return (
+              <motion.line
+                key={y}
+                x1="20"
+                y1={y}
+                x2={x2}
+                y2={y}
+                stroke={stroke}
+                strokeOpacity="0.35"
+                {...anim({ x2: 20 }, { x2 }, 0.1 + i * 0.08)}
+              />
+            );
+          })}
         </svg>
       );
     case 'clock':
@@ -236,8 +263,28 @@ function Spark({ kind, reduce }: { kind: VizKind; reduce: boolean }) {
     case 'check':
       return (
         <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} fill="none">
-          <rect x={W - 66} y={mid - 6} width="12" height="12" rx="3" stroke={stroke} strokeOpacity="0.5" />
-          <path d={`M ${W - 63} ${mid} l 2.5 2.5 l 4 -5`} stroke={EMBER} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+          <motion.rect
+            x={W - 66}
+            y={mid - 6}
+            width="12"
+            height="12"
+            rx="3"
+            stroke={stroke}
+            strokeOpacity="0.5"
+            {...anim({ opacity: 0 }, { opacity: 1 })}
+          />
+          <motion.path
+            d={`M ${W - 63} ${mid} l 2.5 2.5 l 4 -5`}
+            stroke={EMBER}
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            fill="none"
+            initial={reduce ? false : { pathLength: 0 }}
+            whileInView={reduce ? undefined : { pathLength: 1 }}
+            viewport={reduce ? undefined : viewportOnce}
+            transition={reduce ? undefined : { duration: DUR.fast, ease: EASE, delay: 0.15 }}
+          />
           <text x={W - 44} y={mid + 3} className="text-[10px] font-mono" fill={stroke} fillOpacity="0.6">
             stdlib
           </text>
