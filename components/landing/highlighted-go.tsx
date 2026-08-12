@@ -3,10 +3,11 @@ import { Fragment, type ReactNode } from 'react';
 /**
  * Tiny Go syntax highlighter for landing-page code panels. Tokenizes a
  * code string with a single regex (comments, string/raw-string literals,
- * numbers, identifiers) and tags each token with a tailwind color class.
+ * numbers, identifiers) and tags each token with a color.
  *
- * Lighter than pulling in Shiki or Prism for what is effectively six
- * static snippets across the home page.
+ * Lighter than pulling in Shiki or Prism for what is effectively a handful of
+ * static snippets across the home page. Colors mirror the `vesper` theme the
+ * docs code blocks use, so the home panels read identically to the docs.
  */
 
 const KEYWORDS = new Set([
@@ -17,6 +18,14 @@ const KEYWORDS = new Set([
 ]);
 
 const BUILTIN_LITERALS = new Set(['true', 'false', 'nil', 'iota']);
+
+// Vesper palette — matches the docs' Shiki theme exactly.
+const VESPER = {
+  comment: '#8b8b8b',
+  keyword: '#A0A0A0',
+  peach: '#FFC799', // functions, types, exported names, numbers, constants
+  string: '#99FFE4',
+};
 
 // Match (in order): line comment, string literal, raw-string literal,
 // number, identifier. Anything that doesn't match is passed through.
@@ -40,11 +49,11 @@ export function HighlightedGo({ code }: { code: string }) {
     }
 
     const token = match[0];
-    const cls = classify(token);
+    const color = classify(token);
 
-    if (cls) {
+    if (color) {
       parts.push(
-        <span key={key++} className={cls}>
+        <span key={key++} style={{ color }}>
           {token}
         </span>,
       );
@@ -63,17 +72,16 @@ export function HighlightedGo({ code }: { code: string }) {
 }
 
 /**
- * Warm, ember-aligned palette: rose-pink keywords, ember types/exported names,
- * warm amber strings, muted comments, orange literals. No cool greens/blues so
- * it reads as part of the ember theme. Everything else stays the foreground.
+ * Neutral vesper mapping: gray keywords, warm-peach types/functions/numbers,
+ * mint strings, muted comments. Everything else inherits the panel foreground.
  */
 function classify(token: string): string {
-  if (token.startsWith('//')) return 'text-fd-muted-foreground';
-  if (token.startsWith('"') || token.startsWith('`')) return 'text-amber-300';
-  if (KEYWORDS.has(token)) return 'text-rose-400';
-  if (BUILTIN_LITERALS.has(token)) return 'text-orange-400';
-  if (/^\d/.test(token)) return 'text-orange-300';
+  if (token.startsWith('//')) return VESPER.comment;
+  if (token.startsWith('"') || token.startsWith('`')) return VESPER.string;
+  if (KEYWORDS.has(token)) return VESPER.keyword;
+  if (BUILTIN_LITERALS.has(token)) return VESPER.peach;
+  if (/^\d/.test(token)) return VESPER.peach;
   // Pascal-case identifiers — types, constructors, exported names.
-  if (/^[A-Z]/.test(token)) return 'text-ember-400';
+  if (/^[A-Z]/.test(token)) return VESPER.peach;
   return '';
 }
