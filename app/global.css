@@ -2,8 +2,85 @@
 @import 'fumadocs-ui/css/neutral.css';
 @import 'fumadocs-ui/css/preset.css';
 
+/* ─────────────────────────────────────────────────────────────────────────
+   cloudemu — ember brand theme
+
+   Ember      #FF6B2C   primary accent on dark surfaces
+   Ember Deep #A83A08   primary accent on light surfaces (never #FF6B2C on white)
+   Ink        #101613   dark-theme background
+   Bone       #F1EFE7   light-theme background
+
+   A single-accent theme mapped onto Fumadocs' --color-fd-* tokens. Light
+   values live in @theme (the default), dark overrides in .dark.
+   ───────────────────────────────────────────────────────────────────────── */
+
 @theme {
+  /* Provider brand colors — official, kept for provider badges/coding. */
   --color-aws: #FF9900;
   --color-azure: #0078D4;
   --color-gcp: #4285F4;
+
+  /* Ember tint scale — available as bg-ember-500, text-ember-500, etc. */
+  --color-ember-50: hsl(22, 100%, 96%);
+  --color-ember-100: hsl(21, 100%, 91%);
+  --color-ember-200: hsl(20, 100%, 83%);
+  --color-ember-300: hsl(19, 100%, 73%);
+  --color-ember-400: hsl(18, 100%, 66%);
+  --color-ember-500: hsl(18, 100%, 59%); /* Ember      #FF6B2C */
+  --color-ember-600: hsl(18, 90%, 50%);
+  --color-ember-700: hsl(19, 90%, 42%);
+  --color-ember-800: hsl(19, 90%, 35%); /* Ember Deep #A83A08 */
+  --color-ember-900: hsl(19, 85%, 28%);
+
+  /* Fumadocs tokens — LIGHT theme (Bone background, Ember Deep accent) */
+  --color-fd-background: hsl(45, 30%, 97%);
+  --color-fd-foreground: hsl(160, 22%, 12%);
+  --color-fd-primary: hsl(19, 90%, 38%);
+  --color-fd-primary-foreground: hsl(45, 40%, 98%);
+  --color-fd-border: hsla(24, 35%, 45%, 0.2);
+  --color-fd-ring: hsl(19, 90%, 42%);
+  --color-fd-accent: hsl(24, 80%, 93%);
+  --color-fd-accent-foreground: hsl(19, 85%, 26%);
+  --color-fd-muted: hsl(44, 18%, 92%);
+  --color-fd-muted-foreground: hsl(160, 12%, 38%);
+  --color-fd-secondary: hsl(44, 22%, 93%);
+  --color-fd-secondary-foreground: hsl(160, 20%, 18%);
+  --color-fd-card: hsl(45, 40%, 99%);
+  --color-fd-card-foreground: hsl(160, 22%, 12%);
+  --color-fd-popover: hsl(45, 40%, 99%);
+  --color-fd-popover-foreground: hsl(160, 22%, 12%);
+}
+
+/* Fumadocs tokens — DARK theme (Ink background, Ember accent) */
+.dark {
+  --color-fd-background: hsl(156, 18%, 7%);
+  --color-fd-foreground: hsl(45, 22%, 91%);
+  --color-fd-primary: hsl(18, 100%, 59%);
+  --color-fd-primary-foreground: hsl(156, 20%, 8%);
+  --color-fd-border: hsla(24, 40%, 55%, 0.18);
+  --color-fd-ring: hsl(18, 100%, 59%);
+  --color-fd-accent: hsl(20, 45%, 15%);
+  --color-fd-accent-foreground: hsl(20, 90%, 78%);
+  --color-fd-muted: hsl(156, 12%, 12%);
+  --color-fd-muted-foreground: hsl(45, 12%, 66%);
+  --color-fd-secondary: hsl(156, 14%, 13%);
+  --color-fd-secondary-foreground: hsl(45, 22%, 91%);
+  --color-fd-card: hsl(156, 16%, 9%);
+  --color-fd-card-foreground: hsl(45, 22%, 91%);
+  --color-fd-popover: hsl(156, 18%, 8%);
+  --color-fd-popover-foreground: hsl(45, 22%, 91%);
+}
+
+/* Theme-adaptive logo tokens (consumed by components/logo.tsx). The cloud and
+   chevron swap so the mark reads on either background; the cursor bar stays
+   Ember on both — it's the one always-warm element. */
+:root {
+  --logo-cloud: #101613;
+  --logo-chevron: #f1efe7;
+  --logo-line: #a83a08;
+}
+.dark {
+  --logo-cloud: #f1efe7;
+  --logo-chevron: #101613;
+  --logo-line: #ff6b2c;
 }
