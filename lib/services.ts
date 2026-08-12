@@ -4,6 +4,7 @@ export interface ServiceMapping {
   aws: string;
   azure: string;
   gcp: string;
+  oci?: string;
   slug: string;
   description: string;
 }
@@ -13,9 +14,9 @@ export const services: ServiceMapping[] = [
   { category: 'Storage', icon: 'HardDrive', aws: 'S3', azure: 'BlobStorage', gcp: 'GCS', slug: 'storage', description: 'Object storage with buckets, versioning, and multipart upload' },
   { category: 'Database', icon: 'Database', aws: 'DynamoDB', azure: 'CosmosDB', gcp: 'Firestore', slug: 'database', description: 'NoSQL database with queries, TTL, and streams' },
   { category: 'Serverless', icon: 'Zap', aws: 'Lambda', azure: 'Functions', gcp: 'CloudFunctions', slug: 'serverless', description: 'Function-as-a-service with versions and aliases' },
-  { category: 'Networking', icon: 'Network', aws: 'VPC', azure: 'VNet', gcp: 'VPC', slug: 'networking', description: 'Virtual networks, subnets, and security groups' },
-  { category: 'Monitoring', icon: 'Activity', aws: 'CloudWatch', azure: 'Monitor', gcp: 'CloudMonitoring', slug: 'monitoring', description: 'Metrics, alarms, and metric queries' },
-  { category: 'IAM', icon: 'Shield', aws: 'IAM', azure: 'IAM', gcp: 'IAM', slug: 'iam', description: 'Identity, roles, and policy evaluation' },
+  { category: 'Networking', icon: 'Network', aws: 'VPC', azure: 'VNet', gcp: 'VPC', oci: 'VCN', slug: 'networking', description: 'Virtual networks, subnets, and security groups' },
+  { category: 'Monitoring', icon: 'Activity', aws: 'CloudWatch', azure: 'Monitor', gcp: 'CloudMonitoring', oci: 'Monitoring', slug: 'monitoring', description: 'Metrics, alarms, and metric queries' },
+  { category: 'IAM', icon: 'Shield', aws: 'IAM', azure: 'IAM', gcp: 'IAM', oci: 'Identity', slug: 'iam', description: 'Identity, roles, and policy evaluation' },
   { category: 'DNS', icon: 'Globe', aws: 'Route53', azure: 'DNS', gcp: 'CloudDNS', slug: 'dns', description: 'DNS zones and records with weighted routing' },
   { category: 'Load Balancer', icon: 'GitBranch', aws: 'ELB', azure: 'LB', gcp: 'LB', slug: 'loadbalancer', description: 'Load balancers, target groups, and health checks' },
   { category: 'Message Queue', icon: 'MessageSquare', aws: 'SQS', azure: 'ServiceBus', gcp: 'PubSub', slug: 'messagequeue', description: 'Queues with FIFO dedup and dead-letter queues' },
