@@ -3,7 +3,7 @@ title: Event Bus
 description: Emulate EventBridge, Event Grid, and Eventarc — route events through buses, rules, and targets entirely in memory.
 ---
 
-Route events between services without any real infrastructure. cloudemu emulates the **event-routing control plane** of all three clouds — creating event buses, defining rules that filter events by pattern, attaching targets, and publishing events that get matched and delivered. Every call runs against local in-memory state, so a test can publish an event and immediately assert on what the rules matched, with nothing to provision or tear down.
+Route events between services without any real infrastructure. cloudemu emulates the **event-routing control plane** of all three clouds — creating event buses, defining rules that filter events by pattern, attaching targets, and publishing events that get matched and delivered. Every call runs against local in-memory state, so your code can publish an event and immediately assert on what the rules matched, with nothing to provision or tear down.
 
 | Provider | Real service | cloudemu driver |
 |---|---|---|
@@ -13,12 +13,12 @@ Route events between services without any real infrastructure. cloudemu emulates
 
 There are two ways to drive it, both backed by the same in-memory state:
 
-- **Real cloud SDK** — point your existing `aws-sdk-go-v2`, `armeventgrid`, or Eventarc REST client at a local server. Only the endpoint changes; your production code is untouched. This is the closest thing to testing against the real cloud, and what most tests should use.
-- **Portable Go API** — call cloudemu's Go interface directly and skip the HTTP hop. The same method shape works across every cloud, so you can switch providers by changing one field.
+- **Real cloud SDK** — point your existing `aws-sdk-go-v2`, `armeventgrid`, or Eventarc REST client at a local server. Only the endpoint changes; your real code is untouched — the same client works in a test, a local dev server, or your running app.
+- **Portable Go API** — call cloudemu's Go interface directly from your application code — discover resources, perform actions, skip the HTTP hop entirely. The same method shape works across every cloud, so you can switch providers by changing one field.
 
 ## Drive it with the real SDK
 
-cloudemu ships an HTTP server per cloud that speaks that provider's real wire protocol. You start it with `httptest`, hand it the drivers you need, and point your normal SDK client at its URL — nothing else in your code changes.
+cloudemu ships an HTTP server per cloud that speaks that provider's real wire protocol. Run it with `httptest` in a test or behind a real `http.Server` in your app, hand it the drivers you need, and point your normal SDK client at its URL — nothing else in your code changes.
 
 <Tabs items={['AWS', 'Azure', 'GCP']}>
 
@@ -226,8 +226,8 @@ All three providers implement the same event-routing interface — cloudemu maps
 
 ## How the emulator behaves
 
-cloudemu doesn't just store buses and rules — it reproduces the routing behavior of the real service, so your tests exercise real matching logic:
+cloudemu doesn't just store buses and rules — it reproduces the routing behavior of the real service, so your code exercises real matching logic:
 
 - **Events are matched against patterns.** `PutEvents` evaluates each event against every rule's `EventPattern` and routes only the matches. An empty pattern matches everything; a `{"source": [...]}` pattern filters by source, just like real EventBridge.
-- **Matched deliveries emit metrics.** Each publish records how many events were matched into the monitoring service, so a test can assert how many events a rule actually caught.
+- **Matched deliveries emit metrics.** Each publish records how many events were matched into the monitoring service, so your code can assert how many events a rule actually caught.
 - **History is replayable.** `GetEventHistory` returns recently published events for a bus, letting tests inspect or replay what was emitted.
