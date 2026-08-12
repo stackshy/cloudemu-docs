@@ -45,6 +45,12 @@ export function ServiceGrid() {
                   <span className="font-medium" style={{ color: '#4285F4' }}>GCP</span>{' '}
                   {service.gcp}
                 </span>
+                {service.oci && (
+                  <span>
+                    <span className="font-medium" style={{ color: '#C74634' }}>OCI</span>{' '}
+                    {service.oci}
+                  </span>
+                )}
               </div>
             </Link>
           );
