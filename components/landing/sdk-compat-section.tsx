@@ -89,7 +89,7 @@ export function SDKCompatSection() {
         </div>
         <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">
           Don&apos;t rewrite your tests.{' '}
-          <span className="bg-gradient-to-r from-sky-400 to-violet-500 bg-clip-text text-transparent">
+          <span className="bg-gradient-to-r from-ember-500 to-ember-700 bg-clip-text text-transparent">
             Repoint them.
           </span>
         </h2>
@@ -109,7 +109,7 @@ export function SDKCompatSection() {
         viewport={{ once: true }}
         transition={{ duration: 0.4 }}
         className="rounded-xl border border-fd-border bg-fd-card overflow-hidden shadow-2xl"
-        style={{ boxShadow: '0 30px 60px -20px rgba(99,102,241,0.2)' }}
+        style={{ boxShadow: '0 30px 60px -20px rgba(255,107,44,0.2)' }}
       >
         {/* macOS-style window chrome */}
         <div className="flex items-center gap-2 px-4 py-3 border-b border-fd-border bg-fd-secondary/50">
