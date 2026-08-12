@@ -1,9 +1,7 @@
-'use client';
-
 /**
- * AnimatedBackground: a quiet dotted grid that fades at the edges. No glows,
- * no auroras, no competing lights. The hero diagram is the only thing that
- * should pull the eye.
+ * AnimatedBackground: a quiet, static hero backdrop — a single dotted grid that
+ * fades toward the edges. No color wash, no motion. Kept deliberately simple so
+ * it reads as subtle texture and never competes with the foreground.
  */
 export function AnimatedBackground() {
   return (
@@ -11,8 +9,7 @@ export function AnimatedBackground() {
       <div
         className="absolute inset-0 opacity-[0.12] dark:opacity-[0.07]"
         style={{
-          backgroundImage:
-            'radial-gradient(currentColor 1px, transparent 1px)',
+          backgroundImage: 'radial-gradient(currentColor 1px, transparent 1px)',
           backgroundSize: '36px 36px',
           color: 'var(--color-fd-muted-foreground, #9ca3af)',
           maskImage:
