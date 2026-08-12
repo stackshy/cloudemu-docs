@@ -9,7 +9,7 @@ cloudemu lets you point real `aws-sdk-go-v2`, `azure-sdk-for-go`, and `cloud.goo
 
 cloudemu starts an HTTP server that speaks the actual cloud wire protocols — S3 REST, DynamoDB JSON-RPC, EC2 query, ARM JSON, GCP REST, Smithy CBOR. You point the SDK's endpoint at it; the SDK cannot tell it apart from `s3.amazonaws.com`.
 
-```go title="main_test.go"
+```go title="main.go"
 cloud := cloudemu.NewAWS()
 ts := httptest.NewServer(awsserver.New(awsserver.Drivers{
     S3: cloud.S3, DynamoDB: cloud.DynamoDB, /* ... */
