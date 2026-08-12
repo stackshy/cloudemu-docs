@@ -11,6 +11,15 @@ import { codeToHtml, type BundledLanguage } from 'shiki';
 
 const blogDir = path.join(process.cwd(), 'content/blog');
 
+// Enumerate blog slugs so the [slug] route can be statically exported.
+export function generateStaticParams() {
+  if (!fs.existsSync(blogDir)) return [];
+  return fs
+    .readdirSync(blogDir)
+    .filter((f) => f.endsWith('.mdx'))
+    .map((f) => ({ slug: f.replace(/\.mdx$/, '') }));
+}
+
 function escapeHtml(s: string): string {
   return s
     .replace(/&/g, '&amp;')
