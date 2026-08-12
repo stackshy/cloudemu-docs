@@ -3,17 +3,22 @@ title: Compute
 description: Emulate EC2, Azure VMs, and Compute Engine — drive them with the real cloud SDK.
 ---
 
-Launch and manage virtual machines entirely in memory. cloudemu speaks the compute API of each cloud, so your existing SDK code runs unchanged against a local server — no real instances, no cost, no waiting.
+Launch and manage virtual machines entirely in memory. cloudemu implements the **compute control plane** of all three clouds — creating instances, listing and describing them, starting and stopping them, and the network and disk resources around them. The exact SDK code you'd write against real AWS, Azure, or GCP runs against a local server instead: no VM is ever booted, nothing is billed, and every call returns in milliseconds.
 
-| Provider | Real service | Go driver | SDK-compat |
-|---|---|---|:--:|
-| **AWS** | EC2 (+ full VPC stack) | `aws.EC2` | ✅ Live |
-| **Azure** | Virtual Machines (+ Disks, Snapshots, Images, SSH keys) | `azure.VirtualMachines` | ✅ Live |
-| **GCP** | Compute Engine (+ Disks, Snapshots, Images) | `gcp.GCE` | ✅ Live |
+| Provider | Real service | cloudemu driver |
+|---|---|---|
+| **AWS** | EC2 — instances + the full VPC stack | `aws.EC2` |
+| **Azure** | Virtual Machines — plus Disks, Snapshots, Images, SSH keys | `azure.VirtualMachines` |
+| **GCP** | Compute Engine — plus Disks, Snapshots, Images | `gcp.GCE` |
 
-## Use it with the real SDK
+There are two ways to drive it, both backed by the same in-memory state:
 
-Point your real cloud SDK client at a local `httptest` server — only the endpoint changes, the rest of your code is untouched.
+- **Real cloud SDK** — point your existing `aws-sdk-go-v2`, `azure-sdk-for-go`, or `cloud.google.com/go` client at a local server. Only the endpoint changes; your production code is untouched. This is the closest thing to testing against the real cloud, and what most tests should use.
+- **Portable Go API** — call cloudemu's Go interface directly and skip the HTTP hop. The same method shape works across every cloud, so you can switch providers by changing one field.
+
+## Drive it with the real SDK
+
+cloudemu ships an HTTP server per cloud that speaks that provider's real wire protocol. You start it with `httptest`, hand it the drivers you need, and point your normal SDK client at its URL — nothing else in your code changes.
 
 <Tabs items={['AWS', 'Azure', 'GCP']}>
 
@@ -108,40 +113,44 @@ op.Wait(ctx)
 
 </Tabs>
 
-## What's supported
+## What each provider supports
+
+Not every provider exposes the same operations — cloudemu matches what each cloud's own API offers.
 
 <Tabs items={['AWS', 'Azure', 'GCP']}>
 
 <Tab value="AWS">
 
-**EC2** — `RunInstances`, `DescribeInstances` (filter by `instance-id`, `instance-type`, `instance-state-name`, `tag:*`), `Start`/`Stop`/`Reboot`/`TerminateInstances`, `ModifyInstanceAttribute`.
+**EC2 instances** — `RunInstances`, `DescribeInstances` (filter by `instance-id`, `instance-type`, `instance-state-name`, or `tag:*`), `Start` / `Stop` / `Reboot` / `TerminateInstances`, and `ModifyInstanceAttribute`.
 
-**VPC stack** — VPCs, subnets, security groups (+ rules), internet & NAT gateways, route tables, peering, flow logs, network ACLs, EBS volumes, key pairs, snapshots, AMIs, spot instances, launch templates, and auto-scaling groups.
+**The VPC stack** — VPCs, subnets, security groups (with ingress/egress rules), internet and NAT gateways, route tables, peering, flow logs, network ACLs, EBS volumes, key pairs, snapshots, AMIs, spot instances, launch templates, and auto-scaling groups. Enough to model a realistic network around your instances.
 
 </Tab>
 
 <Tab value="Azure">
 
-**Virtual Machines** — `CreateOrUpdate`, `Get`, `List`, `Delete`, plus `start` / `powerOff` / `restart` actions. Full CRUD for Disks, Snapshots, Images, and SSH public keys.
+**Virtual Machines** — `CreateOrUpdate`, `Get`, `List`, and `Delete`, plus the `start` / `powerOff` / `restart` power actions. Around them, full CRUD for **Disks**, **Snapshots**, **Images**, and **SSH public keys** — the resources you attach to and provision a VM with.
 
 </Tab>
 
 <Tab value="GCP">
 
-**Compute Engine** — Instances, Disks, Snapshots, and Images: `insert` / `get` / `list` / `delete`, each returned with a long-running-operation (LRO) envelope, exactly like the real API.
+**Compute Engine** — Instances, Disks, Snapshots, and Images, each with `insert` / `get` / `list` / `delete`. Every mutating call returns a **long-running-operation (LRO)** envelope and completes synchronously, so `op.Wait(ctx)` behaves the same as it does against real GCP.
 
 </Tab>
 
 </Tabs>
 
-## How it behaves
+## How the emulator behaves
 
-- **Lifecycle is enforced.** Instances move through `pending → running → stopped → terminated`; an illegal transition returns an error, just like real EC2.
-- **Metrics appear on their own.** `RunInstances` pushes CPU, network, and disk metrics to the monitoring service; start / stop / reboot / terminate emit matching values automatically.
+cloudemu doesn't just store objects — it reproduces the lifecycle and side effects of the real service, so your tests exercise realistic behavior instead of a dumb key-value store:
 
-## Or use the Portable Go API
+- **Lifecycle is enforced.** An instance moves through `pending → running → stopped → terminated`. Ask for an illegal transition — stopping an already-terminated instance, say — and you get an error back, exactly like real EC2.
+- **Metrics appear on their own.** `RunInstances` automatically pushes CPU, network, and disk metrics into the monitoring service, and start / stop / reboot / terminate each emit matching values. So a test that creates an instance can immediately assert on its metrics without any extra setup.
 
-Skip the HTTP hop and call cloudemu's Go interface directly. The shape is identical across providers — switch clouds by changing one field.
+## Or call the Portable Go API directly
+
+When you don't need the HTTP layer — for example, unit tests that construct cloudemu in-process — call its Go interface directly. The method shape is identical across clouds, so switching providers is a one-line change.
 
 <Tabs items={['AWS', 'Azure', 'GCP']}>
 
