@@ -13,12 +13,12 @@ Ingest metrics, define alarms, and read back time series entirely in memory. clo
 
 There are two ways to drive it, both backed by the same in-memory state:
 
-- **Real cloud SDK** — point your existing `aws-sdk-go-v2`, `azure-sdk-for-go`, or `cloud.google.com/go` client at a local server. Only the endpoint changes; your production code is untouched. This is the closest thing to testing against the real cloud, and what most tests should use.
-- **Portable Go API** — call cloudemu's Go interface directly and skip the HTTP hop. The same method shape works across every cloud, so you can switch providers by changing one field.
+- **Real cloud SDK** — point your existing `aws-sdk-go-v2`, `azure-sdk-for-go`, or `cloud.google.com/go` client at a local server. Only the endpoint changes; your real code is untouched — the same client works in a test, a local dev server, or your running app.
+- **Portable Go API** — call cloudemu's Go interface directly from your application code — discover resources, perform actions, skip the HTTP hop entirely. The same method shape works across every cloud, so you can switch providers by changing one field.
 
 ## Drive it with the real SDK
 
-cloudemu ships an HTTP server per cloud that speaks that provider's real wire protocol. You start it with `httptest`, hand it the drivers you need, and point your normal SDK client at its URL — nothing else in your code changes.
+cloudemu ships an HTTP server per cloud that speaks that provider's real wire protocol. Run it with `httptest` in a test or behind a real `http.Server` in your app, hand it the drivers you need, and point your normal SDK client at its URL — nothing else in your code changes.
 
 <Tabs items={['AWS', 'Azure', 'GCP']}>
 
@@ -145,15 +145,15 @@ Not every provider exposes the same operations — cloudemu matches what each cl
 
 ## How the emulator behaves
 
-cloudemu doesn't just store metrics — it reproduces the side effects of the real service, so your tests exercise realistic behavior instead of a dumb key-value store:
+cloudemu doesn't just store metrics — it reproduces the side effects of the real service, so your code exercises realistic behavior instead of a dumb key-value store:
 
-- **Metrics arrive on their own.** `RunInstances` on the compute service automatically pushes 5 metrics — CPU, NetworkIn, NetworkOut, DiskReadOps, DiskWriteOps — each with 5 backfill datapoints at 1-minute intervals, so a test can assert on an instance's metrics without any extra setup.
+- **Metrics arrive on their own.** `RunInstances` on the compute service automatically pushes 5 metrics — CPU, NetworkIn, NetworkOut, DiskReadOps, DiskWriteOps — each with 5 backfill datapoints at 1-minute intervals, so your code can assert on an instance's metrics without any extra setup.
 - **Alarms evaluate as data lands.** Every `PutMetricData` re-evaluates the alarms watching that namespace and metric, transitioning them between `OK` and `ALARM` on the threshold comparison — no polling or background timer required.
 - **Transitions are recorded.** `GetAlarmHistory` returns the sequence of state changes with timestamps, exactly as CloudWatch would report them.
 
 ## Or call the Portable Go API directly
 
-When you don't need the HTTP layer — for example, unit tests that construct cloudemu in-process — call its Go interface directly. The method shape is identical across clouds, so switching providers is a one-line change.
+When you don't need the HTTP layer, call cloudemu's Go interface directly inside your application — discovery, provisioning, teardown — no server, no wire protocol. The method shape is identical across clouds, so switching providers is a one-line change.
 
 <Tabs items={['AWS', 'Azure', 'GCP']}>
 
