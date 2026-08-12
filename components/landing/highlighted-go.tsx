@@ -63,13 +63,13 @@ export function HighlightedGo({ code }: { code: string }) {
 }
 
 /**
- * Color palette matches the docs MDX theme: rose-pink keywords, ember
- * types/exported names, emerald strings, muted comments, orange literals.
- * Everything else stays the default foreground (white in dark mode).
+ * Warm, ember-aligned palette: rose-pink keywords, ember types/exported names,
+ * warm amber strings, muted comments, orange literals. No cool greens/blues so
+ * it reads as part of the ember theme. Everything else stays the foreground.
  */
 function classify(token: string): string {
   if (token.startsWith('//')) return 'text-fd-muted-foreground';
-  if (token.startsWith('"') || token.startsWith('`')) return 'text-emerald-400';
+  if (token.startsWith('"') || token.startsWith('`')) return 'text-amber-300';
   if (KEYWORDS.has(token)) return 'text-rose-400';
   if (BUILTIN_LITERALS.has(token)) return 'text-orange-400';
   if (/^\d/.test(token)) return 'text-orange-300';
