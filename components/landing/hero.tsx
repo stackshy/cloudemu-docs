@@ -72,13 +72,16 @@ export function Hero() {
 }
 
 /**
- * GradientText: a tighter, more controlled highlight than a 3-stop rainbow.
- * Single soft transition between two adjacent hues + slight saturation boost
- * via a transparent overlay reads cleaner at large display sizes.
+ * GradientText: the ember headline highlight. Uses an explicit inline gradient
+ * (rather than Tailwind gradient utilities) so the clipped text is always filled
+ * and never renders transparent/invisible.
  */
 function GradientText({ children }: { children: React.ReactNode }) {
   return (
-    <span className="bg-gradient-to-r from-ember-500 to-ember-700 bg-clip-text text-transparent whitespace-nowrap">
+    <span
+      className="bg-clip-text text-transparent whitespace-nowrap"
+      style={{ backgroundImage: 'linear-gradient(90deg, #ff6b2c, #d64d17)' }}
+    >
       {children}
     </span>
   );
