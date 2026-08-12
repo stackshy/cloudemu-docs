@@ -74,13 +74,13 @@ export function APICoverage() {
 
           <pre className="rounded-lg bg-fd-secondary/50 border border-fd-border p-4 text-xs font-mono overflow-x-auto leading-relaxed">
             <code>
-              <span className="text-purple-400">cloud</span> := cloudemu.NewAWS()
+              <span className="text-ember-500">cloud</span> := cloudemu.NewAWS()
               {'\n'}
-              <span className="text-purple-400">cloud</span>.S3.PutObject(ctx, ...)
+              <span className="text-ember-500">cloud</span>.S3.PutObject(ctx, ...)
               {'\n'}
-              <span className="text-purple-400">cloud</span>.IAM.CheckPermission(ctx, ...)
+              <span className="text-ember-500">cloud</span>.IAM.CheckPermission(ctx, ...)
               {'\n'}
-              <span className="text-purple-400">cloud</span>.SecretsManager.GetSecret(ctx, ...)
+              <span className="text-ember-500">cloud</span>.SecretsManager.GetSecret(ctx, ...)
             </code>
           </pre>
 
@@ -110,7 +110,7 @@ export function APICoverage() {
           </p>
 
           <div className="flex items-baseline gap-3 mb-5 pb-5 border-b border-fd-border">
-            <span className="text-5xl font-extrabold bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent tabular-nums">
+            <span className="text-5xl font-extrabold bg-gradient-to-r from-ember-400 via-ember-500 to-ember-700 bg-clip-text text-transparent tabular-nums">
               {sdkLiveServices}
             </span>
             <span className="text-sm text-fd-muted-foreground">
@@ -122,11 +122,11 @@ export function APICoverage() {
 
           <pre className="rounded-lg bg-fd-secondary/50 border border-fd-border p-4 text-xs font-mono overflow-x-auto leading-relaxed">
             <code>
-              <span className="text-purple-400">ts</span> := httptest.NewServer(awsserver.New(...))
+              <span className="text-ember-500">ts</span> := httptest.NewServer(awsserver.New(...))
               {'\n'}
-              <span className="text-purple-400">client</span> := s3.NewFromConfig(cfg, <span className="text-fd-muted-foreground">/* ... */</span>)
+              <span className="text-ember-500">client</span> := s3.NewFromConfig(cfg, <span className="text-fd-muted-foreground">/* ... */</span>)
               {'\n'}
-              <span className="text-purple-400">client</span>.PutObject(ctx, ...) <span className="text-fd-muted-foreground">{'// real SDK, in-memory backend'}</span>
+              <span className="text-ember-500">client</span>.PutObject(ctx, ...) <span className="text-fd-muted-foreground">{'// real SDK, in-memory backend'}</span>
             </code>
           </pre>
 
