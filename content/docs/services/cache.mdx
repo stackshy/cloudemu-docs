@@ -3,7 +3,7 @@ title: Cache
 description: Emulate ElastiCache, Azure Cache for Redis, and Memorystore as an in-memory key-value cache with real TTL expiry.
 ---
 
-Store and expire cached values entirely in memory. cloudemu emulates the **cache management and data plane** of all three clouds — creating cache instances, then setting, reading, and deleting keyed values with time-to-live. Items expire on their own and every call returns in milliseconds, so a test that depends on caching behaviour never needs Redis, Memcached, or a real cloud account.
+Store and expire cached values entirely in memory. cloudemu emulates the **cache management and data plane** of all three clouds — creating cache instances, then setting, reading, and deleting keyed values with time-to-live. Items expire on their own and every call returns in milliseconds, so code that depends on caching behaviour never needs Redis, Memcached, or a real cloud account.
 
 | Provider | Real service | cloudemu driver |
 |---|---|---|
@@ -13,12 +13,12 @@ Store and expire cached values entirely in memory. cloudemu emulates the **cache
 
 There are two ways to drive it, both backed by the same in-memory state:
 
-- **Real cloud SDK** — point your existing `aws-sdk-go-v2`, `azure-sdk-for-go`, or `google.golang.org/api` client at a local server. Only the endpoint changes; your production code is untouched. This is the closest thing to testing against the real cloud, and what most tests should use.
-- **Portable Go API** — call cloudemu's Go interface directly and skip the HTTP hop. The same method shape works across every cloud, so you can switch providers by changing one field.
+- **Real cloud SDK** — point your existing `aws-sdk-go-v2`, `azure-sdk-for-go`, or `google.golang.org/api` client at a local server. Only the endpoint changes; your real code is untouched — the same client works in a test, a local dev server, or your running app.
+- **Portable Go API** — call cloudemu's Go interface directly from your application code — discover resources, perform actions, skip the HTTP hop entirely. The same method shape works across every cloud, so you can switch providers by changing one field.
 
 ## Drive it with the real SDK
 
-cloudemu ships an HTTP server per cloud that speaks that provider's real cache management API. You start it with `httptest`, hand it the drivers you need, and point your normal SDK client at its URL — nothing else in your code changes.
+cloudemu ships an HTTP server per cloud that speaks that provider's real cache management API. Run it with `httptest` in a test or behind a real `http.Server` in your app, hand it the drivers you need, and point your normal SDK client at its URL — nothing else in your code changes.
 
 <Tabs items={['AWS', 'Azure', 'GCP']}>
 
@@ -137,7 +137,7 @@ Every provider exposes the same shape: create a cache instance, then set, get, a
 
 cloudemu reproduces the parts of caching your code actually depends on, not just a plain map:
 
-- **TTL is enforced.** Items are expired once their TTL elapses, with lazy cleanup on the next read — so a test can set a short TTL and assert the value is gone afterward.
+- **TTL is enforced.** Items are expired once their TTL elapses, with lazy cleanup on the next read — so your code can set a short TTL and assert the value is gone afterward.
 - **Concurrency is safe.** All cache operations are guarded for concurrent access, so parallel readers and writers behave predictably.
 
 ## Or call the Portable Go API directly
