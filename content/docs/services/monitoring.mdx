@@ -1,16 +1,28 @@
 ---
 title: Monitoring
-description: Metrics, alarms, time series — drive with the real CloudWatch / Azure Monitor / Cloud Monitoring SDK
+description: Emulate CloudWatch, Azure Monitor, and Cloud Monitoring — drive them with the real cloud SDK.
 ---
-Emulates metric ingest + alarm evaluation: **CloudWatch** (AWS), **Azure Monitor** (Azure), **Cloud Monitoring** (GCP).
 
-| Provider | Service | SDK-compat | Driver |
-|----------|---------|:----------:|--------|
-| AWS | CloudWatch (Smithy `rpc-v2-cbor`) | ✓ Live | `aws.CloudWatch` |
-| Azure | Azure Monitor | ✓ Live | `azure.Monitor` |
-| GCP | Cloud Monitoring | ✓ Live | `gcp.CloudMonitoring` |
+Ingest metrics, define alarms, and read back time series entirely in memory. cloudemu implements the **monitoring plane** of all three clouds — publishing metric data, listing metrics, computing statistics, and evaluating alarms as data crosses their thresholds. The same SDK code you'd write against real CloudWatch, Azure Monitor, or Cloud Monitoring runs against a local server instead: nothing is billed, and alarms fire the moment you publish a breaching datapoint.
 
-## Use the real SDK (recommended)
+| Provider | Real service | cloudemu driver |
+|---|---|---|
+| **AWS** | CloudWatch — metrics + alarms (Smithy `rpc-v2-cbor`) | `aws.CloudWatch` |
+| **Azure** | Azure Monitor — `microsoft.insights` metric alerts | `azure.Monitor` |
+| **GCP** | Cloud Monitoring — time series + alert policies | `gcp.CloudMonitoring` |
+
+There are two ways to drive it, both backed by the same in-memory state:
+
+- **Real cloud SDK** — point your existing `aws-sdk-go-v2`, `azure-sdk-for-go`, or `cloud.google.com/go` client at a local server. Only the endpoint changes; your production code is untouched. This is the closest thing to testing against the real cloud, and what most tests should use.
+- **Portable Go API** — call cloudemu's Go interface directly and skip the HTTP hop. The same method shape works across every cloud, so you can switch providers by changing one field.
+
+## Drive it with the real SDK
+
+cloudemu ships an HTTP server per cloud that speaks that provider's real wire protocol. You start it with `httptest`, hand it the drivers you need, and point your normal SDK client at its URL — nothing else in your code changes.
+
+<Tabs items={['AWS', 'Azure', 'GCP']}>
+
+<Tab value="AWS">
 
 ```go
 import (
@@ -23,7 +35,7 @@ cloud := cloudemu.NewAWS()
 ts := httptest.NewServer(awsserver.New(awsserver.Drivers{CloudWatch: cloud.CloudWatch}))
 
 client := cloudwatch.NewFromConfig(cfg, func(o *cloudwatch.Options) {
-    o.BaseEndpoint = aws.String(ts.URL)
+    o.BaseEndpoint = aws.String(ts.URL) // the only change from real AWS
 })
 
 client.PutMetricData(ctx, &cloudwatch.PutMetricDataInput{
@@ -45,21 +57,107 @@ client.PutMetricAlarm(ctx, &cloudwatch.PutMetricAlarmInput{
 })
 ```
 
-### Operations supported via SDK-compat
+</Tab>
 
-**CloudWatch:** PutMetricData, GetMetricStatistics, ListMetrics, PutMetricAlarm, DescribeAlarms, DeleteAlarms.
+<Tab value="Azure">
 
-**Azure Monitor:** `microsoft.insights/metricAlerts` CRUD, metric ingest/read.
+```go
+import (
+    "github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/monitor/armmonitor"
+    azureserver "github.com/stackshy/cloudemu/server/azure"
+)
 
-**Cloud Monitoring:** Time-series ingest/read at `/v3/projects/.../`, alert policies.
+cloud := cloudemu.NewAzure()
+ts := httptest.NewTLSServer(azureserver.New(azureserver.Drivers{Monitor: cloud.Monitor}))
 
-## Realistic behaviors
+// Point the real armmonitor client at ts (endpoint + ts.Client()).
+client, _ := armmonitor.NewMetricAlertsClient("sub-1", cred, optsFor(ts))
 
-- **Auto-metrics from compute**: `RunInstances` automatically pushes 5 metrics (CPU, NetworkIn, NetworkOut, DiskReadOps, DiskWriteOps) with 5 backfill datapoints at 1-minute intervals.
-- **Alarm auto-evaluation**: `PutMetricData` triggers `evaluateAlarms()` for each affected namespace+metric. Alarms transition between `OK` and `ALARM` based on threshold comparison.
-- **Alarm history**: `GetAlarmHistory()` returns transition events with timestamps.
+alert, _ := client.CreateOrUpdate(ctx, "my-rg", "HighCPU", armmonitor.MetricAlertResource{
+    Location: to.Ptr("global"),
+    Properties: &armmonitor.MetricAlertProperties{
+        Severity:            to.Ptr[int32](3),
+        Enabled:             to.Ptr(true),
+        Scopes:              []*string{to.Ptr("/subscriptions/sub-1/resourceGroups/my-rg")},
+        EvaluationFrequency: to.Ptr("PT1M"),
+        WindowSize:          to.Ptr("PT5M"),
+    },
+}, nil)
+```
 
-## Alternative: Portable Go API
+</Tab>
+
+<Tab value="GCP">
+
+```go
+import (
+    monitoring "cloud.google.com/go/monitoring/apiv3/v2"
+    "cloud.google.com/go/monitoring/apiv3/v2/monitoringpb"
+    gcpserver "github.com/stackshy/cloudemu/server/gcp"
+)
+
+cloud := cloudemu.NewGCP()
+ts := httptest.NewServer(gcpserver.New(gcpserver.Drivers{Monitoring: cloud.CloudMonitoring}))
+
+client, _ := monitoring.NewAlertPolicyRESTClient(ctx,
+    option.WithEndpoint(ts.URL), // the only change from real GCP
+    option.WithoutAuthentication(),
+    option.WithHTTPClient(ts.Client()),
+)
+
+policy, _ := client.CreateAlertPolicy(ctx, &monitoringpb.CreateAlertPolicyRequest{
+    Name: "projects/my-project",
+    AlertPolicy: &monitoringpb.AlertPolicy{
+        DisplayName: "HighCPU",
+    },
+})
+```
+
+</Tab>
+
+</Tabs>
+
+## What each provider supports
+
+Not every provider exposes the same operations — cloudemu matches what each cloud's own API offers.
+
+<Tabs items={['AWS', 'Azure', 'GCP']}>
+
+<Tab value="AWS">
+
+**CloudWatch** — publish datapoints with `PutMetricData`, discover them with `ListMetrics`, and roll them up with `GetMetricStatistics`. Alarms are full CRUD: `PutMetricAlarm`, `DescribeAlarms`, and `DeleteAlarms`, with the standard comparison operators and evaluation periods.
+
+</Tab>
+
+<Tab value="Azure">
+
+**Azure Monitor** — metric alerts as `microsoft.insights/metricAlerts` ARM resources, with create, get, list, and delete. Metric data can be ingested and read back the same way it flows through real Azure Monitor.
+
+</Tab>
+
+<Tab value="GCP">
+
+**Cloud Monitoring** — time-series ingest and read under `/v3/projects/.../`, plus alert policies (create, get, list, delete) that mirror CloudWatch alarm semantics under GCP's richer policy shape.
+
+</Tab>
+
+</Tabs>
+
+## How the emulator behaves
+
+cloudemu doesn't just store metrics — it reproduces the side effects of the real service, so your tests exercise realistic behavior instead of a dumb key-value store:
+
+- **Metrics arrive on their own.** `RunInstances` on the compute service automatically pushes 5 metrics — CPU, NetworkIn, NetworkOut, DiskReadOps, DiskWriteOps — each with 5 backfill datapoints at 1-minute intervals, so a test can assert on an instance's metrics without any extra setup.
+- **Alarms evaluate as data lands.** Every `PutMetricData` re-evaluates the alarms watching that namespace and metric, transitioning them between `OK` and `ALARM` on the threshold comparison — no polling or background timer required.
+- **Transitions are recorded.** `GetAlarmHistory` returns the sequence of state changes with timestamps, exactly as CloudWatch would report them.
+
+## Or call the Portable Go API directly
+
+When you don't need the HTTP layer — for example, unit tests that construct cloudemu in-process — call its Go interface directly. The method shape is identical across clouds, so switching providers is a one-line change.
+
+<Tabs items={['AWS', 'Azure', 'GCP']}>
+
+<Tab value="AWS">
 
 ```go
 import mondriver "github.com/stackshy/cloudemu/monitoring/driver"
@@ -68,3 +166,31 @@ aws.CloudWatch.PutMetricData(ctx, []mondriver.MetricDatum{
     {Namespace: "App", MetricName: "CPU", Value: 45.2, Unit: "Percent"},
 })
 ```
+
+</Tab>
+
+<Tab value="Azure">
+
+```go
+import mondriver "github.com/stackshy/cloudemu/monitoring/driver"
+
+azure.Monitor.PutMetricData(ctx, []mondriver.MetricDatum{
+    {Namespace: "App", MetricName: "CPU", Value: 45.2, Unit: "Percent"},
+})
+```
+
+</Tab>
+
+<Tab value="GCP">
+
+```go
+import mondriver "github.com/stackshy/cloudemu/monitoring/driver"
+
+gcp.CloudMonitoring.PutMetricData(ctx, []mondriver.MetricDatum{
+    {Namespace: "App", MetricName: "CPU", Value: 45.2, Unit: "Percent"},
+})
+```
+
+</Tab>
+
+</Tabs>
