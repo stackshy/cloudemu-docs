@@ -78,7 +78,7 @@ export function Hero() {
  */
 function GradientText({ children }: { children: React.ReactNode }) {
   return (
-    <span className="bg-gradient-to-r from-sky-400 to-violet-500 bg-clip-text text-transparent whitespace-nowrap">
+    <span className="bg-gradient-to-r from-ember-500 to-ember-700 bg-clip-text text-transparent whitespace-nowrap">
       {children}
     </span>
   );
