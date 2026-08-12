@@ -33,6 +33,12 @@ export function SDKFlowDiagram() {
   const lastWireDelay = 0.35 + (sdks.length - 1) * 0.14;
   const nodeDelay = lastWireDelay + wireDrawDur * 0.5;
 
+  // A packet travels its wire in `packetTravel`s; the first one lands on the
+  // node at `firstArrival`, which is when the node's glow pulse begins so the
+  // ring blooms roughly as energy keeps arriving.
+  const packetTravel = 3.6;
+  const firstArrival = nodeDelay + 0.3 + packetTravel;
+
   return (
     <div className="w-full max-w-2xl mx-auto">
       <motion.svg
@@ -43,6 +49,16 @@ export function SDKFlowDiagram() {
         whileInView={reduce ? undefined : 'show'}
         viewport={{ once: true, amount: 0.4 }}
       >
+        {/* Soft ember bloom behind the cloudemu node — a radial fade so the
+            glow reads as light, never a hard-edged disc. */}
+        <defs>
+          <radialGradient id="cloudemu-glow">
+            <stop offset="0%" stopColor="#FF6B2C" stopOpacity="0.26" />
+            <stop offset="55%" stopColor="#FF6B2C" stopOpacity="0.07" />
+            <stop offset="100%" stopColor="#FF6B2C" stopOpacity="0" />
+          </radialGradient>
+        </defs>
+
         {/* Wires + packets */}
         {sdks.map((s, i) => {
           const startX = boxX + boxW;
@@ -73,6 +89,37 @@ export function SDKFlowDiagram() {
                   },
                 }}
               />
+
+              {/* Flowing energy — a faint dash drifting toward the node,
+                  fading in once the base wire has finished drawing. The dash
+                  period (1.5 + 13) matches the dashoffset sweep so the loop is
+                  seamless; low opacity keeps it a whisper, not a marquee. */}
+              {!reduce && (
+                <motion.path
+                  d={path}
+                  stroke={s.color}
+                  strokeWidth="1.4"
+                  fill="none"
+                  strokeLinecap="round"
+                  strokeDasharray="1.5 13"
+                  variants={{
+                    hidden: { opacity: 0 },
+                    show: {
+                      opacity: 0.3,
+                      transition: { duration: 0.6, delay: wireDelay + wireDrawDur },
+                    },
+                  }}
+                >
+                  <animate
+                    attributeName="stroke-dashoffset"
+                    from="14.5"
+                    to="0"
+                    dur="2.4s"
+                    begin={`${nodeDelay}s`}
+                    repeatCount="indefinite"
+                  />
+                </motion.path>
+              )}
 
               {/* Single packet — starts once the wire has drawn */}
               {!reduce && (
@@ -155,6 +202,55 @@ export function SDKFlowDiagram() {
           }}
           style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
         >
+          {/* Ember bloom behind the node. Animated: it breathes softly so the
+              node feels lit from within. Reduced: a still, faint glow. */}
+          {reduce ? (
+            <circle cx={cloudemuX} cy={cloudemuY} r="60" fill="url(#cloudemu-glow)" opacity="0.7" />
+          ) : (
+            <motion.circle
+              cx={cloudemuX}
+              cy={cloudemuY}
+              r="60"
+              fill="url(#cloudemu-glow)"
+              style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
+              initial={{ opacity: 0.55, scale: 0.94 }}
+              animate={{ opacity: [0.55, 0.95, 0.55], scale: [0.94, 1.04, 0.94] }}
+              transition={{
+                duration: 3.4,
+                repeat: Infinity,
+                ease: 'easeInOut',
+                delay: nodeDelay + 0.3,
+              }}
+            />
+          )}
+
+          {/* Arrival pulse — a soft ember ring blooms outward as packets land,
+              beginning with the first arrival and recurring at their cadence. */}
+          {!reduce && (
+            <circle cx={cloudemuX} cy={cloudemuY} fill="none" stroke="#FF6B2C" strokeWidth="1.1">
+              <animate
+                attributeName="r"
+                values="36;58"
+                dur="1.8s"
+                begin={`${firstArrival}s`}
+                repeatCount="indefinite"
+                calcMode="spline"
+                keyTimes="0;1"
+                keySplines="0.4 0 0.2 1"
+              />
+              <animate
+                attributeName="opacity"
+                values="0.28;0"
+                dur="1.8s"
+                begin={`${firstArrival}s`}
+                repeatCount="indefinite"
+                calcMode="spline"
+                keyTimes="0;1"
+                keySplines="0.4 0 0.2 1"
+              />
+            </circle>
+          )}
+
           {/* Breathing halo — starts after the pop */}
           {!reduce && (
             <motion.circle
