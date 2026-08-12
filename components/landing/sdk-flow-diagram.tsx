@@ -9,9 +9,10 @@ import { motion } from 'framer-motion';
  */
 export function SDKFlowDiagram() {
   const sdks = [
-    { label: 'aws-sdk-go-v2',       sub: 'AWS',   color: '#FF9900', y: 60 },
-    { label: 'azure-sdk-for-go',    sub: 'Azure', color: '#0078D4', y: 140 },
-    { label: 'cloud.google.com/go', sub: 'GCP',   color: '#4285F4', y: 220 },
+    { label: 'aws-sdk-go-v2',       sub: 'AWS',   color: '#FF9900', y: 46 },
+    { label: 'azure-sdk-for-go',    sub: 'Azure', color: '#0078D4', y: 118 },
+    { label: 'cloud.google.com/go', sub: 'GCP',   color: '#4285F4', y: 190 },
+    { label: 'oci-go-sdk',          sub: 'OCI',   color: '#C74634', y: 262 },
   ];
 
   // Geometry — box wide enough for the longest label at 10px font.
@@ -19,13 +20,13 @@ export function SDKFlowDiagram() {
   const boxW = 170;
   const boxH = 44;
   const cloudemuX = 470;
-  const cloudemuY = 140;
+  const cloudemuY = 154;
   const cloudemuR = 36;
 
   return (
     <div className="w-full max-w-2xl mx-auto">
       <svg
-        viewBox="0 0 600 280"
+        viewBox="0 0 600 308"
         className="w-full h-auto"
         aria-label="cloudemu SDK-compat flow"
       >
