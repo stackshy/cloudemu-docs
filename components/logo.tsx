@@ -22,18 +22,13 @@ export function Logo({ style, ...rest }: SVGProps<SVGSVGElement>) {
       style={{ display: 'block', flexShrink: 0, ...style }}
       {...rest}
     >
-      <defs>
-        <linearGradient id="cloudemu-lines" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0" stopColor="var(--logo-line, #ff6b2c)" stopOpacity="0" />
-          <stop offset="1" stopColor="var(--logo-line, #ff6b2c)" />
-        </linearGradient>
-      </defs>
-
-      {/* Motion lines — the "in memory" speed streaks */}
-      <g fill="url(#cloudemu-lines)">
-        <rect x="16" y="34" width="53" height="4.5" rx="2.25" />
-        <rect x="10" y="46" width="49" height="4.5" rx="2.25" />
-        <rect x="6" y="58" width="50" height="4.5" rx="2.25" />
+      {/* Motion lines — the "in memory" speed streaks. Solid fills with a
+          descending opacity fade (no shared gradient <defs>) so they always
+          paint, even when several logos share a page. */}
+      <g fill="var(--logo-line, #ff6b2c)">
+        <rect x="16" y="34" width="53" height="4.5" rx="2.25" opacity="0.55" />
+        <rect x="10" y="46" width="49" height="4.5" rx="2.25" opacity="0.78" />
+        <rect x="6" y="58" width="50" height="4.5" rx="2.25" opacity="1" />
       </g>
 
       {/* Cloud body */}
