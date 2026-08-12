@@ -54,7 +54,7 @@ export function Hero() {
               className="text-[2.6rem] font-semibold leading-[1.08] tracking-[-0.02em] text-ink sm:text-[3.4rem]"
               style={enter(1)}
             >
-              Test against real cloud SDKs{' '}
+              Run real cloud SDKs{' '}
               <span className="text-ink-2">without a real cloud</span>.
             </h1>
 
