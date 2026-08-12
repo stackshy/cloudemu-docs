@@ -23,15 +23,15 @@ const domains = [
   { name: 'Monitoring', sdk: true },
   { name: 'Serverless', sdk: true },
   { name: 'Message Queue', sdk: true },
-  { name: 'IAM', sdk: false },
-  { name: 'DNS', sdk: false },
-  { name: 'Load Balancer', sdk: false },
-  { name: 'Notification', sdk: false },
-  { name: 'Event Bus', sdk: false },
-  { name: 'Container Registry', sdk: false },
-  { name: 'Cache', sdk: false },
-  { name: 'Secrets', sdk: false },
-  { name: 'Logging', sdk: false },
+  { name: 'IAM', sdk: true },
+  { name: 'DNS', sdk: true },
+  { name: 'Load Balancer', sdk: true },
+  { name: 'Notification', sdk: true },
+  { name: 'Event Bus', sdk: true },
+  { name: 'Container Registry', sdk: true },
+  { name: 'Cache', sdk: true },
+  { name: 'Secrets', sdk: true },
+  { name: 'Logging', sdk: true },
 ];
 
 const sdkLive = domains.filter((d) => d.sdk).length;
@@ -110,7 +110,7 @@ export function APICoverage() {
 
           <div className="flex items-baseline justify-between mb-1">
             <h3 className="text-xl font-semibold">SDK-Compat HTTP Server</h3>
-            <span className="text-sm text-fd-muted-foreground">In progress</span>
+            <span className="text-sm text-fd-muted-foreground">All providers</span>
           </div>
           <p className="text-fd-muted-foreground text-sm mb-5">
             Point real <code className="font-mono text-xs px-1 rounded bg-fd-card border border-fd-border">aws-sdk-go-v2</code> /{' '}
@@ -128,7 +128,7 @@ export function APICoverage() {
             <span className="text-sm text-fd-muted-foreground">
               services live
               <br />
-              <span className="text-xs">{sdkLive} domains × 3 providers · {totalServices - sdkLiveServices} more in progress</span>
+              <span className="text-xs">{sdkLive} domains × 3 providers · real SDK round-trip tested</span>
             </span>
           </div>
 
@@ -175,8 +175,7 @@ export function APICoverage() {
           ))}
         </div>
         <div className="px-5 py-3 text-xs text-fd-muted-foreground bg-fd-secondary/30 border-t border-fd-border">
-          <span className="text-fd-primary font-semibold">SDK</span> = Live SDK-compat HTTP handler.{' '}
-          <span className="text-fd-foreground">Go API</span> = Available via the Portable API; SDK-compat shipping in lockstep.
+          <span className="text-fd-primary font-semibold">SDK</span> = Live SDK-compat HTTP handler, verified by real round-trip tests. Every domain also works through the Portable Go API.
         </div>
       </div>
     </section>
