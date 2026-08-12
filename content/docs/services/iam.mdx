@@ -1,70 +1,186 @@
 ---
 title: IAM
-description: Identity, roles, and policy evaluation with wildcard matching
+description: Emulate AWS IAM, Azure RBAC, and GCP Cloud IAM — drive them with the real cloud SDK.
 ---
-> **SDK-compat status:** _Portable Go API only._ Real `aws-sdk-go-v2/service/iam`, Azure RBAC, and GCP IAM clients can't talk to cloudemu yet — IAM SDK-compat handlers will ship in lockstep across all 3 providers in a future phase. The full driver semantics (JSON policy evaluation, wildcards, explicit-deny override, instance profiles) are already available through the Portable Go API below.
 
-Emulates identity and access management across all three providers.
+Model identity, roles, and access policies entirely in memory. cloudemu implements the **identity and access-management control plane** of all three clouds — creating users, roles, and service accounts, attaching and versioning policies, managing groups and keys, and evaluating whether a principal is allowed to perform an action. The exact SDK code you'd write against real AWS, Azure, or GCP runs against a local server instead: nothing touches a real account, and every call returns in milliseconds.
 
-## Provider Mapping
+| Provider | Real service | cloudemu driver |
+|---|---|---|
+| **AWS** | IAM — users, roles, policies, groups, access keys, instance profiles | `aws.IAM` |
+| **Azure** | Role-Based Access Control — role definitions + role assignments | `azure.IAM` |
+| **GCP** | Cloud IAM — service accounts, custom roles, service-account keys | `gcp.IAM` |
 
-| Provider | Service | Access |
-|----------|---------|--------|
-| AWS | IAM | `aws.IAM` |
-| Azure | IAM | `azure.IAM` |
-| GCP | IAM | `gcp.IAM` |
+There are two ways to drive it, both backed by the same in-memory state:
 
-## Key Operations
+- **Real cloud SDK** — point your existing `aws-sdk-go-v2`, `azure-sdk-for-go`, or `google.golang.org/api` client at a local server. Only the endpoint changes; your production code is untouched. This is the closest thing to testing against the real cloud, and what most tests should use.
+- **Portable Go API** — call cloudemu's Go interface directly and skip the HTTP hop. The same method shape works across every cloud, so you can switch providers by changing one field.
 
-### Users and Roles
+## Drive it with the real SDK
+
+cloudemu ships an HTTP server per cloud that speaks that provider's real wire protocol. You start it with `httptest`, hand it the drivers you need, and point your normal SDK client at its URL — nothing else in your code changes.
+
+<Tabs items={['AWS', 'Azure', 'GCP']}>
+
+<Tab value="AWS">
 
 ```go
-import iamdriver "github.com/stackshy/cloudemu/iam/driver"
+import (
+    "github.com/aws/aws-sdk-go-v2/service/iam"
+    awsserver "github.com/stackshy/cloudemu/server/aws"
+)
 
-// Create a user
+cloud := cloudemu.NewAWS()
+ts := httptest.NewServer(awsserver.New(awsserver.Drivers{IAM: cloud.IAM}))
+
+client := iam.NewFromConfig(cfg, func(o *iam.Options) {
+    o.BaseEndpoint = aws.String(ts.URL) // the only change from real AWS
+})
+
+out, _ := client.CreateUser(ctx, &iam.CreateUserInput{
+    UserName: aws.String("alice"),
+    Path:     aws.String("/team/"),
+})
+_ = out.User.UserName
+```
+
+</Tab>
+
+<Tab value="Azure">
+
+```go
+import (
+    "github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/authorization/armauthorization/v3"
+    azureserver "github.com/stackshy/cloudemu/server/azure"
+)
+
+cloud := cloudemu.NewAzure()
+ts := httptest.NewTLSServer(azureserver.New(azureserver.Drivers{IAM: cloud.IAM}))
+
+// Point the real armauthorization client at ts (endpoint + ts.Client()).
+cf, _ := armauthorization.NewClientFactory("sub-1", cred, optsFor(ts))
+roleDefs := cf.NewRoleDefinitionsClient()
+
+roleDefs.CreateOrUpdate(ctx, scope, roleID, armauthorization.RoleDefinition{
+    Properties: &armauthorization.RoleDefinitionProperties{
+        RoleName: to.Ptr("Custom Reader"),
+        RoleType: to.Ptr("CustomRole"),
+        Permissions: []*armauthorization.Permission{{
+            Actions: []*string{to.Ptr("Microsoft.Compute/virtualMachines/read")},
+        }},
+        AssignableScopes: []*string{to.Ptr(scope)},
+    },
+}, nil)
+```
+
+</Tab>
+
+<Tab value="GCP">
+
+```go
+import (
+    iamv1 "google.golang.org/api/iam/v1"
+    "google.golang.org/api/option"
+    gcpserver "github.com/stackshy/cloudemu/server/gcp"
+)
+
+cloud := cloudemu.NewGCP()
+ts := httptest.NewServer(gcpserver.New(gcpserver.Drivers{IAM: cloud.IAM}))
+
+svc, _ := iamv1.NewService(ctx,
+    option.WithEndpoint(ts.URL), // the only change from real GCP
+    option.WithoutAuthentication(),
+)
+
+svc.Projects.ServiceAccounts.Create("projects/my-project", &iamv1.CreateServiceAccountRequest{
+    AccountId:      "ci-deployer",
+    ServiceAccount: &iamv1.ServiceAccount{DisplayName: "CI Deployer"},
+}).Context(ctx).Do()
+```
+
+</Tab>
+
+</Tabs>
+
+## What each provider supports
+
+Not every provider models identity the same way — cloudemu matches what each cloud's own API offers.
+
+<Tabs items={['AWS', 'Azure', 'GCP']}>
+
+<Tab value="AWS">
+
+**Users and roles** — `CreateUser` / `GetUser` / `ListUsers` / `DeleteUser`, and `CreateRole` with an assume-role trust policy, plus inline role policies via `PutRolePolicy` / `GetRolePolicy` / `ListRolePolicies` / `DeleteRolePolicy`.
+
+**Managed policies** — `CreatePolicy`, `AttachRolePolicy` / `DetachRolePolicy` / `ListAttachedRolePolicies`, and a full policy-version lifecycle (`CreatePolicyVersion`, `SetDefaultPolicyVersion`, `ListPolicyVersions`, `GetPolicyVersion`).
+
+**Groups, keys, and profiles** — group creation and membership (`CreateGroup`, `AddUserToGroup`, `ListGroupsForUser`), access keys (`CreateAccessKey` / `ListAccessKeys` / `DeleteAccessKey`), and instance profiles that bind a role to compute.
+
+</Tab>
+
+<Tab value="Azure">
+
+**Role definitions** — `CreateOrUpdate`, `Get`, `List`, and `Delete` for custom roles, each carrying `Actions` / `NotActions` permission sets and a list of assignable scopes.
+
+**Role assignments** — `Create`, `Get`, `Delete`, and list-for-scope, binding a principal to a role definition at a subscription or resource scope, exactly as Azure RBAC does.
+
+</Tab>
+
+<Tab value="GCP">
+
+**Service accounts** — `Create`, `Get`, `List`, and `Delete`, plus `Disable` / `Enable`, `SignBlob`, and per-account `GetIamPolicy` / `SetIamPolicy`.
+
+**Keys and roles** — service-account keys (`Keys.Create` returns `PrivateKeyData` once, like real GCP, then `List` / `Delete`), and custom project roles with `IncludedPermissions` via `Roles.Create` / `Get` / `List` / `Delete`.
+
+</Tab>
+
+</Tabs>
+
+## How the emulator behaves
+
+cloudemu doesn't just store policy JSON — it reproduces the evaluation and error semantics of the real services, so your tests exercise realistic behavior instead of a dumb key-value store:
+
+- **Policies are actually evaluated.** `CheckPermission` parses JSON policy documents, matches wildcards in actions and resources (`s3:*`, `arn:aws:s3:::*`), and honors real precedence — an explicit `Deny` always overrides an `Allow`.
+- **Errors are typed like the real API.** A missing entity surfaces as `NoSuchEntity` (HTTP 404 on GCP), deleting a policy's default version raises `DeleteConflict`, and exceeding five policy versions raises `LimitExceeded` — the same exceptions your production error handling already catches.
+- **Managed-policy versioning matches AWS.** `CreatePolicy` auto-seeds a default `v1`, new versions can be set as default, the default version can't be deleted, and the version count is capped at five.
+
+## Or call the Portable Go API directly
+
+When you don't need the HTTP layer — for example, unit tests that construct cloudemu in-process — call its Go interface directly. The method shape is identical across clouds, so switching providers is a one-line change.
+
+<Tabs items={['AWS', 'Azure', 'GCP']}>
+
+<Tab value="AWS">
+
+```go
 aws.IAM.CreateUser(ctx, iamdriver.UserConfig{
     Name: "alice", Tags: map[string]string{"team": "backend"},
 })
-
-// Create a role
-aws.IAM.CreateRole(ctx, iamdriver.RoleConfig{
-    Name:             "s3-reader",
-    AssumeRolePolicy: `{"Version":"2012-10-17","Statement":[...]}`,
-})
+allowed, _ := aws.IAM.CheckPermission(ctx, "alice", "s3:GetObject", "arn:aws:s3:::my-bucket/file.txt")
 ```
 
-### Policies
+</Tab>
+
+<Tab value="Azure">
 
 ```go
-// Attach a policy
-aws.IAM.AttachPolicy(ctx, iamdriver.AttachPolicyInput{
-    TargetType: "user",
-    TargetName: "alice",
-    PolicyDocument: `{
-        "Version": "2012-10-17",
-        "Statement": [{
-            "Effect": "Allow",
-            "Action": "s3:GetObject",
-            "Resource": "arn:aws:s3:::my-bucket/*"
-        }]
-    }`,
+azure.IAM.CreateUser(ctx, iamdriver.UserConfig{
+    Name: "alice", Tags: map[string]string{"team": "backend"},
 })
+allowed, _ := azure.IAM.CheckPermission(ctx, "alice", "s3:GetObject", "arn:aws:s3:::my-bucket/file.txt")
 ```
 
-### Permission Checking
+</Tab>
+
+<Tab value="GCP">
 
 ```go
-allowed, _ := aws.IAM.CheckPermission(ctx, iamdriver.PermissionCheck{
-    Principal: "alice",
-    Action:    "s3:GetObject",
-    Resource:  "arn:aws:s3:::my-bucket/file.txt",
+gcp.IAM.CreateUser(ctx, iamdriver.UserConfig{
+    Name: "alice", Tags: map[string]string{"team": "backend"},
 })
-// allowed == true
+allowed, _ := gcp.IAM.CheckPermission(ctx, "alice", "s3:GetObject", "arn:aws:s3:::my-bucket/file.txt")
 ```
 
-## Policy Evaluation
+</Tab>
 
-cloudemu parses JSON policy documents with full support for:
-- **Wildcard matching** in actions and resources (`s3:*`, `arn:aws:s3:::*`)
-- **Explicit Deny overrides Allow** — matching real IAM behavior
-- **Multiple statements** with different effects
+</Tabs>
