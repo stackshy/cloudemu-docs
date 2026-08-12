@@ -6,15 +6,14 @@
     "installation",
     "quick-start",
     "configuration",
-    "error-handling",
+    "---",
     "architecture",
-    "---",
-    "...services",
-    "---",
-    "...features",
-    "---",
     "portable-api",
     "sdk-compat",
-    "chaos"
+    "error-handling",
+    "chaos",
+    "---",
+    "services",
+    "features"
   ]
 }
