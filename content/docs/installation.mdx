@@ -2,7 +2,7 @@
 title: Installation
 description: How to install cloudemu in your Go project
 ---
-Install cloudemu with one `go get`, verify it with one test, and migrate v1 imports if needed.
+Install cloudemu with one `go get`, verify it with a few lines of Go, and migrate v1 imports if needed.
 
 <Callout type="warn" title="Migrating to v2">
   As of **v2.0.0**, the module path is <code>github.com/stackshy/cloudemu/v2</code> and the public
@@ -21,45 +21,43 @@ This installs the library and all service packages. There are no external depend
 
 ## Verify installation
 
-Create a test file to verify the install:
+Drop this in a `main.go` and run it:
 
-```go title="main_test.go"
+```go title="main.go"
 package main
 
 import (
     "context"
-    "testing"
+    "fmt"
+    "log"
 
     "github.com/stackshy/cloudemu/v2"
 )
 
-func TestCloudemu(t *testing.T) {
+func main() {
     ctx := context.Background()
     aws := cloudemu.NewAWS()
 
-    err := aws.S3.CreateBucket(ctx, "test-bucket")
-    if err != nil {
-        t.Fatal(err)
+    if err := aws.S3.CreateBucket(ctx, "my-bucket"); err != nil {
+        log.Fatal(err)
     }
 
     buckets, err := aws.S3.ListBuckets(ctx)
     if err != nil {
-        t.Fatal(err)
+        log.Fatal(err)
     }
 
-    if len(buckets) != 1 {
-        t.Fatalf("expected 1 bucket, got %d", len(buckets))
-    }
+    fmt.Printf("cloudemu is ready — %d bucket(s)\n", len(buckets))
 }
 ```
 
 Run it:
 
 ```bash
-go test -v ./...
+go run .
 ```
 
-If you see `PASS`, cloudemu is ready to use.
+If it prints `cloudemu is ready — 1 bucket(s)`, you're set.
 
 ## Import paths
 
