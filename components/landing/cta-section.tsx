@@ -30,7 +30,7 @@ export function CTASection() {
           aria-label="Copy to clipboard"
         >
           {copied ? (
-            <Check className="w-4 h-4 text-green-500" />
+            <Check className="w-4 h-4 text-ember-500" />
           ) : (
             <Copy className="w-4 h-4 text-fd-muted-foreground" />
           )}
