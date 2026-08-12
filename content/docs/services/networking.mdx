@@ -1,16 +1,28 @@
 ---
 title: Networking
-description: VPCs, subnets, security groups, peering — drive with the real SDK
+description: Emulate VPCs, subnets, security groups, and peering — drive them with the real cloud SDK.
 ---
-Emulates virtual network primitives: **VPC** (AWS, served by the EC2 query handler), **VNet** (Azure), **VPC + Firewalls** (GCP).
 
-| Provider | Service | SDK-compat | Driver |
-|----------|---------|:----------:|--------|
-| AWS | VPC, Subnets, SGs, IGW, RT, NAT, Peering, Flow Logs, ACLs | ✓ Live | `aws.VPC` |
-| Azure | Virtual Network | ✓ Live | `azure.VNet` |
-| GCP | VPC, Subnetworks, Firewalls, Routes | ✓ Live | `gcp.VPC` |
+Build a cloud network entirely in memory. cloudemu implements the **virtual-network primitives** of all three clouds — VPCs and subnets, security groups and firewall rules, gateways, route tables, peering, and network ACLs — so you can model the topology around your workloads without touching a real account. The same SDK code you'd write against real AWS, Azure, or GCP runs against a local server instead: nothing is provisioned, nothing is billed, and every call returns in milliseconds.
 
-## Use the real SDK (recommended)
+| Provider | Real service | cloudemu driver |
+|---|---|---|
+| **AWS** | VPC — served by the EC2 handler (subnets, SGs, IGW, NAT, route tables, peering, flow logs, ACLs) | `aws.VPC` |
+| **Azure** | Virtual Network — VNets and subnets | `azure.VNet` |
+| **GCP** | VPC — Networks, Subnetworks, Firewalls, Routes | `gcp.VPC` |
+
+There are two ways to drive it, both backed by the same in-memory state:
+
+- **Real cloud SDK** — point your existing `aws-sdk-go-v2`, `azure-sdk-for-go`, or `cloud.google.com/go` client at a local server. Only the endpoint changes; your production code is untouched. This is the closest thing to testing against the real cloud, and what most tests should use.
+- **Portable Go API** — call cloudemu's Go interface directly and skip the HTTP hop. The same method shape works across every cloud, so you can switch providers by changing one field.
+
+## Drive it with the real SDK
+
+cloudemu ships an HTTP server per cloud that speaks that provider's real wire protocol. You start it with `httptest`, hand it the drivers you need, and point your normal SDK client at its URL — nothing else in your code changes.
+
+<Tabs items={['AWS', 'Azure', 'GCP']}>
+
+<Tab value="AWS">
 
 ```go
 import (
@@ -25,7 +37,7 @@ ts := httptest.NewServer(awsserver.New(awsserver.Drivers{
 }))
 
 client := ec2.NewFromConfig(cfg, func(o *ec2.Options) {
-    o.BaseEndpoint = aws.String(ts.URL)
+    o.BaseEndpoint = aws.String(ts.URL) // the only change from real AWS
 })
 
 vpc, _ := client.CreateVpc(ctx, &ec2.CreateVpcInput{
@@ -42,19 +54,98 @@ client.CreateSecurityGroup(ctx, &ec2.CreateSecurityGroupInput{
 })
 ```
 
-Azure (`armnetwork.NewVirtualNetworksClient`) and GCP (`gcpcompute.NewNetworksRESTClient`) follow the same endpoint-only-changes pattern — see [SDK-Compat Server](/docs/sdk-compat).
+</Tab>
 
-### Operations supported via SDK-compat
+<Tab value="Azure">
 
-**AWS (via EC2 handler):** VPCs, Subnets, Security Groups + ingress/egress rules, Internet Gateways, Route Tables + Routes, NAT Gateways, VPC Peering Connections, Flow Logs, Network ACLs.
+```go
+import (
+    "github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/network/armnetwork/v6"
+    azureserver "github.com/stackshy/cloudemu/server/azure"
+)
 
-**Azure VNet:** Virtual networks + subnets CRUD via ARM.
+cloud := cloudemu.NewAzure()
+ts := httptest.NewTLSServer(azureserver.New(azureserver.Drivers{
+    Network: cloud.VNet,
+}))
 
-**GCP:** Networks, Subnetworks, Firewalls, Routes via REST with LRO envelopes.
+// Point the real armnetwork client at ts (endpoint + ts.Client()).
+client, _ := armnetwork.NewVirtualNetworksClient("sub-1", cred, optsFor(ts))
 
-## Topology engine — bonus feature
+poller, _ := client.BeginCreateOrUpdate(ctx, "my-rg", "vnet-1", armnetwork.VirtualNetwork{
+    Location: to.Ptr("eastus"),
+    Properties: &armnetwork.VirtualNetworkPropertiesFormat{
+        AddressSpace: &armnetwork.AddressSpace{
+            AddressPrefixes: []*string{to.Ptr("10.0.0.0/16")},
+        },
+    },
+}, nil)
+vnet, _ := poller.PollUntilDone(ctx, nil)
+```
 
-Once your network is built, the [topology engine](/docs/architecture#pluggable-consumers) can answer real connectivity questions on top of the same drivers:
+</Tab>
+
+<Tab value="GCP">
+
+```go
+import (
+    gcpcompute "cloud.google.com/go/compute/apiv1"
+    "cloud.google.com/go/compute/apiv1/computepb"
+    gcpserver "github.com/stackshy/cloudemu/server/gcp"
+)
+
+cloud := cloudemu.NewGCP()
+ts := httptest.NewServer(gcpserver.New(gcpserver.Drivers{Networking: cloud.VPC}))
+
+client, _ := gcpcompute.NewNetworksRESTClient(ctx,
+    option.WithEndpoint(ts.URL), // the only change from real GCP
+    option.WithoutAuthentication(),
+    option.WithHTTPClient(ts.Client()),
+)
+
+op, _ := client.Insert(ctx, &computepb.InsertNetworkRequest{
+    Project: "my-project",
+    NetworkResource: &computepb.Network{
+        Name:                  proto.String("vpc-1"),
+        AutoCreateSubnetworks: proto.Bool(false),
+    },
+})
+op.Wait(ctx)
+```
+
+</Tab>
+
+</Tabs>
+
+## What each provider supports
+
+Not every provider exposes the same operations — cloudemu matches what each cloud's own API offers.
+
+<Tabs items={['AWS', 'Azure', 'GCP']}>
+
+<Tab value="AWS">
+
+**The full VPC stack, via the EC2 handler** — VPCs and subnets, security groups with ingress and egress rules, internet gateways, route tables and routes, NAT gateways, VPC peering connections, flow logs, and network ACLs. Enough to model a realistic network around your instances and reason about reachability across it.
+
+</Tab>
+
+<Tab value="Azure">
+
+**Virtual Network** — virtual networks and their subnets, with full CRUD via the ARM protocol. Create a VNet, carve out address prefixes, and manage subnets the same way you would against real Azure.
+
+</Tab>
+
+<Tab value="GCP">
+
+**VPC** — Networks, Subnetworks, Firewalls, and Routes, served over REST. Every mutating call returns a **long-running-operation (LRO)** envelope and completes synchronously, so `op.Wait(ctx)` behaves the same as it does against real GCP.
+
+</Tab>
+
+</Tabs>
+
+## Topology engine
+
+Once your network is built, the [topology engine](/docs/architecture#pluggable-consumers) answers real connectivity questions on top of the same drivers — it doesn't just store objects, it evaluates reachability the way real cloud network tools do:
 
 ```go
 import "github.com/stackshy/cloudemu/topology"
@@ -66,15 +157,57 @@ result, _ := topo.CanConnect(ctx, topology.ConnectivityQuery{
 fmt.Println(result.Allowed, result.BlockedBy)
 ```
 
-This walks VPC peering, security groups, route tables, and network ACLs the same way real cloud reachability tools do.
+## How the emulator behaves
 
-## Alternative: Portable Go API
+cloudemu reproduces the semantics of the real service, so your tests exercise realistic network behavior:
+
+- **Security groups and ACLs are evaluated, not just stored.** The topology engine walks ingress and egress rules and ordered network-ACL entries to decide whether a flow is allowed — and tells you what blocked it when it isn't.
+- **Peering and routing are honored.** Connectivity checks follow VPC peering connections and route tables, so cross-VPC and gateway paths resolve the same way real reachability tooling would trace them.
+- **GCP mutations return LRO envelopes.** Network and subnetwork writes complete synchronously behind an operation object, matching the real Compute API's async contract.
+
+## Or call the Portable Go API directly
+
+When you don't need the HTTP layer — for example, unit tests that construct cloudemu in-process — call its Go interface directly. The method shape is identical across clouds, so switching providers is a one-line change.
+
+<Tabs items={['AWS', 'Azure', 'GCP']}>
+
+<Tab value="AWS">
 
 ```go
 import netdriver "github.com/stackshy/cloudemu/networking/driver"
 
 vpc, _ := aws.VPC.CreateVPC(ctx, netdriver.VPCConfig{CIDRBlock: "10.0.0.0/16"})
-subnet, _ := aws.VPC.CreateSubnet(ctx, netdriver.SubnetConfig{
+aws.VPC.CreateSubnet(ctx, netdriver.SubnetConfig{
     VPCID: vpc.ID, CIDRBlock: "10.0.1.0/24",
 })
 ```
+
+</Tab>
+
+<Tab value="Azure">
+
+```go
+import netdriver "github.com/stackshy/cloudemu/networking/driver"
+
+vpc, _ := azure.VNet.CreateVPC(ctx, netdriver.VPCConfig{CIDRBlock: "10.0.0.0/16"})
+azure.VNet.CreateSubnet(ctx, netdriver.SubnetConfig{
+    VPCID: vpc.ID, CIDRBlock: "10.0.1.0/24",
+})
+```
+
+</Tab>
+
+<Tab value="GCP">
+
+```go
+import netdriver "github.com/stackshy/cloudemu/networking/driver"
+
+vpc, _ := gcp.VPC.CreateVPC(ctx, netdriver.VPCConfig{CIDRBlock: "10.0.0.0/16"})
+gcp.VPC.CreateSubnet(ctx, netdriver.SubnetConfig{
+    VPCID: vpc.ID, CIDRBlock: "10.0.1.0/24",
+})
+```
+
+</Tab>
+
+</Tabs>
