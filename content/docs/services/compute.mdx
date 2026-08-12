@@ -1,32 +1,36 @@
 ---
 title: Compute
-description: VMs and instances — drive EC2 / Azure VMs / GCE with the real cloud SDK
+description: Emulate EC2, Azure VMs, and Compute Engine — drive them with the real cloud SDK.
 ---
-Emulates VM/instance services: **EC2** (AWS), **Virtual Machines** (Azure), **Compute Engine** (GCP).
 
-| Provider | Service | SDK-compat | Driver |
-|----------|---------|:----------:|--------|
-| AWS | EC2 + full VPC stack | ✓ Live | `aws.EC2` |
-| Azure | Virtual Machines + Disks/Snapshots/Images/SSH Keys | ✓ Live | `azure.VirtualMachines` |
-| GCP | Compute Engine + Disks/Snapshots/Images | ✓ Live | `gcp.GCE` |
+Launch and manage virtual machines entirely in memory. cloudemu speaks the compute API of each cloud, so your existing SDK code runs unchanged against a local server — no real instances, no cost, no waiting.
 
-## Use the real SDK (recommended)
+| Provider | Real service | Go driver | SDK-compat |
+|---|---|---|:--:|
+| **AWS** | EC2 (+ full VPC stack) | `aws.EC2` | ✅ Live |
+| **Azure** | Virtual Machines (+ Disks, Snapshots, Images, SSH keys) | `azure.VirtualMachines` | ✅ Live |
+| **GCP** | Compute Engine (+ Disks, Snapshots, Images) | `gcp.GCE` | ✅ Live |
+
+## Use it with the real SDK
+
+Point your real cloud SDK client at a local `httptest` server — only the endpoint changes, the rest of your code is untouched.
+
+<Tabs items={['AWS', 'Azure', 'GCP']}>
+
+<Tab value="AWS">
 
 ```go
 import (
     "github.com/aws/aws-sdk-go-v2/service/ec2"
     "github.com/aws/aws-sdk-go-v2/service/ec2/types"
-    "github.com/stackshy/cloudemu"
     awsserver "github.com/stackshy/cloudemu/server/aws"
 )
 
 cloud := cloudemu.NewAWS()
-ts := httptest.NewServer(awsserver.New(awsserver.Drivers{
-    EC2: cloud.EC2, VPC: cloud.VPC,
-}))
+ts := httptest.NewServer(awsserver.New(awsserver.Drivers{EC2: cloud.EC2, VPC: cloud.VPC}))
 
 client := ec2.NewFromConfig(cfg, func(o *ec2.Options) {
-    o.BaseEndpoint = aws.String(ts.URL)
+    o.BaseEndpoint = aws.String(ts.URL) // the only change from real AWS
 })
 
 out, _ := client.RunInstances(ctx, &ec2.RunInstancesInput{
@@ -35,38 +39,143 @@ out, _ := client.RunInstances(ctx, &ec2.RunInstancesInput{
     MinCount:     aws.Int32(1),
     MaxCount:     aws.Int32(3),
 })
-
 client.StopInstances(ctx, &ec2.StopInstancesInput{
     InstanceIds: []string{*out.Instances[0].InstanceId},
 })
 ```
 
-Same pattern with `armcompute` for Azure and `cloud.google.com/go/compute/apiv1` for GCP — see [SDK-Compat Server](/docs/sdk-compat).
+</Tab>
 
-### Operations supported via SDK-compat
-
-**EC2:** RunInstances, DescribeInstances (filters: `instance-id`, `instance-type`, `instance-state-name`, `tag:*`), Start/Stop/Reboot/TerminateInstances, ModifyInstanceAttribute.
-
-**EC2 — VPC stack:** VPCs, Subnets, Security Groups + ingress/egress rules, Internet Gateways, Route Tables + Routes, NAT Gateways, VPC Peering, Flow Logs, Network ACLs, EBS Volumes, Key Pairs, Snapshots, AMIs, Spot Instances, Launch Templates, Auto Scaling Groups + scaling policies.
-
-**Azure VMs:** CreateOrUpdate, Get, List, Delete, start/powerOff/restart actions; full Disks/Snapshots/Images/SSHPublicKeys CRUD.
-
-**GCP Compute Engine:** Instances + Disks + Snapshots + Images insert/get/list/delete with LRO envelopes.
-
-## Realistic behaviors
-
-- **State machine** enforces valid lifecycle transitions (`pending → running → stopped → terminated`). Illegal transitions return errors — same as real EC2.
-- **Auto-metrics**: `RunInstances` automatically pushes CPU, Network, and Disk metrics to the monitoring service. Stop/start/terminate emit matching values.
-- **Lifecycle metric emission**: every `StartInstances` / `StopInstances` / `RebootInstances` / `TerminateInstances` call writes corresponding metric values too.
-
-## Alternative: Portable Go API
+<Tab value="Azure">
 
 ```go
-aws.EC2.RunInstances(ctx, computedriver.InstanceConfig{
-    ImageID: "ami-0abcdef1234", InstanceType: "t3.large",
-}, 3)
-aws.EC2.StopInstances(ctx, []string{instanceID})
-aws.EC2.TerminateInstances(ctx, []string{instanceID})
+import (
+    "github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/compute/armcompute/v5"
+    azureserver "github.com/stackshy/cloudemu/server/azure"
+)
+
+cloud := cloudemu.NewAzure()
+ts := httptest.NewTLSServer(azureserver.New(azureserver.Drivers{
+    VirtualMachines: cloud.VirtualMachines,
+}))
+
+// Point the real armcompute client at ts (endpoint + ts.Client()).
+client, _ := armcompute.NewVirtualMachinesClient("sub-1", cred, optsFor(ts))
+
+poller, _ := client.BeginCreateOrUpdate(ctx, "my-rg", "vm-1", armcompute.VirtualMachine{
+    Location: to.Ptr("eastus"),
+    Properties: &armcompute.VirtualMachineProperties{
+        HardwareProfile: &armcompute.HardwareProfile{
+            VMSize: to.Ptr(armcompute.VirtualMachineSizeTypesStandardD2SV3),
+        },
+    },
+}, nil)
+vm, _ := poller.PollUntilDone(ctx, nil)
 ```
 
-Use the Portable API when you want direct in-process calls without the HTTP hop.
+</Tab>
+
+<Tab value="GCP">
+
+```go
+import (
+    compute "cloud.google.com/go/compute/apiv1"
+    "cloud.google.com/go/compute/apiv1/computepb"
+    gcpserver "github.com/stackshy/cloudemu/server/gcp"
+)
+
+cloud := cloudemu.NewGCP()
+ts := httptest.NewServer(gcpserver.New(gcpserver.Drivers{Compute: cloud.GCE}))
+
+client, _ := compute.NewInstancesRESTClient(ctx,
+    option.WithEndpoint(ts.URL), // the only change from real GCP
+    option.WithoutAuthentication(),
+    option.WithHTTPClient(ts.Client()),
+)
+
+op, _ := client.Insert(ctx, &computepb.InsertInstanceRequest{
+    Project: "my-project",
+    Zone:    "us-central1-a",
+    InstanceResource: &computepb.Instance{
+        Name:        proto.String("vm-1"),
+        MachineType: proto.String("zones/us-central1-a/machineTypes/e2-standard-2"),
+    },
+})
+op.Wait(ctx)
+```
+
+</Tab>
+
+</Tabs>
+
+## What's supported
+
+<Tabs items={['AWS', 'Azure', 'GCP']}>
+
+<Tab value="AWS">
+
+**EC2** — `RunInstances`, `DescribeInstances` (filter by `instance-id`, `instance-type`, `instance-state-name`, `tag:*`), `Start`/`Stop`/`Reboot`/`TerminateInstances`, `ModifyInstanceAttribute`.
+
+**VPC stack** — VPCs, subnets, security groups (+ rules), internet & NAT gateways, route tables, peering, flow logs, network ACLs, EBS volumes, key pairs, snapshots, AMIs, spot instances, launch templates, and auto-scaling groups.
+
+</Tab>
+
+<Tab value="Azure">
+
+**Virtual Machines** — `CreateOrUpdate`, `Get`, `List`, `Delete`, plus `start` / `powerOff` / `restart` actions. Full CRUD for Disks, Snapshots, Images, and SSH public keys.
+
+</Tab>
+
+<Tab value="GCP">
+
+**Compute Engine** — Instances, Disks, Snapshots, and Images: `insert` / `get` / `list` / `delete`, each returned with a long-running-operation (LRO) envelope, exactly like the real API.
+
+</Tab>
+
+</Tabs>
+
+## How it behaves
+
+- **Lifecycle is enforced.** Instances move through `pending → running → stopped → terminated`; an illegal transition returns an error, just like real EC2.
+- **Metrics appear on their own.** `RunInstances` pushes CPU, network, and disk metrics to the monitoring service; start / stop / reboot / terminate emit matching values automatically.
+
+## Or use the Portable Go API
+
+Skip the HTTP hop and call cloudemu's Go interface directly. The shape is identical across providers — switch clouds by changing one field.
+
+<Tabs items={['AWS', 'Azure', 'GCP']}>
+
+<Tab value="AWS">
+
+```go
+ids, _ := aws.EC2.RunInstances(ctx, computedriver.InstanceConfig{
+    ImageID: "ami-0abcdef1234", InstanceType: "t3.large",
+}, 3)
+aws.EC2.StopInstances(ctx, ids)
+```
+
+</Tab>
+
+<Tab value="Azure">
+
+```go
+ids, _ := azure.VirtualMachines.RunInstances(ctx, computedriver.InstanceConfig{
+    ImageID: "Ubuntu-22.04", InstanceType: "Standard_D2s_v3",
+}, 3)
+azure.VirtualMachines.StopInstances(ctx, ids)
+```
+
+</Tab>
+
+<Tab value="GCP">
+
+```go
+ids, _ := gcp.GCE.RunInstances(ctx, computedriver.InstanceConfig{
+    ImageID: "debian-11", InstanceType: "e2-standard-2",
+}, 3)
+gcp.GCE.StopInstances(ctx, ids)
+```
+
+</Tab>
+
+</Tabs>
