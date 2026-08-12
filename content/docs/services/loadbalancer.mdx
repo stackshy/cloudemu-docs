@@ -1,56 +1,210 @@
 ---
 title: Load Balancer
-description: Load balancers, target groups, listeners, and health checks
+description: Emulate ELB, Azure Load Balancer, and Cloud Load Balancing — target groups, listeners, rules, and health checks, entirely in memory.
 ---
-> **SDK-compat status:** _Portable Go API only._ Real `elbv2`, `armnetwork.LoadBalancers`, and GCP LB clients can't talk to cloudemu yet — load balancer SDK-compat handlers will ship in lockstep across all 3 providers in a future phase. Targets, listeners, and health checks are already available through the Portable Go API below.
 
-Emulates load balancing: **ELB** (AWS), **LB** (Azure), **LB** (GCP).
+Model a load-balancing tier without provisioning one. cloudemu implements the **load-balancer control plane** of all three clouds — creating load balancers, grouping backends into target groups, wiring listeners and routing rules in front of them, and tracking the health of each registered target. It's the piece you need when a test has to stand up a realistic front end for its instances, assert that traffic is wired correctly, or flip a backend unhealthy and watch the routing react — all in memory, with nothing provisioned and nothing billed.
 
-## Provider Mapping
+| Provider | Real service | cloudemu driver |
+|---|---|---|
+| **AWS** | Elastic Load Balancing (ALB / NLB) | `aws.ELB` |
+| **Azure** | Load Balancer | `azure.LB` |
+| **GCP** | Cloud Load Balancing | `gcp.LB` |
 
-| Provider | Service | Access |
-|----------|---------|--------|
-| AWS | ELB | `aws.ELB` |
-| Azure | LB | `azure.LB` |
-| GCP | LB | `gcp.LB` |
+There are two ways to drive it, both backed by the same in-memory state:
 
-## Key Operations
+- **Real cloud SDK** — point your existing `aws-sdk-go-v2`, `azure-sdk-for-go`, or `cloud.google.com/go` client at a local server. Only the endpoint changes; your production code is untouched. This is the closest thing to testing against the real cloud, and what most tests should use.
+- **Portable Go API** — call cloudemu's Go interface directly and skip the HTTP hop. The same method shape works across every cloud, so you can switch providers by changing one field.
 
-### Load Balancers
+## Drive it with the real SDK
+
+cloudemu ships an HTTP server per cloud that speaks that provider's real wire protocol. You start it with `httptest`, hand it the drivers you need, and point your normal SDK client at its URL — nothing else in your code changes.
+
+<Tabs items={['AWS', 'Azure', 'GCP']}>
+
+<Tab value="AWS">
 
 ```go
-import lbdriver "github.com/stackshy/cloudemu/loadbalancer/driver"
+import (
+    "github.com/aws/aws-sdk-go-v2/aws"
+    elb "github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2"
+    elbtypes "github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2/types"
+    awsserver "github.com/stackshy/cloudemu/v2/server/aws"
+)
 
-lb, _ := aws.ELB.CreateLoadBalancer(ctx, lbdriver.LoadBalancerConfig{
-    Name:   "web-lb",
-    Type:   "application",
-    Scheme: "internet-facing",
+cloud := cloudemu.NewAWS()
+ts := httptest.NewServer(awsserver.New(awsserver.Drivers{ELB: cloud.ELB}))
+
+client := elb.NewFromConfig(cfg, func(o *elb.Options) {
+    o.BaseEndpoint = aws.String(ts.URL) // the only change from real AWS
+})
+
+out, _ := client.CreateLoadBalancer(ctx, &elb.CreateLoadBalancerInput{
+    Name:    aws.String("my-alb"),
+    Type:    elbtypes.LoadBalancerTypeEnumApplication,
+    Scheme:  elbtypes.LoadBalancerSchemeEnumInternetFacing,
+    Subnets: []string{"subnet-a", "subnet-b"},
 })
 ```
 
-### Target Groups
+</Tab>
+
+<Tab value="Azure">
 
 ```go
+import (
+    "github.com/Azure/azure-sdk-for-go/sdk/azcore/to"
+    "github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/network/armnetwork"
+    azureserver "github.com/stackshy/cloudemu/v2/server/azure"
+)
+
+cloud := cloudemu.NewAzure()
+ts := httptest.NewTLSServer(azureserver.New(azureserver.Drivers{LB: cloud.LB}))
+
+// Point the real armnetwork client at ts (endpoint + ts.Client()).
+client, _ := armnetwork.NewLoadBalancersClient("sub-1", cred, optsFor(ts))
+
+poller, _ := client.BeginCreateOrUpdate(ctx, "rg-1", "lb-1", armnetwork.LoadBalancer{
+    Location: to.Ptr("eastus"),
+    SKU:      &armnetwork.LoadBalancerSKU{Name: to.Ptr(armnetwork.LoadBalancerSKUNameStandard)},
+    Properties: &armnetwork.LoadBalancerPropertiesFormat{
+        BackendAddressPools: []*armnetwork.BackendAddressPool{
+            {Name: to.Ptr("pool-a")},
+        },
+    },
+}, nil)
+lb, _ := poller.PollUntilDone(ctx, nil)
+```
+
+</Tab>
+
+<Tab value="GCP">
+
+```go
+import (
+    gcpcompute "cloud.google.com/go/compute/apiv1"
+    computepb "cloud.google.com/go/compute/apiv1/computepb"
+    gcpserver "github.com/stackshy/cloudemu/v2/server/gcp"
+)
+
+cloud := cloudemu.NewGCP()
+ts := httptest.NewServer(gcpserver.New(gcpserver.Drivers{LB: cloud.LB}))
+
+client, _ := gcpcompute.NewBackendServicesRESTClient(ctx,
+    option.WithEndpoint(ts.URL), // the only change from real GCP
+    option.WithoutAuthentication(),
+    option.WithHTTPClient(ts.Client()),
+)
+
+op, _ := client.Insert(ctx, &computepb.InsertBackendServiceRequest{
+    Project: "proj-1",
+    BackendServiceResource: &computepb.BackendService{
+        Name:     proto.String("web-backend"),
+        Protocol: proto.String("HTTP"),
+    },
+})
+op.Wait(ctx)
+```
+
+</Tab>
+
+</Tabs>
+
+## What each provider supports
+
+Every provider implements the same load-balancer interface, mapped onto its own real service.
+
+<Tabs items={['AWS', 'Azure', 'GCP']}>
+
+<Tab value="AWS">
+
+**Elastic Load Balancing** — create, describe, and delete **load balancers** (`application` or `network`, internet-facing or internal). Group backends into **target groups**, then `RegisterTargets` / `DeregisterTargets` and read their status back with `DescribeTargetHealth`. Put **listeners** in front on a protocol and port, add path- and host-based **rules** with priorities, and adjust a listener in place with `ModifyListener`. Load-balancer **attributes** (idle timeout, deletion protection, access logs, and open key/value extras) are readable and writable via `GetLBAttributes` / `PutLBAttributes`.
+
+</Tab>
+
+<Tab value="Azure">
+
+**Load Balancer** — the same surface, on Azure's model: create, describe, and delete load balancers; manage target groups and their registered backends; and place listeners and routing rules in front. Target health is inspectable with `DescribeTargetHealth` and can be driven directly with `SetTargetHealth`, and load-balancer attributes are available through `GetLBAttributes` / `PutLBAttributes`.
+
+</Tab>
+
+<Tab value="GCP">
+
+**Cloud Load Balancing** — create, describe, and delete load balancers; back them with target groups you register and deregister instances against; and configure listeners plus path/host rules on top. `DescribeTargetHealth` reports each backend's state, `SetTargetHealth` lets a test force one, and load-balancer attributes round-trip through `GetLBAttributes` / `PutLBAttributes`.
+
+</Tab>
+
+</Tabs>
+
+## How the emulator behaves
+
+cloudemu reproduces the shape and side effects of the real service, not just a key/value store:
+
+- **Health status is real state.** A target group tracks each registered target's health (`healthy`, `unhealthy`, `draining`, `initial`). `SetTargetHealth` lets a test flip a backend unhealthy, and `DescribeTargetHealth` reads it straight back — so you can assert on routing behavior without waiting on probes.
+- **Listeners and rules are linked.** Listeners forward to a target group, and rules add priority-ordered path- and host-based routing on top. Delete a load balancer or listener and the dependent objects go with it.
+- **Attributes round-trip faithfully.** Load-balancer attributes model AWS's open key/value set, so whatever you write — including extras outside the typed fields — reads back exactly as written.
+
+## Or call the Portable Go API directly
+
+Construct cloudemu in-process and call its Go interface — no HTTP layer. The method shape is identical across clouds, so switching providers is a one-line change.
+
+<Tabs items={['AWS', 'Azure', 'GCP']}>
+
+<Tab value="AWS">
+
+```go
+import lbdriver "github.com/stackshy/cloudemu/v2/services/loadbalancer/driver"
+
+lb, _ := aws.ELB.CreateLoadBalancer(ctx, lbdriver.LBConfig{
+    Name: "web-lb", Type: "application", Scheme: "internet-facing",
+})
 tg, _ := aws.ELB.CreateTargetGroup(ctx, lbdriver.TargetGroupConfig{
-    Name:     "web-targets",
-    Port:     8080,
-    Protocol: "HTTP",
+    Name: "web-targets", Protocol: "HTTP", Port: 8080,
 })
-
-aws.ELB.RegisterTargets(ctx, tg.ID, []string{"i-00000001", "i-00000002"})
+aws.ELB.RegisterTargets(ctx, tg.ARN, []lbdriver.Target{{ID: "i-00000001"}})
+aws.ELB.CreateListener(ctx, lbdriver.ListenerConfig{
+    LBARN: lb.ARN, Protocol: "HTTPS", Port: 443, TargetGroupARN: tg.ARN,
+})
 ```
 
-### Listeners
+</Tab>
+
+<Tab value="Azure">
 
 ```go
-aws.ELB.CreateListener(ctx, lbdriver.ListenerConfig{
-    LoadBalancerID: lb.ID,
-    Port:           443,
-    Protocol:       "HTTPS",
-    TargetGroupID:  tg.ID,
+import lbdriver "github.com/stackshy/cloudemu/v2/services/loadbalancer/driver"
+
+lb, _ := azure.LB.CreateLoadBalancer(ctx, lbdriver.LBConfig{
+    Name: "web-lb", Type: "application", Scheme: "internet-facing",
+})
+tg, _ := azure.LB.CreateTargetGroup(ctx, lbdriver.TargetGroupConfig{
+    Name: "web-targets", Protocol: "HTTP", Port: 8080,
+})
+azure.LB.RegisterTargets(ctx, tg.ARN, []lbdriver.Target{{ID: "vm-1"}})
+azure.LB.CreateListener(ctx, lbdriver.ListenerConfig{
+    LBARN: lb.ARN, Protocol: "HTTPS", Port: 443, TargetGroupARN: tg.ARN,
 })
 ```
 
-### Health Checks
+</Tab>
 
-Target groups include health check configuration that determines target health status.
+<Tab value="GCP">
+
+```go
+import lbdriver "github.com/stackshy/cloudemu/v2/services/loadbalancer/driver"
+
+lb, _ := gcp.LB.CreateLoadBalancer(ctx, lbdriver.LBConfig{
+    Name: "web-lb", Type: "application", Scheme: "internet-facing",
+})
+tg, _ := gcp.LB.CreateTargetGroup(ctx, lbdriver.TargetGroupConfig{
+    Name: "web-targets", Protocol: "HTTP", Port: 8080,
+})
+gcp.LB.RegisterTargets(ctx, tg.ARN, []lbdriver.Target{{ID: "instance-1"}})
+gcp.LB.CreateListener(ctx, lbdriver.ListenerConfig{
+    LBARN: lb.ARN, Protocol: "HTTPS", Port: 443, TargetGroupARN: tg.ARN,
+})
+```
+
+</Tab>
+
+</Tabs>
