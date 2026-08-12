@@ -134,8 +134,8 @@ export function CodeExample() {
           ))}
         </div>
 
-        <pre className="p-6 overflow-x-auto">
-          <code className="text-sm font-mono text-fd-foreground leading-relaxed">
+        <pre className="p-6 overflow-x-auto" style={{ background: 'hsl(26, 9%, 13%)' }}>
+          <code className="text-sm font-mono leading-relaxed" style={{ color: '#e6e6e6' }}>
             <HighlightedGo code={tabs[active].code} />
           </code>
         </pre>
