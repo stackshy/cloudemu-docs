@@ -102,7 +102,7 @@ export function APICoverage() {
         </div>
 
         {/* SDK-Compatible Server */}
-        <div className="relative rounded-2xl border border-fd-primary/40 bg-gradient-to-br from-fd-primary/5 to-transparent p-7">
+        <div className="relative rounded-2xl border border-fd-border bg-fd-card p-7">
           <div className="absolute -top-3 right-6 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-fd-primary text-fd-primary-foreground text-xs font-semibold">
             <span className="inline-block w-1.5 h-1.5 rounded-full bg-current animate-pulse" />
             Real SDKs work here
