@@ -2,9 +2,12 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
-import { ArrowRight, ServerCog } from 'lucide-react';
+import type { Ref } from 'react';
+import { ArrowRight } from 'lucide-react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { DUR, EASE, fadeUp, scaleIn, staggerContainer, viewportOnce } from '@/lib/motion';
+import { useTilt } from '@/lib/interactions';
+import { Kicker } from './section';
 import { HighlightedGo } from './highlighted-go';
 
 const tabs = [
@@ -116,14 +119,14 @@ const summaryCards = [
 export function SDKCompatSection() {
   const [active, setActive] = useState(0);
   const reduced = useReducedMotion();
+  const tilt = useTilt(4);
 
   return (
     <section className="w-full max-w-6xl mx-auto px-6 pt-8 pb-16">
       <div className="text-center mb-10">
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 mb-5 rounded-full border border-fd-primary/30 bg-fd-primary/5 text-sm text-fd-primary font-medium">
-          <ServerCog className="w-4 h-4" />
-          Real Cloud SDKs Work Unchanged
-        </div>
+        <Kicker index="02" className="mb-5">
+          The trick
+        </Kicker>
         <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">
           Don&apos;t rewrite your code.{' '}
           <span
@@ -134,20 +137,24 @@ export function SDKCompatSection() {
           </span>
         </h2>
         <p className="mt-4 text-lg text-fd-muted-foreground max-w-3xl mx-auto leading-relaxed">
-          cloudemu ships HTTP servers that speak the real wire protocols of{' '}
+          Each cloudemu server speaks the real wire protocol its SDK expects —{' '}
           <code className="px-1.5 py-0.5 rounded bg-fd-card border border-fd-border text-sm font-mono">aws-sdk-go-v2</code>,{' '}
-          <code className="px-1.5 py-0.5 rounded bg-fd-card border border-fd-border text-sm font-mono">azure-sdk-for-go</code>, and{' '}
+          <code className="px-1.5 py-0.5 rounded bg-fd-card border border-fd-border text-sm font-mono">azure-sdk-for-go</code>,{' '}
           <code className="px-1.5 py-0.5 rounded bg-fd-card border border-fd-border text-sm font-mono">cloud.google.com/go</code>.
-          {' '}Point the SDK&apos;s endpoint at a local <code className="px-1.5 py-0.5 rounded bg-fd-card border border-fd-border text-sm font-mono">httptest.NewServer</code>{' '}
-          and your existing production code runs unchanged against an in-memory backend. No mocks. No Docker. No accounts.
+          {' '}Point the client&apos;s endpoint at a local <code className="px-1.5 py-0.5 rounded bg-fd-card border border-fd-border text-sm font-mono">httptest.NewServer</code>{' '}
+          and your production code runs untouched against an in-memory backend, roughly 10ms a call. No mocks. No Docker. No accounts.
         </p>
       </div>
 
       <motion.div
+        ref={tilt.ref as Ref<HTMLDivElement>}
         variants={scaleIn()}
         initial={reduced ? false : 'hidden'}
         whileInView="show"
         viewport={viewportOnce}
+        style={tilt.style}
+        onMouseMove={tilt.onMouseMove}
+        onMouseLeave={tilt.onMouseLeave}
         className="rounded-xl border border-fd-border bg-fd-card overflow-hidden shadow-sm"
       >
         {/* macOS-style window chrome */}
@@ -168,16 +175,23 @@ export function SDKCompatSection() {
               onClick={() => setActive(i)}
               whileHover={reduced ? undefined : { y: -1 }}
               transition={{ duration: DUR.fast, ease: EASE }}
-              className={`flex-1 sm:flex-none px-6 py-3 text-sm font-medium transition-colors ${
+              className={`relative flex-1 sm:flex-none px-6 py-3 text-sm font-medium transition-colors ${
                 active === i
-                  ? 'bg-fd-card border-b-2 text-fd-foreground'
+                  ? 'bg-fd-card text-fd-foreground'
                   : 'text-fd-muted-foreground hover:text-fd-foreground hover:bg-fd-secondary/50'
               }`}
-              style={active === i ? { borderBottomColor: tab.color } : undefined}
             >
               <span className="font-semibold" style={{ color: active === i ? tab.color : undefined }}>
                 {tab.label}
               </span>
+              {active === i && (
+                <motion.span
+                  layoutId={reduced ? undefined : 'sdk-tab-underline'}
+                  className="absolute left-0 right-0 -bottom-px h-0.5 rounded-full"
+                  style={{ backgroundColor: tab.color }}
+                  transition={{ type: 'spring', stiffness: 380, damping: 32 }}
+                />
+              )}
             </motion.button>
           ))}
         </div>
