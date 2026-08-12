@@ -75,8 +75,8 @@ export function FeatureCards() {
             key={feature.title}
             className={`group rounded-xl border p-6 transition-all duration-200 ${
               feature.accent
-                ? 'border-fd-primary/40 bg-fd-primary/5 hover:shadow-lg hover:border-fd-primary'
-                : 'border-fd-border bg-fd-card hover:shadow-lg hover:border-fd-primary/50'
+                ? 'border-fd-primary/40 bg-fd-card hover:shadow-md hover:border-fd-primary'
+                : 'border-fd-border bg-fd-card hover:shadow-md hover:border-fd-primary/50'
             }`}
           >
             <div
