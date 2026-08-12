@@ -81,6 +81,15 @@ export function APICoverage() {
               <span className="text-ember-500">cloud</span>.IAM.CheckPermission(ctx, ...)
               {'\n'}
               <span className="text-ember-500">cloud</span>.SecretsManager.GetSecret(ctx, ...)
+              {'\n'}
+              {'\n'}
+              <span style={{ color: '#C74634' }}>oci</span> := cloudemu.NewOCI() <span className="text-fd-muted-foreground">{'// newest provider · Identity, Monitoring, VCN'}</span>
+              {'\n'}
+              <span style={{ color: '#C74634' }}>oci</span>.Identity.CheckPermission(ctx, ...)
+              {'\n'}
+              <span style={{ color: '#C74634' }}>oci</span>.Monitoring.PutMetricData(ctx, ...)
+              {'\n'}
+              <span style={{ color: '#C74634' }}>oci</span>.VCN.CreateVPC(ctx, ...)
             </code>
           </pre>
 
