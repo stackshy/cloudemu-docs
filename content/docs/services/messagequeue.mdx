@@ -13,12 +13,12 @@ Send, receive, and acknowledge messages entirely in memory. cloudemu implements 
 
 There are two ways to drive it, both backed by the same in-memory state:
 
-- **Real cloud SDK** — point your existing `aws-sdk-go-v2`, `azure-sdk-for-go`, or Google API client at a local server. Only the endpoint changes; your production code is untouched. This is the closest thing to testing against the real cloud, and what most tests should use.
-- **Portable Go API** — call cloudemu's Go interface directly and skip the HTTP hop. The same method shape works across every cloud, so you can switch providers by changing one field.
+- **Real cloud SDK** — point your existing `aws-sdk-go-v2`, `azure-sdk-for-go`, or Google API client at a local server. Only the endpoint changes; your real code is untouched — the same client works in a test, a local dev server, or your running app.
+- **Portable Go API** — call cloudemu's Go interface directly from your application code — discover resources, perform actions, skip the HTTP hop entirely. The same method shape works across every cloud, so you can switch providers by changing one field.
 
 ## Drive it with the real SDK
 
-cloudemu ships an HTTP server per cloud that speaks that provider's real wire protocol. You start it with `httptest`, hand it the drivers you need, and point your normal SDK client at its URL — nothing else in your code changes.
+cloudemu ships an HTTP server per cloud that speaks that provider's real wire protocol. Run it with `httptest` in a test or behind a real `http.Server` in your app, hand it the drivers you need, and point your normal SDK client at its URL — nothing else in your code changes.
 
 <Tabs items={['AWS', 'Azure', 'GCP']}>
 
@@ -138,7 +138,7 @@ Not every provider exposes the same operations — cloudemu matches what each cl
 
 ## How the emulator behaves
 
-cloudemu doesn't just store messages — it reproduces the delivery semantics of the real service, so your tests exercise realistic behavior instead of a dumb list:
+cloudemu doesn't just store messages — it reproduces the delivery semantics of the real service, so your code exercises realistic behavior instead of a dumb list:
 
 - **FIFO deduplication.** FIFO queues enforce a 5-minute deduplication window keyed on `MessageDeduplicationId`, so a message resent inside that window is silently dropped — exactly like real SQS.
 - **Visibility timeout.** A received message becomes invisible to other consumers until its timeout expires or it is deleted, so two concurrent pulls don't hand out the same message twice.
@@ -146,7 +146,7 @@ cloudemu doesn't just store messages — it reproduces the delivery semantics of
 
 ## Or call the Portable Go API directly
 
-When you don't need the HTTP layer — for example, unit tests that construct cloudemu in-process — call its Go interface directly. The method shape is identical across clouds, so switching providers is a one-line change.
+When you don't need the HTTP layer, call cloudemu's Go interface directly inside your application — discovery, provisioning, teardown — no server, no wire protocol. The method shape is identical across clouds, so switching providers is a one-line change.
 
 <Tabs items={['AWS', 'Azure', 'GCP']}>
 
