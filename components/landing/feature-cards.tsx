@@ -1,7 +1,10 @@
 'use client';
 
+import { useState } from 'react';
+
 import { motion, useReducedMotion } from 'framer-motion';
 
+import { SectionHeader } from '@/components/landing/section';
 import { DUR, EASE, fadeUp, staggerContainer, viewportOnce } from '@/lib/motion';
 
 /**
@@ -9,6 +12,12 @@ import { DUR, EASE, fadeUp, staggerContainer, viewportOnce } from '@/lib/motion'
  * rendered as a clean monospace ledger — key · description · a small inline
  * visual — instead of boxed cards. Rows stagger in on scroll; each row's
  * micro-visual animates itself into being when it scrolls into view.
+ *
+ * On hover a row warms up: the key brightens to ember, a faint ember accent
+ * slides in under the row, and that row's micro-visual re-triggers /
+ * accentuates (bars swell, dots re-sequence, the slider nudges). All of it is
+ * transform/opacity only and gated behind reduced-motion — when the viewer
+ * prefers reduced motion the hover is colour-only, no movement.
  */
 
 const EMBER = '#FF6B2C';
@@ -20,42 +29,42 @@ type VizKind =
 const features: { key: string; desc: string; viz: VizKind }[] = [
   {
     key: 'real_sdks',
-    desc: 'aws-sdk-go-v2, azure-sdk-for-go, and cloud.google.com/go drive an in-memory backend over their actual wire protocols. Nothing to mock, no call sites to rewrite.',
+    desc: 'The real aws-sdk-go-v2, azure-sdk-for-go, and cloud.google.com/go talk to an in-memory backend over their own wire protocols. Repoint the endpoint; the call sites stay.',
     viz: 'slider',
   },
   {
     key: 'chaos_engineering',
-    desc: 'Outages, latency spikes, probabilistic failures, throttling — in time-bounded windows. Your retry paths get exercised every run.',
+    desc: 'Schedule outages, latency spikes, throttling, and probabilistic errors inside time-bounded windows. Your retry and backoff paths run for real, every test.',
     viz: 'bars',
   },
   {
     key: 'state_machines',
-    desc: 'VMs enforce real lifecycle transitions; illegal jumps return errors.',
+    desc: 'VMs walk pending → running → stopping → stopped. Start a terminated instance and you get an error, not a shrug.',
     viz: 'nodes',
   },
   {
     key: 'auto_metrics',
-    desc: 'Launching a VM pushes CPU, network, and disk metrics so alarms evaluate.',
+    desc: 'Launch a VM and it backfills five metrics — CPU, network in/out, disk read/write — so alarms have datapoints to evaluate against.',
     viz: 'barchart',
   },
   {
     key: 'error_injection',
-    desc: 'Fail always, every Nth call, probabilistically, or the first N calls.',
+    desc: 'Fail every call, every Nth, the first N, or at a fixed probability — scoped to one operation or the whole service.',
     viz: 'dots',
   },
   {
     key: 'call_recording',
-    desc: 'Every call captured with inputs, outputs, errors, timing. Fluent asserts.',
+    desc: 'Every call is recorded — inputs, outputs, errors, timing — then asserted against with a fluent API. No spies to wire up.',
     viz: 'wave',
   },
   {
     key: 'fake_clock',
-    desc: 'Deterministic TTL expiry, dedup windows, and alarm evaluation.',
+    desc: 'A clock you advance by hand. TTL expiry, dedup windows, and alarm evaluation fire on command, not on wall time.',
     viz: 'clock',
   },
   {
     key: 'zero_deps',
-    desc: 'Pure Go standard library. Works anywhere Go runs.',
+    desc: 'Pure Go, standard library only — no Docker, no network, no dependency tree. Runs anywhere Go 1.25+ runs.',
     viz: 'check',
   },
 ];
@@ -65,13 +74,13 @@ export function FeatureCards() {
 
   return (
     <section className="w-full max-w-5xl mx-auto px-6 py-20">
-      <div className="mb-4 max-w-2xl">
-        <h2 className="text-3xl font-bold tracking-tight">Beyond basic mocks</h2>
-        <p className="mt-2 text-fd-muted-foreground">
-          Mocks return what you tell them to. cloudemu misbehaves like the real thing — lifecycle
-          rules, throttling, injected outages, clock skew.
-        </p>
-      </div>
+      <SectionHeader
+        className="mb-10 max-w-2xl"
+        index="04"
+        kicker="what it actually does"
+        title="Beyond basic mocks"
+        lede="A mock returns whatever you hardcoded. cloudemu enforces lifecycle rules, throttles under load, injects outages, and skews the clock — the failures your retry paths never hit otherwise."
+      />
 
       <motion.div
         variants={reduce ? undefined : staggerContainer()}
@@ -81,35 +90,73 @@ export function FeatureCards() {
         className="border-b border-fd-border"
       >
         {features.map((f) => (
-          <motion.div
-            key={f.key}
-            variants={reduce ? undefined : fadeUp(0, 14)}
-            className="group grid grid-cols-[1fr_auto] md:grid-cols-[190px_1fr_120px] items-center gap-x-6 gap-y-1 py-5 border-t border-fd-border"
-          >
-            <span className="font-mono text-sm text-fd-foreground/90 col-start-1">
-              {f.key}
-            </span>
-            <p className="text-sm text-fd-muted-foreground leading-relaxed col-span-2 md:col-span-1 md:col-start-2 order-last md:order-none">
-              {f.desc}
-            </p>
-            <div className="hidden md:flex justify-end text-fd-muted-foreground/70 group-hover:text-fd-muted-foreground transition-colors">
-              <Spark kind={f.viz} reduce={!!reduce} />
-            </div>
-          </motion.div>
+          <Row key={f.key} feature={f} reduce={!!reduce} />
         ))}
       </motion.div>
     </section>
   );
 }
 
+/** A single ledger row. Owns its hover state so the key, the ember underline,
+ *  and the micro-visual all warm up together. Hover motion is suppressed under
+ *  reduced-motion — only the colour shift (via CSS `group-hover`) remains. */
+function Row({
+  feature,
+  reduce,
+}: {
+  feature: { key: string; desc: string; viz: VizKind };
+  reduce: boolean;
+}) {
+  const [hovered, setHovered] = useState(false);
+
+  return (
+    <motion.div
+      variants={reduce ? undefined : fadeUp(0, 14)}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      className="group relative grid grid-cols-[1fr_auto] md:grid-cols-[190px_1fr_120px] items-center gap-x-6 gap-y-1 py-5 border-t border-fd-border"
+    >
+      <span className="font-mono text-sm text-fd-foreground/90 col-start-1 transition-colors duration-300 group-hover:text-ember-500">
+        {feature.key}
+      </span>
+      <p className="text-sm text-fd-muted-foreground leading-relaxed col-span-2 md:col-span-1 md:col-start-2 order-last md:order-none">
+        {feature.desc}
+      </p>
+      <div className="hidden md:flex justify-end text-fd-muted-foreground/70 group-hover:text-fd-muted-foreground transition-colors">
+        <Spark kind={feature.viz} reduce={reduce} hovered={hovered} />
+      </div>
+
+      {/* Faint ember accent that slides in under the row on hover. Motion, so
+          it's rendered only when motion is allowed. */}
+      {!reduce && (
+        <motion.span
+          aria-hidden
+          className="pointer-events-none absolute bottom-0 left-0 h-px w-full"
+          style={{ background: EMBER, transformOrigin: 'left', willChange: 'transform, opacity' }}
+          initial={{ scaleX: 0, opacity: 0 }}
+          animate={{ scaleX: hovered ? 1 : 0, opacity: hovered ? 0.45 : 0 }}
+          transition={{ duration: DUR.fast, ease: EASE }}
+        />
+      )}
+    </motion.div>
+  );
+}
+
 /** Small inline visuals — muted line-art with a single ember accent each.
- *  Each animates from a baseline into its final state when scrolled into view.
- *  Reduced motion renders the final state with no animation. */
-function Spark({ kind, reduce }: { kind: VizKind; reduce: boolean }) {
+ *  Each animates from a baseline into its final state when scrolled into view,
+ *  and re-triggers / accentuates when its row is hovered. The scroll reveal
+ *  lives on the inner primitives; hover motion rides on a wrapping group's
+ *  transform, so the two never fight over the same property.
+ *  Reduced motion renders the final state with no animation, hover or otherwise. */
+function Spark({ kind, reduce, hovered }: { kind: VizKind; reduce: boolean; hovered: boolean }) {
   const W = 104;
   const H = 26;
   const mid = H / 2;
   const stroke = 'currentColor';
+
+  // Active only when motion is allowed AND the row is hovered.
+  const hot = hovered && !reduce;
+  const hoverT = { duration: DUR.fast, ease: EASE };
 
   // Motion props for a single SVG primitive; empty when reduced (final state only).
   const anim = (
@@ -131,34 +178,42 @@ function Spark({ kind, reduce }: { kind: VizKind; reduce: boolean }) {
       return (
         <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} fill="none">
           <line x1="4" y1={mid} x2={W - 4} y2={mid} stroke={stroke} strokeOpacity="0.35" />
-          <motion.rect
-            x={W - 34}
-            y={mid - 5}
-            width="10"
-            height="10"
-            rx="2"
-            fill={EMBER}
-            {...anim({ x: 4 }, { x: W - 34 }, 0.1)}
-          />
+          <motion.g animate={hot ? { x: [0, 5, 0] } : { x: 0 }} transition={hoverT}>
+            <motion.rect
+              x={W - 34}
+              y={mid - 5}
+              width="10"
+              height="10"
+              rx="2"
+              fill={EMBER}
+              {...anim({ x: 4 }, { x: W - 34 }, 0.1)}
+            />
+          </motion.g>
         </svg>
       );
     case 'bars': {
       const xs = [6, 16, 26, 36, 46, 56, 66, 76, 86, 96];
-      const hot = new Set([4, 6]);
+      const emberBars = new Set([4, 6]);
       return (
         <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} fill="none">
-          {xs.map((x, i) => (
-            <motion.line
-              key={x}
-              x1={x}
-              y1={mid - 8}
-              x2={x}
-              y2={mid + 8}
-              stroke={hot.has(i) ? EMBER : stroke}
-              strokeOpacity={hot.has(i) ? 1 : 0.35}
-              {...anim({ y1: mid, y2: mid }, { y1: mid - 8, y2: mid + 8 }, i * 0.04)}
-            />
-          ))}
+          <motion.g
+            animate={hot ? { scaleY: 1.2 } : { scaleY: 1 }}
+            transition={hoverT}
+            style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
+          >
+            {xs.map((x, i) => (
+              <motion.line
+                key={x}
+                x1={x}
+                y1={mid - 8}
+                x2={x}
+                y2={mid + 8}
+                stroke={emberBars.has(i) ? EMBER : stroke}
+                strokeOpacity={emberBars.has(i) ? 1 : 0.35}
+                {...anim({ y1: mid, y2: mid }, { y1: mid - 8, y2: mid + 8 }, i * 0.04)}
+              />
+            ))}
+          </motion.g>
         </svg>
       );
     }
@@ -167,16 +222,22 @@ function Spark({ kind, reduce }: { kind: VizKind; reduce: boolean }) {
         <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} fill="none">
           <line x1="10" y1={mid} x2={W - 10} y2={mid} stroke={stroke} strokeOpacity="0.35" />
           {[10, W / 2, W - 10].map((cx, i) => (
-            <motion.circle
+            <motion.g
               key={cx}
-              cx={cx}
-              cy={mid}
-              r="4"
-              fill={i === 2 ? EMBER : 'none'}
-              stroke={i === 2 ? EMBER : stroke}
-              strokeOpacity={i === 2 ? 1 : 0.5}
-              {...anim({ r: 0, opacity: 0 }, { r: 4, opacity: 1 }, i * 0.14)}
-            />
+              animate={hot ? { scale: [1, 1.35, 1] } : { scale: 1 }}
+              transition={{ ...hoverT, delay: i * 0.09 }}
+              style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
+            >
+              <motion.circle
+                cx={cx}
+                cy={mid}
+                r="4"
+                fill={i === 2 ? EMBER : 'none'}
+                stroke={i === 2 ? EMBER : stroke}
+                strokeOpacity={i === 2 ? 1 : 0.5}
+                {...anim({ r: 0, opacity: 0 }, { r: 4, opacity: 1 }, i * 0.14)}
+              />
+            </motion.g>
           ))}
         </svg>
       );
@@ -184,36 +245,48 @@ function Spark({ kind, reduce }: { kind: VizKind; reduce: boolean }) {
       const data = [10, 4, 14, 7, 3, 11, 2];
       return (
         <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} fill="none">
-          {data.map((h, i) => (
-            <motion.line
-              key={i}
-              x1={8 + i * 15}
-              y1={H - 4}
-              x2={8 + i * 15}
-              y2={H - 4 - h}
-              stroke={i === 2 ? EMBER : stroke}
-              strokeOpacity={i === 2 ? 1 : 0.4}
-              strokeWidth="2"
-              {...anim({ y2: H - 4 }, { y2: H - 4 - h }, i * 0.05)}
-            />
-          ))}
+          <motion.g
+            animate={hot ? { scaleY: 1.16 } : { scaleY: 1 }}
+            transition={hoverT}
+            style={{ transformBox: 'fill-box', transformOrigin: '50% 100%' }}
+          >
+            {data.map((h, i) => (
+              <motion.line
+                key={i}
+                x1={8 + i * 15}
+                y1={H - 4}
+                x2={8 + i * 15}
+                y2={H - 4 - h}
+                stroke={i === 2 ? EMBER : stroke}
+                strokeOpacity={i === 2 ? 1 : 0.4}
+                strokeWidth="2"
+                {...anim({ y2: H - 4 }, { y2: H - 4 - h }, i * 0.05)}
+              />
+            ))}
+          </motion.g>
         </svg>
       );
     }
     case 'dots': {
-      const hot = new Set([2, 5]);
+      const emberDots = new Set([2, 5]);
       return (
         <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} fill="none">
           {Array.from({ length: 8 }).map((_, i) => (
-            <motion.circle
+            <motion.g
               key={i}
-              cx={8 + i * 12}
-              cy={mid}
-              r="2.5"
-              fill={hot.has(i) ? EMBER : stroke}
-              fillOpacity={hot.has(i) ? 1 : 0.35}
-              {...anim({ r: 0, opacity: 0 }, { r: 2.5, opacity: 1 }, i * 0.06)}
-            />
+              animate={hot ? { scale: [1, 1.4, 1] } : { scale: 1 }}
+              transition={{ ...hoverT, delay: i * 0.05 }}
+              style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
+            >
+              <motion.circle
+                cx={8 + i * 12}
+                cy={mid}
+                r="2.5"
+                fill={emberDots.has(i) ? EMBER : stroke}
+                fillOpacity={emberDots.has(i) ? 1 : 0.35}
+                {...anim({ r: 0, opacity: 0 }, { r: 2.5, opacity: 1 }, i * 0.06)}
+              />
+            </motion.g>
           ))}
         </svg>
       );
@@ -221,70 +294,94 @@ function Spark({ kind, reduce }: { kind: VizKind; reduce: boolean }) {
     case 'wave':
       return (
         <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} fill="none">
-          <motion.circle cx="8" cy={mid} r="3" fill={EMBER} {...anim({ opacity: 0 }, { opacity: 1 })} />
-          {[mid - 4, mid, mid + 4].map((y, i) => {
-            const x2 = W - 8 - i * 14;
-            return (
-              <motion.line
-                key={y}
-                x1="20"
-                y1={y}
-                x2={x2}
-                y2={y}
-                stroke={stroke}
-                strokeOpacity="0.35"
-                {...anim({ x2: 20 }, { x2 }, 0.1 + i * 0.08)}
-              />
-            );
-          })}
+          <motion.g
+            animate={hot ? { scale: [1, 1.5, 1] } : { scale: 1 }}
+            transition={hoverT}
+            style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
+          >
+            <motion.circle cx="8" cy={mid} r="3" fill={EMBER} {...anim({ opacity: 0 }, { opacity: 1 })} />
+          </motion.g>
+          <motion.g
+            animate={hot ? { scaleX: [1, 1.07, 1] } : { scaleX: 1 }}
+            transition={hoverT}
+            style={{ transformBox: 'fill-box', transformOrigin: '0% 50%' }}
+          >
+            {[mid - 4, mid, mid + 4].map((y, i) => {
+              const x2 = W - 8 - i * 14;
+              return (
+                <motion.line
+                  key={y}
+                  x1="20"
+                  y1={y}
+                  x2={x2}
+                  y2={y}
+                  stroke={stroke}
+                  strokeOpacity="0.35"
+                  {...anim({ x2: 20 }, { x2 }, 0.1 + i * 0.08)}
+                />
+              );
+            })}
+          </motion.g>
         </svg>
       );
     case 'clock':
       return (
         <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} fill="none">
-          <g transform={`translate(${W - 16}, ${mid})`}>
-            <circle r="9" stroke={stroke} strokeOpacity="0.4" fill="none" />
-            <line x1="0" y1="0" x2="0" y2="-5" stroke={EMBER} strokeWidth="1.5" strokeLinecap="round">
-              {!reduce && (
-                <animateTransform
-                  attributeName="transform"
-                  type="rotate"
-                  from="0 0 0"
-                  to="360 0 0"
-                  dur="6s"
-                  repeatCount="indefinite"
-                />
-              )}
-            </line>
-            <line x1="0" y1="0" x2="4" y2="0" stroke={stroke} strokeOpacity="0.6" strokeLinecap="round" />
-          </g>
+          <motion.g
+            animate={hot ? { scale: [1, 1.09, 1] } : { scale: 1 }}
+            transition={hoverT}
+            style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
+          >
+            <g transform={`translate(${W - 16}, ${mid})`}>
+              <circle r="9" stroke={stroke} strokeOpacity="0.4" fill="none" />
+              <line x1="0" y1="0" x2="0" y2="-5" stroke={EMBER} strokeWidth="1.5" strokeLinecap="round">
+                {!reduce && (
+                  <animateTransform
+                    attributeName="transform"
+                    type="rotate"
+                    from="0 0 0"
+                    to="360 0 0"
+                    dur="6s"
+                    repeatCount="indefinite"
+                  />
+                )}
+              </line>
+              <line x1="0" y1="0" x2="4" y2="0" stroke={stroke} strokeOpacity="0.6" strokeLinecap="round" />
+            </g>
+          </motion.g>
         </svg>
       );
     case 'check':
       return (
         <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} fill="none">
-          <motion.rect
-            x={W - 66}
-            y={mid - 6}
-            width="12"
-            height="12"
-            rx="3"
-            stroke={stroke}
-            strokeOpacity="0.5"
-            {...anim({ opacity: 0 }, { opacity: 1 })}
-          />
-          <motion.path
-            d={`M ${W - 63} ${mid} l 2.5 2.5 l 4 -5`}
-            stroke={EMBER}
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            fill="none"
-            initial={reduce ? false : { pathLength: 0 }}
-            whileInView={reduce ? undefined : { pathLength: 1 }}
-            viewport={reduce ? undefined : viewportOnce}
-            transition={reduce ? undefined : { duration: DUR.fast, ease: EASE, delay: 0.15 }}
-          />
+          <motion.g
+            animate={hot ? { scale: [1, 1.12, 1] } : { scale: 1 }}
+            transition={hoverT}
+            style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
+          >
+            <motion.rect
+              x={W - 66}
+              y={mid - 6}
+              width="12"
+              height="12"
+              rx="3"
+              stroke={stroke}
+              strokeOpacity="0.5"
+              {...anim({ opacity: 0 }, { opacity: 1 })}
+            />
+            <motion.path
+              d={`M ${W - 63} ${mid} l 2.5 2.5 l 4 -5`}
+              stroke={EMBER}
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              fill="none"
+              initial={reduce ? false : { pathLength: 0 }}
+              whileInView={reduce ? undefined : { pathLength: 1 }}
+              viewport={reduce ? undefined : viewportOnce}
+              transition={reduce ? undefined : { duration: DUR.fast, ease: EASE, delay: 0.15 }}
+            />
+          </motion.g>
           <text x={W - 44} y={mid + 3} className="text-[10px] font-mono" fill={stroke} fillOpacity="0.6">
             stdlib
           </text>
