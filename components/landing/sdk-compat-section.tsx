@@ -3,7 +3,8 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { ArrowRight, ServerCog } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+import { DUR, EASE, fadeUp, scaleIn, staggerContainer, viewportOnce } from '@/lib/motion';
 import { HighlightedGo } from './highlighted-go';
 
 const tabs = [
@@ -97,8 +98,24 @@ client.ListUsers(ctx, identity.ListUsersRequest{ /* ... */ })`,
   },
 ];
 
+const summaryCards = [
+  {
+    title: 'Storage / Compute / Database',
+    body: 'S3, EC2, DynamoDB · Blob, VMs, Cosmos · GCS, GCE, Firestore',
+  },
+  {
+    title: 'Serverless / Message Queue',
+    body: 'Lambda, SQS · Functions, Service Bus · Cloud Functions, Pub/Sub',
+  },
+  {
+    title: 'Networking / Monitoring',
+    body: 'VPC, CloudWatch · VNet, Azure Monitor · VPC, Cloud Monitoring',
+  },
+];
+
 export function SDKCompatSection() {
   const [active, setActive] = useState(0);
+  const reduced = useReducedMotion();
 
   return (
     <section className="w-full max-w-6xl mx-auto px-6 pt-8 pb-16">
@@ -108,12 +125,12 @@ export function SDKCompatSection() {
           Real Cloud SDKs Work Unchanged
         </div>
         <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">
-          Don&apos;t rewrite your tests.{' '}
+          Don&apos;t rewrite your code.{' '}
           <span
             className="bg-clip-text text-transparent"
             style={{ backgroundImage: 'linear-gradient(90deg, #ff6b2c, #d64d17)' }}
           >
-            Repoint them.
+            Repoint it.
           </span>
         </h2>
         <p className="mt-4 text-lg text-fd-muted-foreground max-w-3xl mx-auto leading-relaxed">
@@ -127,10 +144,10 @@ export function SDKCompatSection() {
       </div>
 
       <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        transition={{ duration: 0.4 }}
+        variants={scaleIn()}
+        initial={reduced ? false : 'hidden'}
+        whileInView="show"
+        viewport={viewportOnce}
         className="rounded-xl border border-fd-border bg-fd-card overflow-hidden shadow-sm"
       >
         {/* macOS-style window chrome */}
@@ -139,16 +156,18 @@ export function SDKCompatSection() {
           <span className="w-2.5 h-2.5 rounded-full bg-fd-muted-foreground/25" />
           <span className="w-2.5 h-2.5 rounded-full bg-fd-muted-foreground/25" />
           <span className="ml-2 text-xs text-fd-muted-foreground font-mono">
-            {tabs[active].label.toLowerCase()}_test.go · {tabs[active].sdk}
+            {tabs[active].label.toLowerCase()}.go · {tabs[active].sdk}
           </span>
         </div>
 
         {/* Provider tabs */}
         <div className="flex border-b border-fd-border">
           {tabs.map((tab, i) => (
-            <button
+            <motion.button
               key={tab.label}
               onClick={() => setActive(i)}
+              whileHover={reduced ? undefined : { y: -1 }}
+              transition={{ duration: DUR.fast, ease: EASE }}
               className={`flex-1 sm:flex-none px-6 py-3 text-sm font-medium transition-colors ${
                 active === i
                   ? 'bg-fd-card border-b-2 text-fd-foreground'
@@ -159,38 +178,46 @@ export function SDKCompatSection() {
               <span className="font-semibold" style={{ color: active === i ? tab.color : undefined }}>
                 {tab.label}
               </span>
-            </button>
+            </motion.button>
           ))}
         </div>
 
-        <motion.pre
-          key={active}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.2 }}
-          className="p-6 overflow-x-auto"
-          style={{ background: 'hsl(26, 9%, 13%)' }}
-        >
-          <code className="text-sm font-mono leading-relaxed" style={{ color: '#e6e6e6' }}>
-            <HighlightedGo code={tabs[active].code} />
-          </code>
-        </motion.pre>
+        <div className="relative overflow-hidden" style={{ background: 'hsl(26, 9%, 13%)' }}>
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.pre
+              key={active}
+              initial={reduced ? false : { opacity: 0, x: 16 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={reduced ? undefined : { opacity: 0, x: -16 }}
+              transition={{ duration: DUR.fast, ease: EASE }}
+              className="p-6 overflow-x-auto"
+            >
+              <code className="text-sm font-mono leading-relaxed" style={{ color: '#e6e6e6' }}>
+                <HighlightedGo code={tabs[active].code} />
+              </code>
+            </motion.pre>
+          </AnimatePresence>
+        </div>
       </motion.div>
 
-      <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-        <div className="rounded-lg border border-fd-border bg-fd-card p-4">
-          <div className="font-semibold mb-1">Storage / Compute / Database</div>
-          <div className="text-fd-muted-foreground">S3, EC2, DynamoDB · Blob, VMs, Cosmos · GCS, GCE, Firestore</div>
-        </div>
-        <div className="rounded-lg border border-fd-border bg-fd-card p-4">
-          <div className="font-semibold mb-1">Serverless / Message Queue</div>
-          <div className="text-fd-muted-foreground">Lambda, SQS · Functions, Service Bus · Cloud Functions, Pub/Sub</div>
-        </div>
-        <div className="rounded-lg border border-fd-border bg-fd-card p-4">
-          <div className="font-semibold mb-1">Networking / Monitoring</div>
-          <div className="text-fd-muted-foreground">VPC, CloudWatch · VNet, Azure Monitor · VPC, Cloud Monitoring</div>
-        </div>
-      </div>
+      <motion.div
+        variants={staggerContainer()}
+        initial={reduced ? false : 'hidden'}
+        whileInView="show"
+        viewport={viewportOnce}
+        className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm"
+      >
+        {summaryCards.map((card) => (
+          <motion.div
+            key={card.title}
+            variants={fadeUp()}
+            className="rounded-lg border border-fd-border bg-fd-card p-4"
+          >
+            <div className="font-semibold mb-1">{card.title}</div>
+            <div className="text-fd-muted-foreground">{card.body}</div>
+          </motion.div>
+        ))}
+      </motion.div>
 
       <div className="mt-10 flex items-center justify-center">
         <Link
