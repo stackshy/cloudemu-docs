@@ -119,7 +119,10 @@ export function APICoverage() {
           </p>
 
           <div className="flex items-baseline gap-3 mb-5 pb-5 border-b border-fd-border">
-            <span className="text-5xl font-extrabold bg-gradient-to-r from-ember-400 via-ember-500 to-ember-700 bg-clip-text text-transparent tabular-nums">
+            <span
+              className="text-5xl font-extrabold bg-clip-text text-transparent tabular-nums"
+              style={{ backgroundImage: 'linear-gradient(90deg, #ff8a4d, #ff6b2c, #d64d17)' }}
+            >
               {sdkLiveServices}
             </span>
             <span className="text-sm text-fd-muted-foreground">
