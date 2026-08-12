@@ -63,7 +63,7 @@ export function HighlightedGo({ code }: { code: string }) {
 }
 
 /**
- * Color palette matches the docs MDX theme: rose-pink keywords, violet
+ * Color palette matches the docs MDX theme: rose-pink keywords, ember
  * types/exported names, emerald strings, muted comments, orange literals.
  * Everything else stays the default foreground (white in dark mode).
  */
@@ -74,6 +74,6 @@ function classify(token: string): string {
   if (BUILTIN_LITERALS.has(token)) return 'text-orange-400';
   if (/^\d/.test(token)) return 'text-orange-300';
   // Pascal-case identifiers — types, constructors, exported names.
-  if (/^[A-Z]/.test(token)) return 'text-violet-400';
+  if (/^[A-Z]/.test(token)) return 'text-ember-400';
   return '';
 }
