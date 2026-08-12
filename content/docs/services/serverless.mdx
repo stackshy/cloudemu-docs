@@ -13,8 +13,8 @@ Deploy and invoke functions-as-a-service entirely in memory. cloudemu implements
 
 There are two ways to drive it, both backed by the same in-memory state:
 
-- **Real cloud SDK** — point your existing `aws-sdk-go-v2`, `azure-sdk-for-go`, or `google.golang.org/api` client at a local server. Only the endpoint changes; your production code is untouched. This is the closest thing to testing against the real cloud, and what most tests should use.
-- **Portable Go API** — call cloudemu's Go interface directly and skip the HTTP hop. The same method shape works across every cloud, so you can switch providers by changing one field.
+- **Real cloud SDK** — point your existing `aws-sdk-go-v2`, `azure-sdk-for-go`, or `google.golang.org/api` client at a local server. Only the endpoint changes; your real code is untouched — the same client works in a test, a local dev server, or your running app.
+- **Portable Go API** — call cloudemu's Go interface directly from your application code — discover resources, perform actions, skip the HTTP hop entirely. The same method shape works across every cloud, so you can switch providers by changing one field.
 
 ## Drive it with the real SDK
 
@@ -152,14 +152,14 @@ Not every provider exposes the same operations — cloudemu matches what each cl
 
 ## How the emulator behaves
 
-cloudemu doesn't just store function definitions — it reproduces the parts of the real service your tests depend on:
+cloudemu doesn't just store function definitions — it reproduces the parts of the real service your code depends on:
 
-- **Handlers are real Go functions.** Register one with `RegisterHandler` and `Invoke` (or `:call`, or `/api/{name}`) actually runs it and returns its bytes — so a test can create a function and assert on the exact response payload.
+- **Handlers are real Go functions.** Register one with `RegisterHandler` and `Invoke` (or `:call`, or `/api/{name}`) actually runs it and returns its bytes — so your code can create a function and assert on the exact response payload.
 - **Mutations mirror each cloud's wire shape.** GCP `Create` and `Delete` return long-running-operation envelopes and complete synchronously; Azure surfaces Function Apps as `Microsoft.Web/sites` resources; AWS speaks the REST + JSON functions API. Your SDK client sees what it would against the real endpoint.
 
 ## Or call the Portable Go API directly
 
-When you don't need the HTTP layer — for example, unit tests that construct cloudemu in-process — call its Go interface directly. The method shape is identical across clouds, so switching providers is a one-line change.
+When you don't need the HTTP layer, call cloudemu's Go interface directly inside your application — discovery, provisioning, teardown — no server, no wire protocol. The method shape is identical across clouds, so switching providers is a one-line change.
 
 <Tabs items={['AWS', 'Azure', 'GCP']}>
 
