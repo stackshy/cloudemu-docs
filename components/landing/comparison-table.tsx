@@ -98,7 +98,7 @@ function Row({
     if (typeof value === 'boolean') {
       const good = invertBool ? !value : value;
       return good ? (
-        <Check className="w-5 h-5 text-green-500" />
+        <Check className="w-5 h-5 text-ember-500" />
       ) : (
         <X className="w-5 h-5 text-red-400" />
       );
