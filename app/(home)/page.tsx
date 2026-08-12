@@ -1,5 +1,7 @@
 import { Hero } from '@/components/landing/hero';
+import { StatsBand } from '@/components/landing/stats-band';
 import { SDKCompatSection } from '@/components/landing/sdk-compat-section';
+import { HowItWorks } from '@/components/landing/how-it-works';
 import { FeatureCards } from '@/components/landing/feature-cards';
 import { ServiceGrid } from '@/components/landing/service-grid';
 import { CTASection } from '@/components/landing/cta-section';
@@ -10,8 +12,14 @@ export default function HomePage() {
     <main className="flex flex-col items-center">
       <Hero />
 
+      <StatsBand />
+
       <Reveal className="w-full flex justify-center">
         <SDKCompatSection />
+      </Reveal>
+
+      <Reveal className="w-full flex justify-center">
+        <HowItWorks />
       </Reveal>
 
       <Reveal className="w-full flex justify-center">
