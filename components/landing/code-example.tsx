@@ -72,6 +72,28 @@ gcp.CloudMonitoring.PutMetricData(ctx, []mondriver.MetricDatum{
     {Namespace: "App", MetricName: "CPU", Value: 45.2},
 })`,
   },
+  {
+    label: 'OCI',
+    color: '#C74634',
+    code: `oci := cloudemu.NewOCI()
+
+// Networking — create a VCN and subnet
+vcn, _ := oci.VCN.CreateVPC(ctx, netdriver.VPCConfig{
+    CIDRBlock: "10.0.0.0/16",
+    Tags:      map[string]string{"env": "production"},
+})
+oci.VCN.CreateSubnet(ctx, vcn.ID, netdriver.SubnetConfig{
+    CIDRBlock: "10.0.1.0/24",
+})
+
+// Identity — create a user
+oci.Identity.CreateUser(ctx, iamdriver.UserConfig{Name: "svc-app"})
+
+// Push metrics to OCI Monitoring
+oci.Monitoring.PutMetricData(ctx, []mondriver.MetricDatum{
+    {Namespace: "App", MetricName: "CPU", Value: 45.2},
+})`,
+  },
 ];
 
 export function CodeExample() {
@@ -81,14 +103,14 @@ export function CodeExample() {
     <section className="w-full max-w-4xl mx-auto px-6 py-16">
       <h2 className="text-3xl font-bold text-center mb-2">Or use the Portable Go API</h2>
       <p className="text-fd-muted-foreground text-center mb-10">
-        Same shape across AWS, Azure, and GCP — switch providers by changing one line
+        Same shape across AWS, Azure, GCP, and OCI — switch providers by changing one line
       </p>
       <div className="rounded-xl border border-fd-border bg-fd-card overflow-hidden shadow-lg">
         {/* macOS-style window chrome */}
         <div className="flex items-center gap-2 px-4 py-3 border-b border-fd-border bg-fd-secondary/50">
           <span className="w-3 h-3 rounded-full bg-red-500/70" />
           <span className="w-3 h-3 rounded-full bg-yellow-500/70" />
-          <span className="w-3 h-3 rounded-full bg-green-500/70" />
+          <span className="w-3 h-3 rounded-full bg-ember-500/70" />
           <span className="ml-2 text-xs text-fd-muted-foreground font-mono">
             {tabs[active].label.toLowerCase()}_setup.go
           </span>
