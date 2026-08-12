@@ -13,8 +13,8 @@ Capture and query application logs without a real logging backend. cloudemu impl
 
 There are two ways to drive it, both backed by the same in-memory state:
 
-- **Real cloud SDK** — point your existing `aws-sdk-go-v2`, `azure-sdk-for-go`, or `google.golang.org/api` client at a local server. Only the endpoint changes; your production code is untouched. This is the closest thing to testing against the real cloud, and what most tests should use.
-- **Portable Go API** — call cloudemu's Go interface directly and skip the HTTP hop. The same method shape works across every cloud, so you can switch providers by changing one field.
+- **Real cloud SDK** — point your existing `aws-sdk-go-v2`, `azure-sdk-for-go`, or `google.golang.org/api` client at a local server. Only the endpoint changes; your real code is untouched — the same client works in a test, a local dev server, or your running app.
+- **Portable Go API** — call cloudemu's Go interface directly from your application code — discover resources, perform actions, skip the HTTP hop entirely. The same method shape works across every cloud, so you can switch providers by changing one field.
 
 ## Drive it with the real SDK
 
@@ -155,12 +155,12 @@ All three drivers expose the same logging surface — cloudemu keeps the behavio
 cloudemu reproduces the side effects of a real logging service, not just a key-value store:
 
 - **Retention is enforced on read.** Each group has a retention window (default 30 days); events older than the cutoff are filtered out of `GetLogEvents` results, exactly like the real service ages logs out.
-- **Ingestion emits metrics.** `PutLogEvents` automatically pushes `IncomingLogEvents` and `IncomingBytes` into the monitoring service, so a test can assert on log-ingestion metrics without extra wiring.
+- **Ingestion emits metrics.** `PutLogEvents` automatically pushes `IncomingLogEvents` and `IncomingBytes` into the monitoring service, so your code can assert on log-ingestion metrics without extra wiring.
 - **Stored bytes are tracked.** Each `PutLogEvents` call adds to the group's `StoredBytes`, so you can assert on how much a group has accumulated.
 
 ## Or call the Portable Go API directly
 
-When you don't need the HTTP layer — for example, unit tests that construct cloudemu in-process — call its Go interface directly. The method shape is identical across clouds, so switching providers is a one-line change.
+When you don't need the HTTP layer, call cloudemu's Go interface directly inside your application — discovery, provisioning, teardown — no server, no wire protocol. The method shape is identical across clouds, so switching providers is a one-line change.
 
 <Tabs items={['AWS', 'Azure', 'GCP']}>
 
