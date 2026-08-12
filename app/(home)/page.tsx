@@ -1,26 +1,30 @@
 import { Hero } from '@/components/landing/hero';
 import { SDKCompatSection } from '@/components/landing/sdk-compat-section';
-import { APICoverage } from '@/components/landing/api-coverage';
-import { ComparisonTable } from '@/components/landing/comparison-table';
 import { FeatureCards } from '@/components/landing/feature-cards';
 import { ServiceGrid } from '@/components/landing/service-grid';
-import { CodeExample } from '@/components/landing/code-example';
 import { CTASection } from '@/components/landing/cta-section';
+import { Reveal } from '@/components/landing/reveal';
 
 export default function HomePage() {
   return (
     <main className="flex flex-col items-center">
       <Hero />
 
-      <SDKCompatSection />
+      <Reveal className="w-full flex justify-center">
+        <SDKCompatSection />
+      </Reveal>
 
-      <APICoverage />
+      <Reveal className="w-full flex justify-center">
+        <FeatureCards />
+      </Reveal>
 
-      <ComparisonTable />
-      <FeatureCards />
-      <ServiceGrid />
-      <CodeExample />
-      <CTASection />
+      <Reveal className="w-full flex justify-center">
+        <ServiceGrid />
+      </Reveal>
+
+      <Reveal className="w-full flex justify-center">
+        <CTASection />
+      </Reveal>
     </main>
   );
 }
