@@ -109,7 +109,10 @@ export function SDKCompatSection() {
         </div>
         <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">
           Don&apos;t rewrite your tests.{' '}
-          <span className="bg-gradient-to-r from-ember-500 to-ember-700 bg-clip-text text-transparent">
+          <span
+            className="bg-clip-text text-transparent"
+            style={{ backgroundImage: 'linear-gradient(90deg, #ff6b2c, #d64d17)' }}
+          >
             Repoint them.
           </span>
         </h2>
