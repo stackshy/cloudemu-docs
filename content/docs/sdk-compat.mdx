@@ -2,9 +2,6 @@
 title: SDK-Compatible Server
 description: Point real aws-sdk-go-v2, azure-sdk-for-go, and Google Cloud SDKs at cloudemu without changing your application code
 ---
-
-# SDK-Compatible Server
-
 cloudemu ships HTTP servers that speak the real cloud SDK wire protocols across all three providers — **AWS**, **Azure**, and **GCP**. Point the actual `aws-sdk-go-v2`, `azure-sdk-for-go`, or `cloud.google.com/go` clients at it (via custom endpoint) and your production code runs unchanged against the in-memory backend.
 
 Nothing to mock. No Docker. No accounts. The same SDK calls you'd run against real cloud APIs hit a local `httptest.NewServer` and get back SDK-decodable responses.

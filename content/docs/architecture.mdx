@@ -2,9 +2,6 @@
 title: Architecture
 description: How cloudemu serves real cloud SDKs from an in-memory backend
 ---
-
-# Architecture
-
 cloudemu's primary surface is the **SDK-compatible HTTP server** — a layer that speaks each cloud's real wire protocol so unmodified SDK clients can drive the in-memory backend. Underneath sits a small, deliberately boring three-layer core.
 
 ```
