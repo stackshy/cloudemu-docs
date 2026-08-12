@@ -1,16 +1,20 @@
 import type { SVGProps } from 'react';
 
 /**
- * Logo: a stylized cloud silhouette holding three connected nodes — the three
- * cloud providers (AWS, Azure, GCP) emulated inside cloudemu. Uses an inline
- * gradient by default (sky-400 → violet-500) but accepts any styling via props.
+ * Logo: the cloudemu mark — motion lines, a cloud, and a terminal prompt
+ * (chevron + cursor bar) inside it. "The cloud, in memory."
  *
- * Renders crisply from 16px (favicon) up to display sizes.
+ * Theme-adaptive: the cloud and chevron swap fills via CSS variables
+ * (`--logo-cloud` / `--logo-chevron`, defined in global.css) so the mark reads
+ * on both light and dark backgrounds. The cursor bar stays Ember on both — the
+ * one always-warm element. The icon's aspect ratio is ~1.9:1.
+ *
+ * Renders crisply from favicon sizes up to display sizes.
  */
 export function Logo({ style, ...rest }: SVGProps<SVGSVGElement>) {
   return (
     <svg
-      viewBox="0 0 32 32"
+      viewBox="0 0 150 78"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       aria-label="cloudemu"
@@ -19,53 +23,44 @@ export function Logo({ style, ...rest }: SVGProps<SVGSVGElement>) {
       {...rest}
     >
       <defs>
-        <linearGradient
-          id="cloudemu-logo-gradient"
-          x1="0"
-          y1="0"
-          x2="32"
-          y2="32"
-          gradientUnits="userSpaceOnUse"
-        >
-          <stop stopColor="#38bdf8" />
-          <stop offset="1" stopColor="#a855f7" />
+        <linearGradient id="cloudemu-lines" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stopColor="var(--logo-line, #ff6b2c)" stopOpacity="0" />
+          <stop offset="1" stopColor="var(--logo-line, #ff6b2c)" />
         </linearGradient>
       </defs>
 
-      {/* Cloud silhouette — built from overlapping circles + a rounded base */}
-      <g>
-        <circle cx="9" cy="15" r="7" fill="url(#cloudemu-logo-gradient)" />
-        <circle cx="18" cy="11" r="9" fill="url(#cloudemu-logo-gradient)" />
-        <circle cx="25" cy="15" r="6" fill="url(#cloudemu-logo-gradient)" />
-        <rect
-          x="6"
-          y="14"
-          width="22"
-          height="10"
-          rx="5"
-          fill="url(#cloudemu-logo-gradient)"
-        />
+      {/* Motion lines — the "in memory" speed streaks */}
+      <g fill="url(#cloudemu-lines)">
+        <rect x="16" y="34" width="53" height="4.5" rx="2.25" />
+        <rect x="10" y="46" width="49" height="4.5" rx="2.25" />
+        <rect x="6" y="58" width="50" height="4.5" rx="2.25" />
       </g>
 
-      {/* Three connected service nodes inside — AWS / Azure / GCP, abstracted */}
+      {/* Cloud body */}
+      <g fill="var(--logo-cloud, #f1efe7)">
+        <circle cx="96" cy="45" r="23" />
+        <circle cx="128" cy="53" r="16" />
+        <circle cx="76" cy="55" r="15" />
+        <rect x="76" y="51" width="68" height="20" rx="10" />
+      </g>
+
+      {/* Terminal prompt: chevron + Ember cursor bar */}
       <path
-        d="M11 19L18 22L25 19"
-        stroke="white"
-        strokeOpacity="0.85"
-        strokeWidth="1.2"
+        d="M90 40 L99 48.5 L90 57"
+        stroke="var(--logo-chevron, #101613)"
+        strokeWidth="6.5"
         strokeLinecap="round"
         strokeLinejoin="round"
         fill="none"
       />
-      <circle cx="11" cy="19" r="1.6" fill="white" />
-      <circle cx="18" cy="22" r="1.6" fill="white" />
-      <circle cx="25" cy="19" r="1.6" fill="white" />
+      <rect x="105" y="51.5" width="17" height="6" rx="3" fill="#FF6B2C" />
     </svg>
   );
 }
 
 /**
- * LogoMark: same icon paired with the wordmark, suitable for nav bars.
+ * LogoMark: the icon paired with the wordmark, for nav bars. The wordmark uses
+ * the foreground color (matching the brand lockup); the icon carries the color.
  */
 export function LogoMark({
   className,
@@ -74,29 +69,21 @@ export function LogoMark({
   className?: string;
   size?: 'md' | 'lg';
 }) {
-  const iconPx = size === 'lg' ? 36 : 28;
+  const iconH = size === 'lg' ? 34 : 26;
+  const iconW = Math.round(iconH * 1.92);
   const textCls = size === 'lg' ? 'text-2xl' : 'text-xl';
 
   return (
     <span
       className={`${className ?? ''}`}
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: 10,
-      }}
+      style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}
     >
       <Logo
-        width={iconPx}
-        height={iconPx}
-        style={{ width: iconPx, height: iconPx, flexShrink: 0, display: 'block' }}
+        width={iconW}
+        height={iconH}
+        style={{ width: iconW, height: iconH, flexShrink: 0, display: 'block' }}
       />
-      <span className={`font-bold ${textCls} tracking-tight`}>
-        <span className="bg-gradient-to-r from-sky-400 to-violet-500 bg-clip-text text-transparent">
-          cloud
-        </span>
-        emu
-      </span>
+      <span className={`font-extrabold ${textCls} tracking-tight`}>cloudemu</span>
     </span>
   );
 }
