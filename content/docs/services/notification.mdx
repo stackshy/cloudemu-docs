@@ -3,7 +3,7 @@ title: Notification
 description: Emulate SNS, Azure Notification Hubs, and FCM — topics, subscriptions, and message fan-out in memory.
 ---
 
-Model pub/sub notifications entirely in memory. cloudemu implements the **topic-and-subscription** shape of all three clouds — creating topics, subscribing endpoints to them, and publishing messages that fan out to every subscriber. No SNS topic is ever created, nothing is billed, and every call returns in milliseconds, so a test can wire up a topic, subscribe a queue, publish, and assert on delivery without touching a real cloud account.
+Model pub/sub notifications entirely in memory. cloudemu implements the **topic-and-subscription** shape of all three clouds — creating topics, subscribing endpoints to them, and publishing messages that fan out to every subscriber. No SNS topic is ever created, nothing is billed, and every call returns in milliseconds, so your code can wire up a topic, subscribe a queue, publish, and assert on delivery without touching a real cloud account.
 
 | Provider | Real service | cloudemu driver |
 |---|---|---|
@@ -13,12 +13,12 @@ Model pub/sub notifications entirely in memory. cloudemu implements the **topic-
 
 There are two ways to drive it, both backed by the same in-memory state:
 
-- **Real cloud SDK** — point your existing `aws-sdk-go-v2/service/sns`, `armnotificationhubs`, or FCM (`google.golang.org/api/fcm/v1`) client at a local server. Only the endpoint changes; your production code is untouched. This is the closest thing to testing against the real cloud, and what most tests should use.
-- **Portable Go API** — call cloudemu's Go interface directly and skip the HTTP hop. The same method shape works across every cloud, so you can switch providers by changing one field.
+- **Real cloud SDK** — point your existing `aws-sdk-go-v2/service/sns`, `armnotificationhubs`, or FCM (`google.golang.org/api/fcm/v1`) client at a local server. Only the endpoint changes; your real code is untouched — the same client works in a test, a local dev server, or your running app.
+- **Portable Go API** — call cloudemu's Go interface directly from your application code — discover resources, perform actions, skip the HTTP hop entirely. The same method shape works across every cloud, so you can switch providers by changing one field.
 
 ## Drive it with the real SDK
 
-cloudemu ships an HTTP server per cloud that speaks that provider's real wire protocol. You start it with `httptest`, hand it the drivers you need, and point your normal SDK client at its URL — nothing else in your code changes.
+cloudemu ships an HTTP server per cloud that speaks that provider's real wire protocol. Run it with `httptest` in a test or behind a real `http.Server` in your app, hand it the drivers you need, and point your normal SDK client at its URL — nothing else in your code changes.
 
 <Tabs items={['AWS', 'Azure', 'GCP']}>
 
@@ -152,9 +152,9 @@ All three providers implement the same notification interface, so the operations
 
 ## How the emulator behaves
 
-cloudemu doesn't just store topics — it reproduces the side effects of publishing, so your tests exercise realistic delivery instead of a dumb key-value store:
+cloudemu doesn't just store topics — it reproduces the side effects of publishing, so your code exercises realistic delivery instead of a dumb key-value store:
 
-- **Publishing fans out to SQS.** When the SNS backend is wired to the SQS backend, publishing to a topic delivers the SNS envelope JSON into every `sqs`-protocol subscription's queue — so a test can publish and then poll the queue, exactly like real SNS → SQS.
+- **Publishing fans out to SQS.** When the SNS backend is wired to the SQS backend, publishing to a topic delivers the SNS envelope JSON into every `sqs`-protocol subscription's queue — so your code can publish and then poll the queue, exactly like real SNS → SQS.
 - **Topics track their subscribers.** Each topic's `SubscriptionCount` reflects the subscriptions currently attached, and `ListSubscriptions` returns them with their protocol, endpoint, and confirmation status.
 - **Listing respects scope.** `ListTopics` filters by scope, so Azure subscription / resource-group and GCP project boundaries behave the way they do on the real API.
 
