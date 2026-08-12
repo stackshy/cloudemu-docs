@@ -131,14 +131,13 @@ export function SDKCompatSection() {
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
         transition={{ duration: 0.4 }}
-        className="rounded-xl border border-fd-border bg-fd-card overflow-hidden shadow-2xl"
-        style={{ boxShadow: '0 30px 60px -20px rgba(255,107,44,0.2)' }}
+        className="rounded-xl border border-fd-border bg-fd-card overflow-hidden shadow-sm"
       >
         {/* macOS-style window chrome */}
         <div className="flex items-center gap-2 px-4 py-3 border-b border-fd-border bg-fd-secondary/50">
-          <span className="w-3 h-3 rounded-full bg-red-500/70" />
-          <span className="w-3 h-3 rounded-full bg-yellow-500/70" />
-          <span className="w-3 h-3 rounded-full bg-ember-500/70" />
+          <span className="w-2.5 h-2.5 rounded-full bg-fd-muted-foreground/25" />
+          <span className="w-2.5 h-2.5 rounded-full bg-fd-muted-foreground/25" />
+          <span className="w-2.5 h-2.5 rounded-full bg-fd-muted-foreground/25" />
           <span className="ml-2 text-xs text-fd-muted-foreground font-mono">
             {tabs[active].label.toLowerCase()}_test.go · {tabs[active].sdk}
           </span>
