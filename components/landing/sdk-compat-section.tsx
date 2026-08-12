@@ -75,6 +75,26 @@ client, _ := gcpcompute.NewInstancesRESTClient(ctx,
     option.WithHTTPClient(ts.Client()),
 )`,
   },
+  {
+    label: 'OCI',
+    color: '#C74634',
+    sdk: 'oci-go-sdk',
+    code: `import (
+    ociserver "github.com/stackshy/cloudemu/server/oci"
+    "github.com/oracle/oci-go-sdk/v65/identity"
+)
+
+cp := cloudemu.NewOCI()
+ts := httptest.NewServer(ociserver.New(ociserver.Drivers{
+    Identity: cp.Identity, Monitoring: cp.Monitoring, VCN: cp.VCN,
+}))
+
+// Use the REAL oci-go-sdk client — only the endpoint changes.
+client, _ := identity.NewIdentityClientWithConfigurationProvider(cfg)
+client.Host = ts.URL
+client.HTTPClient = ts.Client()
+client.ListUsers(ctx, identity.ListUsersRequest{ /* ... */ })`,
+  },
 ];
 
 export function SDKCompatSection() {
@@ -115,7 +135,7 @@ export function SDKCompatSection() {
         <div className="flex items-center gap-2 px-4 py-3 border-b border-fd-border bg-fd-secondary/50">
           <span className="w-3 h-3 rounded-full bg-red-500/70" />
           <span className="w-3 h-3 rounded-full bg-yellow-500/70" />
-          <span className="w-3 h-3 rounded-full bg-green-500/70" />
+          <span className="w-3 h-3 rounded-full bg-ember-500/70" />
           <span className="ml-2 text-xs text-fd-muted-foreground font-mono">
             {tabs[active].label.toLowerCase()}_test.go · {tabs[active].sdk}
           </span>
