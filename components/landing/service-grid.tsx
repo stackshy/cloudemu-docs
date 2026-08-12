@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { services } from '@/lib/services';
 import { fadeUp, staggerContainer, viewportOnce } from '@/lib/motion';
+import { SectionHeader } from '@/components/landing/section';
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Server, HardDrive, Database, Zap, Network, Activity,
@@ -28,12 +29,13 @@ export function ServiceGrid() {
 
   return (
     <section className="w-full max-w-5xl mx-auto px-6 py-20">
-      <div className="mb-4 max-w-2xl">
-        <h2 className="text-3xl font-bold tracking-tight">16 service categories</h2>
-        <p className="mt-2 text-fd-muted-foreground">
-          Every category is implemented for AWS, Azure, and GCP — with OCI arriving service by service.
-        </p>
-      </div>
+      <SectionHeader
+        index="05"
+        kicker="Coverage"
+        title="16 service categories"
+        lede="48 implementations behind them — every category built for AWS, Azure, and GCP. OCI lands service by service."
+        className="mb-8"
+      />
 
       <motion.div
         variants={reduce ? undefined : staggerContainer(0.04)}
