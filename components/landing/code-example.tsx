@@ -108,9 +108,9 @@ export function CodeExample() {
       <div className="rounded-xl border border-fd-border bg-fd-card overflow-hidden shadow-lg">
         {/* macOS-style window chrome */}
         <div className="flex items-center gap-2 px-4 py-3 border-b border-fd-border bg-fd-secondary/50">
-          <span className="w-3 h-3 rounded-full bg-red-500/70" />
-          <span className="w-3 h-3 rounded-full bg-yellow-500/70" />
-          <span className="w-3 h-3 rounded-full bg-ember-500/70" />
+          <span className="w-2.5 h-2.5 rounded-full bg-fd-muted-foreground/25" />
+          <span className="w-2.5 h-2.5 rounded-full bg-fd-muted-foreground/25" />
+          <span className="w-2.5 h-2.5 rounded-full bg-fd-muted-foreground/25" />
           <span className="ml-2 text-xs text-fd-muted-foreground font-mono">
             {tabs[active].label.toLowerCase()}_setup.go
           </span>
