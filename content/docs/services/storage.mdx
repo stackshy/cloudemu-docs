@@ -1,33 +1,41 @@
 ---
 title: Storage
-description: Object storage — S3, Azure Blob, GCS — drive it with the real cloud SDK
+description: Emulate S3, Azure Blob Storage, and GCS — drive them with the real cloud SDK.
 ---
-Emulates object storage: **S3** (AWS), **Blob Storage** (Azure), **GCS** (GCP).
 
-| Provider | Service | SDK-compat | Driver |
-|----------|---------|:----------:|--------|
-| AWS | S3 | ✓ Live | `aws.S3` |
-| Azure | Blob Storage | ✓ Live | `azure.BlobStorage` |
-| GCP | GCS | ✓ Live | `gcp.GCS` |
+Store and retrieve objects entirely in memory. cloudemu implements the **object storage** API of all three clouds — creating buckets and containers, putting and getting objects, listing them by prefix, and copying them around. The exact SDK code you'd write against real AWS, Azure, or GCP runs against a local server instead: nothing touches a real bucket, nothing is billed, and every call returns in milliseconds.
 
-## Use the real SDK (recommended)
+| Provider | Real service | cloudemu driver |
+|---|---|---|
+| **AWS** | S3 — buckets + objects | `aws.S3` |
+| **Azure** | Blob Storage — containers + blobs | `azure.BlobStorage` |
+| **GCP** | Cloud Storage (GCS) — buckets + objects | `gcp.GCS` |
 
-Drop the SDK-compat server in front of cloudemu and call your existing production code unchanged.
+There are two ways to drive it, both backed by the same in-memory state:
+
+- **Real cloud SDK** — point your existing `aws-sdk-go-v2`, `azure-sdk-for-go`, or `cloud.google.com/go` client at a local server. Only the endpoint changes; your production code is untouched. This is the closest thing to testing against the real cloud, and what most tests should use.
+- **Portable Go API** — call cloudemu's Go interface directly and skip the HTTP hop. The same method shape works across every cloud, so you can switch providers by changing one field.
+
+## Drive it with the real SDK
+
+cloudemu ships an HTTP server per cloud that speaks that provider's real wire protocol. You start it with `httptest`, hand it the drivers you need, and point your normal SDK client at its URL — nothing else in your code changes.
+
+<Tabs items={['AWS', 'Azure', 'GCP']}>
+
+<Tab value="AWS">
 
 ```go
 import (
     "github.com/aws/aws-sdk-go-v2/aws"
     "github.com/aws/aws-sdk-go-v2/service/s3"
-    "github.com/stackshy/cloudemu"
     awsserver "github.com/stackshy/cloudemu/server/aws"
 )
 
 cloud := cloudemu.NewAWS()
 ts := httptest.NewServer(awsserver.New(awsserver.Drivers{S3: cloud.S3}))
-defer ts.Close()
 
 client := s3.NewFromConfig(cfg, func(o *s3.Options) {
-    o.BaseEndpoint = aws.String(ts.URL)
+    o.BaseEndpoint = aws.String(ts.URL) // the only change from real AWS
     o.UsePathStyle = true
 })
 
@@ -42,20 +50,124 @@ out, _ := client.GetObject(ctx, &s3.GetObjectInput{
 })
 ```
 
-The same pattern works with `armappservice` / `azblob` (Azure) and `cloud.google.com/go/storage` (GCP). See the [SDK-Compat Server page](/docs/sdk-compat#quick-start-azure) for full quick starts per provider.
+</Tab>
 
-### Operations supported via SDK-compat
+<Tab value="Azure">
 
-CreateBucket, DeleteBucket, ListBuckets, PutObject, GetObject, HeadObject, DeleteObject, ListObjectsV2 (prefix, delimiter, common prefixes, continuation token), CopyObject.
+```go
+import (
+    "github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
+    azureserver "github.com/stackshy/cloudemu/server/azure"
+)
 
-## Alternative: Portable Go API
+cloud := cloudemu.NewAzure()
+ts := httptest.NewTLSServer(azureserver.New(azureserver.Drivers{
+    BlobStorage: cloud.BlobStorage,
+}))
 
-When you don't need to drive a real SDK — for example, in cloudemu-only setup code — call the driver directly:
+// Point the real azblob client at ts (service URL + ts.Client()).
+client, _ := azblob.NewClientWithNoCredential(ts.URL, optsFor(ts))
+
+client.CreateContainer(ctx, "my-container", nil)
+client.UploadBuffer(ctx, "my-container", "config.yaml", []byte("port: 8080"), nil)
+```
+
+</Tab>
+
+<Tab value="GCP">
+
+```go
+import (
+    "cloud.google.com/go/storage"
+    gcpserver "github.com/stackshy/cloudemu/server/gcp"
+)
+
+cloud := cloudemu.NewGCP()
+ts := httptest.NewServer(gcpserver.New(gcpserver.Drivers{Storage: cloud.GCS}))
+
+client, _ := storage.NewClient(ctx,
+    option.WithEndpoint(ts.URL), // the only change from real GCP
+    option.WithoutAuthentication(),
+    option.WithHTTPClient(ts.Client()),
+)
+
+w := client.Bucket("my-bucket").Object("config.yaml").NewWriter(ctx)
+w.Write([]byte("port: 8080"))
+w.Close()
+```
+
+</Tab>
+
+</Tabs>
+
+## What each provider supports
+
+Not every provider names these operations the same way — cloudemu matches what each cloud's own API offers.
+
+<Tabs items={['AWS', 'Azure', 'GCP']}>
+
+<Tab value="AWS">
+
+**S3** — `CreateBucket`, `DeleteBucket`, and `ListBuckets` for the container side; `PutObject`, `GetObject`, `HeadObject`, and `DeleteObject` for the objects. `ListObjectsV2` supports `prefix`, `delimiter`, common prefixes, and continuation tokens, and `CopyObject` duplicates an object server-side.
+
+</Tab>
+
+<Tab value="Azure">
+
+**Blob Storage** — the same shape over the data plane: create, delete, and list **containers**, plus `PutBlob`, `GetBlob`, and `DeleteBlob` on the blobs inside them, with `CopyBlob` for server-side copies.
+
+</Tab>
+
+<Tab value="GCP">
+
+**Cloud Storage** — create, get, list, and delete **buckets**, plus upload, download, copy, and delete for the **objects** within them, mirroring the GCS JSON API.
+
+</Tab>
+
+</Tabs>
+
+## How the emulator behaves
+
+cloudemu reproduces the parts of object storage that tests actually lean on, not just a flat key-value dump:
+
+- **Prefix and delimiter listing work like the real thing.** `ListObjectsV2` honors `prefix`, `delimiter`, common prefixes, and continuation tokens, so pagination-aware code pages through results exactly as it would against real S3.
+- **Copies are server-side.** `CopyObject` / `CopyBlob` duplicate an object's bytes and metadata in place without a round trip through your process.
+- **A couple of extras are driver-only.** Bucket lifecycle policies are exposed on the Portable Go API but not yet on the SDK-compat HTTP server. Everything else — including multipart upload and versioning — works over both surfaces.
+
+## Or call the Portable Go API directly
+
+When you don't need the HTTP layer — for example, unit tests that construct cloudemu in-process — call its Go interface directly. The method shape is identical across clouds, so switching providers is a one-line change.
+
+<Tabs items={['AWS', 'Azure', 'GCP']}>
+
+<Tab value="AWS">
 
 ```go
 aws.S3.CreateBucket(ctx, "my-bucket")
-aws.S3.PutObject(ctx, "my-bucket", "config.yaml", []byte("..."), "text/yaml", nil)
+aws.S3.PutObject(ctx, "my-bucket", "config.yaml", []byte("port: 8080"), "text/yaml", nil)
 obj, _ := aws.S3.GetObject(ctx, "my-bucket", "config.yaml")
 ```
 
-The Portable API also exposes operations not yet on the SDK-compat surface — multipart upload, presigned URLs, lifecycle policies, versioning. See the driver interface for the full list.
+</Tab>
+
+<Tab value="Azure">
+
+```go
+azure.BlobStorage.CreateBucket(ctx, "my-container")
+azure.BlobStorage.PutObject(ctx, "my-container", "config.yaml", []byte("port: 8080"), "text/yaml", nil)
+obj, _ := azure.BlobStorage.GetObject(ctx, "my-container", "config.yaml")
+```
+
+</Tab>
+
+<Tab value="GCP">
+
+```go
+gcp.GCS.CreateBucket(ctx, "my-bucket")
+gcp.GCS.PutObject(ctx, "my-bucket", "config.yaml", []byte("port: 8080"), "text/yaml", nil)
+obj, _ := gcp.GCS.GetObject(ctx, "my-bucket", "config.yaml")
+```
+
+</Tab>
+
+</Tabs>
