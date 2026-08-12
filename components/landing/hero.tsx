@@ -11,8 +11,10 @@ import {
 } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
 import { EASE, fadeUp, staggerContainer } from '@/lib/motion';
+import { useMagnetic } from '@/lib/interactions';
 import { AnimatedBackground } from './animated-background';
 import { SDKFlowDiagram } from './sdk-flow-diagram';
+import { Kicker } from './section';
 import { Logo } from '../logo';
 
 // Motion-enabled Link so buttons can lift/scale while staying real anchors.
@@ -47,6 +49,10 @@ export function Hero() {
   const headline = staggerContainer(0.1);
   const line = fadeUp();
 
+  // Pointer-magnetic drift for the two CTAs — gentle, on top of their whileHover lift.
+  const primaryMagnetic = useMagnetic(0.25);
+  const secondaryMagnetic = useMagnetic(0.25);
+
   return (
     <section ref={sectionRef} className="relative w-full overflow-hidden">
       <div className="absolute inset-0 -z-10">
@@ -72,6 +78,13 @@ export function Hero() {
               <Logo width={56} height={56} />
             </motion.div>
 
+            <motion.div
+              variants={reduce ? undefined : item}
+              className="mb-4 flex justify-center lg:justify-start"
+            >
+              <Kicker>cloudemu — in-memory cloud for Go</Kicker>
+            </motion.div>
+
             <motion.h1
               variants={reduce ? undefined : headline}
               className="text-4xl sm:text-5xl lg:text-[3.25rem] font-extrabold tracking-tight leading-[1.1]"
@@ -94,32 +107,48 @@ export function Hero() {
             >
               Point <CodePill>aws-sdk-go-v2</CodePill>, <CodePill>azure-sdk-for-go</CodePill>, or{' '}
               <CodePill>cloud.google.com/go</CodePill> at a local{' '}
-              <code className="font-mono text-[0.95em]">cloudemu</code> server — in a test or your app. ~10ms per call.
+              <code className="font-mono text-[0.95em]">cloudemu</code> server. Runs in a test or your app. Calls return in ~10ms.
             </motion.p>
 
             <motion.div
               variants={reduce ? undefined : item}
               className="mt-8 flex items-center justify-center lg:justify-start gap-3 flex-wrap"
             >
-              <MotionLink
-                href="/docs/sdk-compat"
-                whileHover={reduce ? undefined : { y: -2, scale: 1.03 }}
-                whileTap={reduce ? undefined : { scale: 0.97 }}
-                transition={{ duration: 0.2, ease: EASE }}
-                className="group px-6 py-2.5 rounded-lg bg-fd-foreground text-fd-background font-semibold inline-flex items-center gap-2 hover:opacity-90 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fd-ring focus-visible:ring-offset-2 focus-visible:ring-offset-fd-background"
+              <motion.span
+                ref={primaryMagnetic.ref as React.RefObject<HTMLSpanElement>}
+                style={primaryMagnetic.style}
+                onMouseMove={primaryMagnetic.onMouseMove}
+                onMouseLeave={primaryMagnetic.onMouseLeave}
+                className="inline-flex"
               >
-                Use Real SDKs
-                <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
-              </MotionLink>
-              <MotionLink
-                href="/docs/quick-start"
-                whileHover={reduce ? undefined : { y: -2, scale: 1.03 }}
-                whileTap={reduce ? undefined : { scale: 0.97 }}
-                transition={{ duration: 0.2, ease: EASE }}
-                className="px-6 py-2.5 rounded-lg border border-fd-border bg-fd-card font-semibold hover:bg-fd-accent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fd-ring focus-visible:ring-offset-2 focus-visible:ring-offset-fd-background"
+                <MotionLink
+                  href="/docs/sdk-compat"
+                  whileHover={reduce ? undefined : { y: -2, scale: 1.03 }}
+                  whileTap={reduce ? undefined : { scale: 0.97 }}
+                  transition={{ duration: 0.2, ease: EASE }}
+                  className="group px-6 py-2.5 rounded-lg bg-fd-foreground text-fd-background font-semibold inline-flex items-center gap-2 hover:opacity-90 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fd-ring focus-visible:ring-offset-2 focus-visible:ring-offset-fd-background"
+                >
+                  Use Real SDKs
+                  <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                </MotionLink>
+              </motion.span>
+              <motion.span
+                ref={secondaryMagnetic.ref as React.RefObject<HTMLSpanElement>}
+                style={secondaryMagnetic.style}
+                onMouseMove={secondaryMagnetic.onMouseMove}
+                onMouseLeave={secondaryMagnetic.onMouseLeave}
+                className="inline-flex"
               >
-                Quick Start
-              </MotionLink>
+                <MotionLink
+                  href="/docs/quick-start"
+                  whileHover={reduce ? undefined : { y: -2, scale: 1.03 }}
+                  whileTap={reduce ? undefined : { scale: 0.97 }}
+                  transition={{ duration: 0.2, ease: EASE }}
+                  className="px-6 py-2.5 rounded-lg border border-fd-border bg-fd-card font-semibold hover:bg-fd-accent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fd-ring focus-visible:ring-offset-2 focus-visible:ring-offset-fd-background"
+                >
+                  Quick Start
+                </MotionLink>
+              </motion.span>
             </motion.div>
           </motion.div>
 
