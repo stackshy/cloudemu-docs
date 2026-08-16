@@ -3,10 +3,15 @@
   "pages": [
     "index",
     "compute",
+    "container-orchestration",
     "storage",
     "database",
+    "relationaldb",
+    "cosmospostgresql",
     "serverless",
+    "kubernetes",
     "networking",
+    "networkfirewall",
     "monitoring",
     "iam",
     "dns",
@@ -16,7 +21,18 @@
     "eventbus",
     "containerregistry",
     "cache",
+    "memorydb",
+    "keyspaces",
+    "managedcassandra",
+    "bigtable",
+    "tablestorage",
     "secrets",
-    "logging"
+    "parameter-store",
+    "logging",
+    "resource-discovery",
+    "ai",
+    "machine-learning",
+    "ai-search",
+    "databricks"
   ]
 }
