@@ -1,0 +1,74 @@
+---
+title: Network Topology
+description: Simulate real network reachability across VPCs, peering, security groups, ACLs, and routes so you can test connectivity logic without a cloud
+---
+Test whether two emulated instances can actually talk — across VPCs, peering, security groups, ACLs, and routes. The topology engine reads the compute, networking, and DNS drivers and answers three questions the way a real cloud network would: *can these two instances talk?*, *what path does traffic take?*, and *what does this hostname resolve to?*
+
+<TopologyGraph />
+
+This lets you unit-test firewall rules, security-group changes, routing, and DNS wiring deterministically — no VPCs to stand up, no cloud account.
+
+```go
+import (
+    "github.com/stackshy/cloudemu/v2"
+    "github.com/stackshy/cloudemu/v2/features/topology"
+)
+
+cloud := cloudemu.NewAWS()
+engine := topology.New(cloud.EC2, cloud.VPC, cloud.Route53)
+
+res, _ := engine.CanConnect(ctx, topology.ConnectivityQuery{
+    SrcInstanceID: "i-web",
+    DstInstanceID: "i-db",
+    Port:          5432,
+    Protocol:      "tcp",
+})
+if !res.Allowed {
+    // res.Reason explains why — e.g. "no security-group rule permits tcp/5432"
+}
+```
+
+The engine consumes the same driver instances your app already uses, so it sees exactly the VPCs, subnets, security groups, route tables, peering connections, and DNS records you created.
+
+## What it evaluates
+
+`topology.New(compute, networking, dns)` returns an `*Engine` with three methods:
+
+### `CanConnect`
+
+```go
+res, err := engine.CanConnect(ctx, topology.ConnectivityQuery{
+    SrcInstanceID: "i-web",
+    DstInstanceID: "i-db",
+    Port:          5432,
+    Protocol:      "tcp", // "tcp", "udp", "icmp", or "-1" (all)
+})
+```
+
+Decides whether two instances can communicate on a port/protocol, accounting for **VPC membership, VPC peering, security-group ingress/egress rules, and network ACLs**. The `ConnectivityResult` carries:
+
+- `Allowed bool` — the verdict
+- `Reason string` — a human-readable explanation
+- `Path []RouteHop` — the hops traffic would take
+- `SGVerdict` — the security-group match detail
+- `ACLVerdict` — the network-ACL decision (if any)
+
+### `TraceRoute`
+
+```go
+hops, err := engine.TraceRoute(ctx, "i-web", "8.8.8.8")
+```
+
+Returns the network path from an instance to a destination IP as a slice of `RouteHop{Type, ResourceID, Detail}`, where `Type` is one of `instance`, `subnet`, `route-table`, `gateway`, `nat-gateway`, `peering`, or `local`. Route-table lookups and CIDR matching decide whether traffic exits via an internet gateway, a NAT gateway, a peering connection, or is blocked.
+
+### `Resolve`
+
+```go
+ips, err := engine.Resolve(ctx, "service.internal")
+```
+
+Walks the DNS zones and returns the resolved values for a hostname (`A`, `AAAA`, `CNAME` records), or `nil` if there's no match.
+
+## Why it's a driver consumer
+
+Topology sits on top of the [driver layer](/docs/architecture), the same as the [Chaos engine](/docs/chaos). Because it reads live driver state rather than a static config, connectivity answers always reflect the resources currently in your emulated cloud — create a security-group rule and `CanConnect` sees it on the next call, with no re-wiring.
