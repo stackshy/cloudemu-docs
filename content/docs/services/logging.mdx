@@ -1,245 +1,65 @@
 ---
 title: Logging
-description: Emulate CloudWatch Logs, Log Analytics, and Cloud Logging — log groups, streams, and filter queries entirely in memory.
+description: Log groups, streams, and event queries, modelled on CloudWatch Logs, Log Analytics, and Cloud Logging
+aws: CloudWatch Logs
+azure: Log Analytics
+gcp: Cloud Logging
 ---
 
-Capture and query application logs without a real logging backend. cloudemu implements the **log ingestion and query surface** of all three clouds — creating log groups, opening streams inside them, writing events, and reading them back with time-range and pattern filters. Everything lives in memory: no agent, no network hop, no bill, and every query returns in milliseconds.
+Emulates a managed log store — the CloudWatch Logs pipeline your app writes events into and you later query. You create a log group, open a stream within it, put events onto the stream, then read them back by time range.
 
-| Provider | Real service | cloudemu driver |
-|---|---|---|
-| **AWS** | CloudWatch Logs | `aws.CloudWatchLogs` |
-| **Azure** | Log Analytics | `azure.LogAnalytics` |
-| **GCP** | Cloud Logging | `gcp.CloudLogging` |
+Reach for it when your code emits log events, sets retention, or queries a window of history — so you can exercise those paths without a live logging backend. Under the hood a group is a named container, a stream is an ordered sequence of timestamped events inside it, and a query filters that sequence by time.
 
-There are two ways to drive it, both backed by the same in-memory state:
+| Provider | Service | SDK-compat | Driver |
+|----------|---------|:----------:|--------|
+| AWS | CloudWatch Logs | ✓ Live | `aws.CloudWatchLogs` |
+| Azure | Log Analytics | ✓ Live | `azure.LogAnalytics` |
+| GCP | Cloud Logging | ✓ Live | `gcp.CloudLogging` |
 
-- **Real cloud SDK** — point your existing `aws-sdk-go-v2`, `azure-sdk-for-go`, or `google.golang.org/api` client at a local server. Only the endpoint changes; your real code is untouched — the same client works in a test, a local dev server, or your running app.
-- **Portable Go API** — call cloudemu's Go interface directly from your application code — discover resources, perform actions, skip the HTTP hop entirely. The same method shape works across every cloud, so you can switch providers by changing one field.
+## Create groups and streams, then write events
 
-## Drive it with the real SDK
-
-cloudemu ships an HTTP server per cloud that speaks that provider's real wire protocol — start it with `httptest`, hand it the drivers you need, and point your normal SDK client at its URL.
-
-<Tabs items={['AWS', 'Azure', 'GCP']}>
-
-<Tab value="AWS">
+A log group is the top-level container (with a retention window), a stream is a single source of events within it, and `PutLogEvents` appends timestamped messages — the same three steps you'd take with CloudWatch Logs:
 
 ```go
-import (
-    "github.com/aws/aws-sdk-go-v2/aws"
-    "github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs"
-    cwltypes "github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs/types"
-    awsserver "github.com/stackshy/cloudemu/server/aws"
-)
+import logdriver "github.com/stackshy/cloudemu/v2/services/logging/driver"
 
-cloud := cloudemu.NewAWS()
-ts := httptest.NewServer(awsserver.New(awsserver.Drivers{CloudWatchLogs: cloud.CloudWatchLogs}))
-
-client := cloudwatchlogs.NewFromConfig(cfg, func(o *cloudwatchlogs.Options) {
-    o.BaseEndpoint = aws.String(ts.URL) // the only change from real AWS
-})
-
-client.CreateLogGroup(ctx, &cloudwatchlogs.CreateLogGroupInput{
-    LogGroupName: aws.String("/app/api"),
-})
-client.CreateLogStream(ctx, &cloudwatchlogs.CreateLogStreamInput{
-    LogGroupName:  aws.String("/app/api"),
-    LogStreamName: aws.String("instance-1"),
-})
-client.PutLogEvents(ctx, &cloudwatchlogs.PutLogEventsInput{
-    LogGroupName:  aws.String("/app/api"),
-    LogStreamName: aws.String("instance-1"),
-    LogEvents: []cwltypes.InputLogEvent{
-        {Timestamp: aws.Int64(time.Now().UnixMilli()), Message: aws.String("hello world")},
-    },
-})
-```
-
-</Tab>
-
-<Tab value="Azure">
-
-```go
-import (
-    "github.com/Azure/azure-sdk-for-go/sdk/azcore/to"
-    "github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/operationalinsights/armoperationalinsights"
-    azureserver "github.com/stackshy/cloudemu/server/azure"
-)
-
-cloud := cloudemu.NewAzure()
-ts := httptest.NewTLSServer(azureserver.New(azureserver.Drivers{
-    LogAnalytics: cloud.LogAnalytics,
-}))
-
-// Point the real armoperationalinsights client at ts (endpoint + ts.Client()).
-client, _ := armoperationalinsights.NewWorkspacesClient("sub-1", cred, optsFor(ts))
-
-poller, _ := client.BeginCreateOrUpdate(ctx, "rg-1", "logs-ws", armoperationalinsights.Workspace{
-    Location: to.Ptr("eastus"),
-    Properties: &armoperationalinsights.WorkspaceProperties{
-        RetentionInDays: to.Ptr(int32(90)),
-    },
-}, nil)
-ws, _ := poller.PollUntilDone(ctx, nil)
-```
-
-</Tab>
-
-<Tab value="GCP">
-
-```go
-import (
-    logging "google.golang.org/api/logging/v2"
-    "google.golang.org/api/option"
-    gcpserver "github.com/stackshy/cloudemu/server/gcp"
-)
-
-cloud := cloudemu.NewGCP()
-ts := httptest.NewServer(gcpserver.New(gcpserver.Drivers{CloudLogging: cloud.CloudLogging}))
-
-svc, _ := logging.NewService(ctx,
-    option.WithEndpoint(ts.URL), // the only change from real GCP
-    option.WithoutAuthentication(),
-)
-
-svc.Entries.Write(&logging.WriteLogEntriesRequest{
-    LogName: "projects/demo/logs/app-log",
-    Resource: &logging.MonitoredResource{
-        Type:   "global",
-        Labels: map[string]string{"project_id": "demo"},
-    },
-    Entries: []*logging.LogEntry{
-        {Timestamp: time.Now().Format(time.RFC3339Nano), TextPayload: "hello world"},
-    },
-}).Context(ctx).Do()
-```
-
-</Tab>
-
-</Tabs>
-
-## What each provider supports
-
-All three drivers expose the same logging surface — cloudemu keeps the behavior consistent across clouds.
-
-<Tabs items={['AWS', 'Azure', 'GCP']}>
-
-<Tab value="AWS">
-
-**Log groups** — `CreateLogGroup`, `UpdateLogGroup` (retention and tags), `GetLogGroup`, `ListLogGroups`, and `DeleteLogGroup`. **Log streams** — `CreateLogStream`, `ListLogStreams`, and `DeleteLogStream` inside a group.
-
-**Events** — write with `PutLogEvents`, read with `GetLogEvents` (time range, stream, pattern, limit), and search across streams with `FilterLogEvents`. **Metric filters** — define pattern-to-metric mappings with `PutMetricFilter`, `DescribeMetricFilters`, and `DeleteMetricFilter`.
-
-</Tab>
-
-<Tab value="Azure">
-
-**Log groups** — `CreateLogGroup`, `UpdateLogGroup` (retention and tags, mirroring ARM CreateOrUpdate-on-existing), `GetLogGroup`, `ListLogGroups`, and `DeleteLogGroup`. **Log streams** — `CreateLogStream`, `ListLogStreams`, and `DeleteLogStream`.
-
-**Events** — `PutLogEvents` to ingest, `GetLogEvents` to read a stream by time range and pattern, and `FilterLogEvents` to search across streams. **Metric filters** — `PutMetricFilter`, `DescribeMetricFilters`, and `DeleteMetricFilter`.
-
-</Tab>
-
-<Tab value="GCP">
-
-**Log groups** — `CreateLogGroup`, `UpdateLogGroup` (retention and tags), `GetLogGroup`, `ListLogGroups`, and `DeleteLogGroup`. **Log streams** — `CreateLogStream`, `ListLogStreams`, and `DeleteLogStream`.
-
-**Events** — `PutLogEvents` to write, `GetLogEvents` to read a stream by time range and pattern, and `FilterLogEvents` to search across streams. **Metric filters** — `PutMetricFilter`, `DescribeMetricFilters`, and `DeleteMetricFilter`.
-
-</Tab>
-
-</Tabs>
-
-## How the emulator behaves
-
-cloudemu reproduces the side effects of a real logging service, not just a key-value store:
-
-- **Retention is enforced on read.** Each group has a retention window (default 30 days); events older than the cutoff are filtered out of `GetLogEvents` results, exactly like the real service ages logs out.
-- **Ingestion emits metrics.** `PutLogEvents` automatically pushes `IncomingLogEvents` and `IncomingBytes` into the monitoring service, so your code can assert on log-ingestion metrics without extra wiring.
-- **Stored bytes are tracked.** Each `PutLogEvents` call adds to the group's `StoredBytes`, so you can assert on how much a group has accumulated.
-
-## Or call the Portable Go API directly
-
-When you don't need the HTTP layer, call cloudemu's Go interface directly inside your application — discovery, provisioning, teardown — no server, no wire protocol. The method shape is identical across clouds, so switching providers is a one-line change.
-
-<Tabs items={['AWS', 'Azure', 'GCP']}>
-
-<Tab value="AWS">
-
-```go
-import logdriver "github.com/stackshy/cloudemu/services/logging/driver"
-
+// Create a log group
 aws.CloudWatchLogs.CreateLogGroup(ctx, logdriver.LogGroupConfig{
-    Name:          "/app/web",
-    RetentionDays: 30,
+    Name:           "/app/web",
+    RetentionDays:  30,
 })
+
+// Create a log stream
 aws.CloudWatchLogs.CreateLogStream(ctx, "/app/web", "instance-001")
 
+// Put log events
 aws.CloudWatchLogs.PutLogEvents(ctx, "/app/web", "instance-001", []logdriver.LogEvent{
     {Timestamp: time.Now(), Message: "Server started on port 8080"},
     {Timestamp: time.Now(), Message: "Handling request GET /api/users"},
 })
-
-events, _ := aws.CloudWatchLogs.GetLogEvents(ctx, &logdriver.LogQueryInput{
-    LogGroup:  "/app/web",
-    LogStream: "instance-001",
-    StartTime: time.Now().Add(-1 * time.Hour),
-    Limit:     100,
-})
 ```
 
-</Tab>
+## Query events
 
-<Tab value="Azure">
+`GetLogEvents` reads back a stream over a time window with a limit, the way you'd scan recent history in the console or an alerting job:
 
 ```go
-import logdriver "github.com/stackshy/cloudemu/services/logging/driver"
-
-azure.LogAnalytics.CreateLogGroup(ctx, logdriver.LogGroupConfig{
-    Name:          "/app/web",
-    RetentionDays: 30,
-})
-azure.LogAnalytics.CreateLogStream(ctx, "/app/web", "instance-001")
-
-azure.LogAnalytics.PutLogEvents(ctx, "/app/web", "instance-001", []logdriver.LogEvent{
-    {Timestamp: time.Now(), Message: "Server started on port 8080"},
-    {Timestamp: time.Now(), Message: "Handling request GET /api/users"},
-})
-
-events, _ := azure.LogAnalytics.GetLogEvents(ctx, &logdriver.LogQueryInput{
-    LogGroup:  "/app/web",
-    LogStream: "instance-001",
-    StartTime: time.Now().Add(-1 * time.Hour),
-    Limit:     100,
-})
+events, _ := aws.CloudWatchLogs.GetLogEvents(ctx, "/app/web", "instance-001",
+    logdriver.GetLogEventsInput{
+        StartTime: time.Now().Add(-1 * time.Hour),
+        Limit:     100,
+    })
 ```
 
-</Tab>
+To test retention or time-windowed queries without waiting, drive time with the [fake clock](/docs/features/fake-clock): advance the clock and query a window that spans the jump.
 
-<Tab value="GCP">
+## Behavior & fidelity
 
-```go
-import logdriver "github.com/stackshy/cloudemu/services/logging/driver"
+| Behavior | What happens |
+|----------|--------------|
+| Timestamped, time-ordered events | A query filters a stream by `StartTime` and caps results with `Limit`, so you assert on exactly the window your code reads. |
+| Named groups and streams | Events live under a group name and a stream name, matching how CloudWatch Logs namespaces a source. |
 
-gcp.CloudLogging.CreateLogGroup(ctx, logdriver.LogGroupConfig{
-    Name:          "/app/web",
-    RetentionDays: 30,
-})
-gcp.CloudLogging.CreateLogStream(ctx, "/app/web", "instance-001")
+## SDK-compat — Live
 
-gcp.CloudLogging.PutLogEvents(ctx, "/app/web", "instance-001", []logdriver.LogEvent{
-    {Timestamp: time.Now(), Message: "Server started on port 8080"},
-    {Timestamp: time.Now(), Message: "Handling request GET /api/users"},
-})
-
-events, _ := gcp.CloudLogging.GetLogEvents(ctx, &logdriver.LogQueryInput{
-    LogGroup:  "/app/web",
-    LogStream: "instance-001",
-    StartTime: time.Now().Add(-1 * time.Hour),
-    Limit:     100,
-})
-```
-
-</Tab>
-
-</Tabs>
+Real CloudWatch Logs, Log Analytics, and Cloud Logging clients drive it end-to-end. See [SDK-Compat](/docs/sdk-compat) for the full operation list.
