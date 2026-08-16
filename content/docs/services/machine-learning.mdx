@@ -1,0 +1,88 @@
+---
+title: Machine Learning
+description: SageMaker, Vertex AI, and Azure ML control planes plus a deterministic inference runtime, driven by the real cloud SDKs
+aws: SageMaker
+azure: Azure ML
+gcp: Vertex AI
+---
+
+Emulates the managed ML platforms — the models, endpoints, training/tuning jobs, feature stores, and pipelines of AWS SageMaker, GCP Vertex AI, and Azure Machine Learning (`Microsoft.MachineLearningServices`). Each ships a control plane you provision against and a deterministic runtime that answers `InvokeEndpoint` / `Predict` calls, so there are no GPUs, accounts, or per-hour costs involved.
+
+Reach for it when your code registers a model, stands up an endpoint, kicks off a training/tuning job, or writes to a feature store — so you can exercise that wiring without a live cluster. Asynchronous jobs complete synchronously to a terminal state, so Describe/List are deterministic and there are no polling loops to wait on. For the generative side — Bedrock and Azure OpenAI — see [Generative AI](/docs/services/ai).
+
+| Provider | Service | SDK-compat | Driver |
+|----------|---------|:----------:|--------|
+| AWS | SageMaker (control plane + `sagemaker-runtime`) | ✓ Live | `aws.SageMaker` |
+| Azure | Azure ML (`Microsoft.MachineLearningServices`) | ✓ Live | `azure.AI` |
+| GCP | Vertex AI (`aiplatform`) | ✓ Live | `gcp.VertexAI` |
+
+## Drive it with the real SDK
+
+Drop the SDK-compat server in front of cloudemu and point the real client at it — this stands up a model, an endpoint config, and an endpoint exactly as the real client would, then invokes it:
+
+```go
+import (
+    "github.com/aws/aws-sdk-go-v2/service/sagemaker"
+    "github.com/aws/aws-sdk-go-v2/service/sagemakerruntime"
+    "github.com/stackshy/cloudemu/v2"
+    awsserver "github.com/stackshy/cloudemu/v2/server/aws"
+)
+
+cloud := cloudemu.NewAWS()
+ts := httptest.NewServer(awsserver.New(awsserver.Drivers{SageMaker: cloud.SageMaker}))
+defer ts.Close()
+
+cp := sagemaker.NewFromConfig(cfg, func(o *sagemaker.Options) { o.BaseEndpoint = aws.String(ts.URL) })
+cp.CreateModel(ctx, &sagemaker.CreateModelInput{ModelName: aws.String("m")})
+cp.CreateEndpointConfig(ctx, &sagemaker.CreateEndpointConfigInput{EndpointConfigName: aws.String("cfg")})
+cp.CreateEndpoint(ctx, &sagemaker.CreateEndpointInput{EndpointName: aws.String("ep"), EndpointConfigName: aws.String("cfg")})
+
+rt := sagemakerruntime.NewFromConfig(cfg, func(o *sagemakerruntime.Options) { o.BaseEndpoint = aws.String(ts.URL) })
+rt.InvokeEndpoint(ctx, &sagemakerruntime.InvokeEndpointInput{EndpointName: aws.String("ep"), Body: []byte("{}")})
+```
+
+Vertex AI speaks the `aiplatform` REST API (`generateContent`, `predict`, the job families) rooted at `/v1/projects/{p}/locations/{l}/...`; register `VertexAI: cloud.VertexAI` on `gcpserver.Drivers`. Azure ML speaks `armmachinelearning` (ARM) plus an `*.inference.ml.azure.com/score` data plane; register the mock as `MachineLearning` (and `AzureAIDataPlane` for scoring). See the [SDK-Compat Server page](/docs/sdk-compat).
+
+## Call the driver directly
+
+When you don't need the SDK round-trip, call the driver. The same model → endpoint → invoke flow, minus the client boilerplate:
+
+```go
+import smdriver "github.com/stackshy/cloudemu/v2/services/sagemaker/driver"
+
+aws.SageMaker.CreateModel(ctx, smdriver.ModelConfig{ModelName: "m", RoleARN: "arn:..."})
+aws.SageMaker.CreateEndpointConfig(ctx, /* EndpointConfigSpec */)
+aws.SageMaker.CreateEndpoint(ctx, /* EndpointSpec */)
+aws.SageMaker.InvokeEndpoint(ctx, /* InvokeEndpointInput */)
+
+// Vertex AI: upload a model, deploy it, predict.
+gcp.VertexAI.UploadModel(ctx, /* ... */)
+gcp.VertexAI.DeployModel(ctx, /* ... */)
+gcp.VertexAI.Predict(ctx, /* ... */)
+
+// Azure ML: workspace → compute → job.
+azure.AI.CreateMLWorkspace(ctx, /* ... */)   // Default / Hub / Project / FeatureStore
+azure.AI.CreateCompute(ctx, /* ... */)        // Start/Stop/Restart state machine
+azure.AI.CreateJob(ctx, /* ... */)
+```
+
+## Behavior & fidelity
+
+| Behavior | What happens |
+|----------|--------------|
+| Jobs complete synchronously | Job families are driven straight to a terminal state, so Describe and List are deterministic with no polling loops; Vertex long-running operations return `done: true` with the result inlined. |
+| Endpoints validate before serving | An inference call checks that the endpoint exists and is in service before answering. |
+| Online feature stores | SageMaker and Vertex both serve online record read/write, and Vertex adds Vector Search nearest-neighbor lookups. |
+| Automatic metrics | SageMaker pushes to CloudWatch, Vertex AI to Cloud Monitoring, and Azure ML to Azure Monitor via `SetMonitoring`. |
+
+## SDK-compat — Live
+
+Real `sagemaker`, `aiplatform`, and `armmachinelearning` clients drive the control plane end-to-end:
+
+| Provider | Coverage |
+|----------|----------|
+| AWS SageMaker | Jobs, inference, model registry, Studio, notebooks, HyperPod, Feature Store, pipelines |
+| GCP Vertex AI | Datasets, model registry, endpoints, job families, Feature Store, Vector Search, ML metadata |
+| Azure ML | Workspaces, compute, endpoints, jobs, versioned assets, datastores, connections, schedules, registries |
+
+See [SDK-Compat](/docs/sdk-compat) for the full per-operation list.
