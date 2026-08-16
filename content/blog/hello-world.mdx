@@ -1,11 +1,12 @@
 ---
 title: Introducing cloudemu
-description: Zero-cost in-memory cloud emulation for Go
+description: Zero-cost in-memory cloud emulation for AWS, Azure, and GCP
+date: 2026-03-26
 ---
 
 # Introducing cloudemu
 
-We're excited to announce **cloudemu** — a Go library that emulates AWS, Azure, and GCP cloud services entirely in memory.
+We're excited to announce **cloudemu** — a zero-cost emulator for AWS, Azure, and GCP cloud services, entirely in memory. Point the real cloud SDKs at it — in-process, as a standalone server, or in Docker — from any language.
 
 ## The Problem
 
@@ -28,7 +29,7 @@ aws := cloudemu.NewAWS()
 instances, _ := aws.EC2.RunInstances(ctx, config, 3)
 ```
 
-No cloud accounts. No Docker. No network calls. Tests run in ~10ms.
+No cloud accounts. No bills. In-process tests run in ~10ms.
 
 ## What Makes It Different
 
