@@ -52,6 +52,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
             attribute: 'class',
             defaultTheme: 'light',
             enableSystem: false,
+            // Bump the storage key so any previously-saved dark preference is
+            // ignored and everyone lands on the light default on next load.
+            storageKey: 'cloudemu-theme-v2',
           }}
           search={{
             SearchDialog: CustomSearchDialog,
