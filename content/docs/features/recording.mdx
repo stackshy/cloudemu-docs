@@ -4,10 +4,12 @@ description: Capture every API call with inputs, outputs, errors, and timing
 ---
 Record every API call made to a service for test assertions.
 
+<FeatureGlyph kind="recording" label="recorder.Recorder · every call captured" />
+
 ## Setup
 
 ```go
-import "github.com/stackshy/cloudemu/recorder"
+import "github.com/stackshy/cloudemu/v2/features/recorder"
 
 rec := &recorder.Recorder{}
 
@@ -16,7 +18,7 @@ bucket := storage.NewBucket(aws.S3,
 )
 ```
 
-## Inspecting Calls
+## Inspecting calls
 
 After running your code, inspect all recorded calls:
 
@@ -37,9 +39,9 @@ Each `Call` contains:
 - `Timestamp` — when the call was made
 - `Duration` — how long it took
 
-## Fluent Assertions
+## Fluent assertions
 
-Use the `Matcher` for expressive test assertions:
+Use the `Matcher` to filter and count calls in test assertions:
 
 ```go
 // Count calls to a specific operation
