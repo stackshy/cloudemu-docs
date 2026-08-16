@@ -1,0 +1,94 @@
+---
+title: Kubernetes
+description: EKS, AKS, and GKE control planes plus a shared in-memory Kubernetes data plane that real client-go and kubectl drive end-to-end
+aws: EKS
+azure: AKS
+gcp: GKE
+---
+
+Emulates managed Kubernetes as two layers: the cloud *control plane* (EKS/AKS/GKE — the API you call to create clusters and node groups) and a shared *data plane* — an in-memory Kubernetes API server that `kubectl` and `client-go` talk to. Create a cluster with the real cloud SDK, and the kubeconfig it hands back points at the data plane, so `kubectl apply` round-trips against actual resources.
+
+Reach for it when your code provisions clusters, or when it drives Kubernetes objects directly — deployments, informers, watch streams — so you can exercise controller logic without a real cluster or a `kind` container. The data plane is a fast, deterministic in-memory backend: it stores and serves objects, but deliberately runs no controllers or scheduler.
+
+| Provider | Service | SDK-compat | Driver |
+|----------|---------|:----------:|--------|
+| AWS | EKS (control plane + data plane) | ✓ Live | `aws.EKS` |
+| Azure | AKS (control plane + data plane) | ✓ Live | `azure.AKS` |
+| GCP | GKE (control plane + data plane) | ✓ Live | `gcp.GKE` |
+
+## Create a cluster and drive its data plane
+
+The recommended path points the real SDK at the SDK-compat server. Pass a shared `*kubernetes.APIServer` as `K8sAPI` and call `SetBaseURL` so the kubeconfigs the control plane issues point back at this server — then `DescribeCluster` returns a kubeconfig you can hand straight to `client-go`:
+
+```go
+import (
+    "github.com/aws/aws-sdk-go-v2/service/eks"
+    "github.com/stackshy/cloudemu/v2"
+    "github.com/stackshy/cloudemu/v2/services/kubernetes"
+    awsserver "github.com/stackshy/cloudemu/v2/server/aws"
+)
+
+cloud := cloudemu.NewAWS()
+k8s := kubernetes.NewAPIServer()
+
+ts := httptest.NewServer(awsserver.New(awsserver.Drivers{
+    EKS:    cloud.EKS,
+    K8sAPI: k8s, // shared in-memory Kubernetes data plane
+}))
+k8s.SetBaseURL(ts.URL) // so issued kubeconfigs point back at this server
+
+client := eks.NewFromConfig(cfg, func(o *eks.Options) {
+    o.BaseEndpoint = aws.String(ts.URL)
+})
+
+client.CreateCluster(ctx, &eks.CreateClusterInput{Name: aws.String("prod")})
+// DescribeCluster now returns a kubeconfig whose server URL is the in-memory
+// data plane — point client-go at it and `kubectl apply` works.
+```
+
+The AKS and GKE control planes are equivalent (`armcontainerservice`, `container/apiv1`) and share the same data plane. See the [SDK-Compat Server](/docs/sdk-compat).
+
+## Portable Go API
+
+Drive the control plane through the driver, or the data plane through the `kubernetes` package, without the HTTP hop. Creating a cluster registers it into the same `*kubernetes.APIServer` the SDK-compat path uses, so both layers see identical state:
+
+```go
+import "github.com/stackshy/cloudemu/v2/services/kubernetes"
+
+k8s := kubernetes.NewAPIServer()
+// The control-plane mock registers a cluster into k8s on CreateCluster and
+// deregisters it on DeleteCluster; the same in-memory state backs both layers.
+```
+
+Because the data plane is a single `*kubernetes.APIServer`, passing it into `awsserver.Drivers{K8sAPI: …}`, `azureserver.Drivers{K8sAPI: …}`, and `gcpserver.Drivers{K8sAPI: …}` lands every provider's kubeconfig on the identical backend — just as the real Kubernetes REST API is provider-agnostic.
+
+## Behavior & fidelity
+
+The data plane is an in-memory Kubernetes API server — one per EKS/AKS/GKE cluster, reached through the kubeconfig each control plane issues. It behaves like a tiny always-converged cluster (minikube-like), not a bare object store: every write runs a **synchronous reconcile**, so results are immediate and deterministic, with no controller goroutines to flake.
+
+| Behavior | What happens |
+|----------|--------------|
+| Real kubectl, end-to-end | The server decodes kubectl's protobuf writes and serves OpenAPI v3 discovery, so `kubectl apply` validation passes — verified against kubectl v1.36 over real TLS (a real CA, not `--insecure-skip-tls-verify`). |
+| Controllers actually run | A Deployment creates a ReplicaSet, which creates Running Pods with synthetic Pod IPs; Services get Endpoints, PVCs bind, StatefulSets get stable ordinals, DaemonSets place one Pod per node, and Jobs complete. |
+| Full patch + server-side apply | JSON-merge, JSON-Patch, and strategic-merge all work; server-side apply tracks per-manager field ownership and returns `409 Conflict` on a conflicting change unless you pass `?force=true`. |
+| Policy is applied | Object-count ResourceQuota (including on `--dry-run=server`), LimitRange defaults/validation, and PodDisruptionBudget eviction gating are enforced; RBAC and NetworkPolicy are queryable, and admission webhooks are opt-in. |
+| Informers just work | `?watch=true` streams `ADDED`/`MODIFIED`/`DELETED` events with selector filtering, resume, and bookmarks; list pagination uses a key-anchored `continue` token that never skips or duplicates under concurrent writes. |
+| Deterministic time | Every timestamp flows through an injectable clock (`APIServer.SetClock`), so a `config.FakeClock` makes runs fully reproducible. |
+
+**API groups served (12):** `core`, `apps`, `batch`, `networking`, `rbac`, `storage`, `autoscaling` (HPA), `discovery` (EndpointSlice), `policy` (PodDisruptionBudget), `apiextensions` (CRDs), `admissionregistration` (webhooks), and `metrics` (`kubectl top`). Discovery is derived from the live registry, so it never advertises a kind that 404s.
+
+**Custom resources (CRDs)** are fully dynamic: a created `CustomResourceDefinition` is served, discoverable, and marked `Established` immediately, and deleting it cascade-deletes its custom resources.
+
+**Emulation boundaries** (deliberate, not gaps): there is no real kubelet — Pods are driven Running, `pods/log` is synthetic, and `exec`/`attach`/`portforward` return `501`; no scheduling beyond the single synthetic node; RBAC and NetworkPolicy are queryable rather than request-time-enforced; CronJobs advance only when you call `TickCronJobs()`; and rollouts converge instantly.
+
+## SDK-compat — Live
+
+Real `eks`, `armcontainerservice`, and `container/apiv1` clients drive the control plane end-to-end:
+
+| Provider | Control-plane coverage |
+|----------|------------------------|
+| AWS EKS | Clusters, managed node groups, Fargate profiles, addons |
+| Azure AKS | Managed clusters, agent pools, maintenance configs |
+| GCP GKE | Clusters, node pools, config setters, operations |
+
+See [SDK-Compat](/docs/sdk-compat) for the full per-operation list.
