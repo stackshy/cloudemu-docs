@@ -8,7 +8,7 @@ gcp: VPC
 
 Emulates cloud virtual networks — the VPC, VNet, subnets, and security groups you wire up so instances can (or can't) talk to each other. You build the topology with the real SDKs, then the drivers hold the same relationships real clouds track: which subnet sits in which VPC, which rules a security group carries, which peerings are active.
 
-Reach for it in tests when your code provisions network scaffolding, or when you want to assert *reachability* — "can this instance reach that one on 443?" — without deploying anything. The [topology engine](/docs/architecture#pluggable-consumers) answers those questions by walking the same drivers, the way real cloud reachability analyzers do.
+Reach for it when your code provisions network scaffolding, or when you want to assert *reachability* — "can this instance reach that one on 443?" — without deploying anything. The [topology engine](/docs/architecture#pluggable-consumers) answers those questions by walking the same drivers, the way real cloud reachability analyzers do.
 
 | Provider | Service | SDK-compat | Driver |
 |----------|---------|:----------:|--------|

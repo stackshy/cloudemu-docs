@@ -8,7 +8,7 @@ gcp: Cloud Logging
 
 Emulates a managed log store — the CloudWatch Logs pipeline your app writes events into and you later query. You create a log group, open a stream within it, put events onto the stream, then read them back by time range.
 
-Reach for it in tests when your code emits log events, sets retention, or queries a window of history — so you can exercise those paths without a live logging backend. Under the hood a group is a named container, a stream is an ordered sequence of timestamped events inside it, and a query filters that sequence by time.
+Reach for it when your code emits log events, sets retention, or queries a window of history — so you can exercise those paths without a live logging backend. Under the hood a group is a named container, a stream is an ordered sequence of timestamped events inside it, and a query filters that sequence by time.
 
 | Provider | Service | SDK-compat | Driver |
 |----------|---------|:----------:|--------|

@@ -4,9 +4,6 @@ import { Instrument_Sans, JetBrains_Mono } from 'next/font/google';
 import type { ReactNode } from 'react';
 import type { Metadata } from 'next';
 import CustomSearchDialog from '@/components/search-dialog';
-import { AnnouncementBanner } from '@/components/announcement-banner';
-import { MotionProvider } from '@/components/motion-provider';
-import Link from '@/components/link';
 
 const sans = Instrument_Sans({
   subsets: ['latin'],
@@ -20,17 +17,18 @@ const mono = JetBrains_Mono({
   display: 'swap',
 });
 
+const description =
+  'Run the real AWS, Azure, and GCP SDKs against a local, in-memory emulator — in-process, as a standalone server, or in Docker. Any language. No cloud accounts, no bills.';
+
 export const metadata: Metadata = {
   title: {
     template: '%s | cloudemu',
-    default: 'cloudemu — Zero-Cost Cloud Emulation for Go',
+    default: 'cloudemu — Zero-Cost Cloud Emulator for AWS, Azure & GCP',
   },
-  description:
-    'In-memory cloud service emulation for AWS, Azure, and GCP. No cloud accounts, no Docker, no network calls.',
+  description,
   openGraph: {
-    title: 'cloudemu — Zero-Cost Cloud Emulation for Go',
-    description:
-      'In-memory cloud service emulation for AWS, Azure, and GCP. No cloud accounts, no Docker, no network calls.',
+    title: 'cloudemu — Zero-Cost Cloud Emulator for AWS, Azure & GCP',
+    description,
     siteName: 'cloudemu',
   },
 };
@@ -52,18 +50,17 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <RootProvider
           theme={{
             attribute: 'class',
-            defaultTheme: 'dark',
-            enableSystem: true,
+            defaultTheme: 'light',
+            enableSystem: false,
+            // Bump the storage key so any previously-saved dark preference is
+            // ignored and everyone lands on the light default on next load.
+            storageKey: 'cloudemu-theme-v2',
           }}
           search={{
             SearchDialog: CustomSearchDialog,
           }}
-          components={{ Link }}
         >
-          <MotionProvider>
-            <AnnouncementBanner />
-            {children}
-          </MotionProvider>
+          {children}
         </RootProvider>
       </body>
     </html>

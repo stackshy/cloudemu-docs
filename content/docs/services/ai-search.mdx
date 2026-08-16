@@ -6,7 +6,7 @@ azure: Azure AI Search
 
 Emulates both layers of Azure AI Search — the **ARM control plane** (`Microsoft.Search/searchServices`) that provisions a search service and the **data plane** (`{service}.search.windows.net`) that manages indexes and answers queries. It's the RAG / retrieval backbone: you stand up a service over ARM, create an index, upload documents, and search/suggest/autocomplete against them, all in memory.
 
-Reach for it in tests when your code provisions a search service and then indexes and queries documents — so you can cover that full control-plane-then-data-plane flow without a real Azure AI Search account. Both layers share one backend, so a service created over ARM is immediately usable over the data-plane API. AWS and GCP have no equivalent in cloudemu.
+Reach for it when your code provisions a search service and then indexes and queries documents — so you can cover that full control-plane-then-data-plane flow without a real Azure AI Search account. Both layers share one backend, so a service created over ARM is immediately usable over the data-plane API. AWS and GCP have no equivalent in cloudemu.
 
 | Provider | Service | SDK-compat | Driver |
 |----------|---------|:----------:|--------|

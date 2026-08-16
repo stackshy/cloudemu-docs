@@ -6,7 +6,7 @@ azure: Databricks
 
 Emulates both layers of Azure Databricks — the **ARM workspace control plane** (`Microsoft.Databricks/workspaces`) that provisions a workspace and the **workspace data plane** (Databricks REST API) that runs clusters, jobs, and more inside it. The real `databricks-sdk-go`, pointed at the emulator, creates a workspace over ARM, discovers its URL, and then drives the data plane against in-memory state.
 
-Reach for it in tests when your code stands up a workspace and then operates on it — creating clusters, submitting jobs, managing policies — so you can cover that full ARM-then-data-plane flow without a real Databricks account. Both layers share one backend, so a workspace created over ARM is immediately usable over the data-plane API.
+Reach for it when your code stands up a workspace and then operates on it — creating clusters, submitting jobs, managing policies — so you can cover that full ARM-then-data-plane flow without a real Databricks account. Both layers share one backend, so a workspace created over ARM is immediately usable over the data-plane API.
 
 | Provider | Service | SDK-compat | Driver |
 |----------|---------|:----------:|--------|

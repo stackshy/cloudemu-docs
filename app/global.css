@@ -509,13 +509,10 @@ samp {
   opacity: 1;
 }
 
-/* Terminal panes: darker instrument screens in both themes.
-   The `$` prompt is muted (never accent) and drawn in CSS content, so
-   copied text never includes it. */
-.u-terminal .shiki code span {
-  color: var(--shiki-dark) !important;
-  font-style: var(--shiki-dark-font-style) !important;
-}
+/* Terminal panes: theme-adaptive (light in light mode, dark in dark mode).
+   Syntax uses the default Shiki dual-theme switching — no forced palette — so
+   a light pane gets dark, readable text. The `$` prompt is muted and drawn in
+   CSS content, so copied text never includes it. */
 .u-terminal .line {
   padding-left: 1.1em !important;
 }
@@ -632,4 +629,122 @@ kbd {
 .u-provider-tabs [role='tab'][data-state='active'][data-provider='gcp'] {
   color: var(--gcp);
   box-shadow: inset 0 -2px 0 var(--gcp);
+}
+
+/* ------------------------------------------------------------------ */
+/* Ember landing compatibility — the home/blog surfaces still consume  */
+/* the ember tint scale, logo tokens, and blog prose. Kept until the   */
+/* landing is rebuilt on the shared token set.                         */
+/* ------------------------------------------------------------------ */
+
+@theme {
+  --color-ember-50: hsl(22, 100%, 96%);
+  --color-ember-100: hsl(21, 100%, 91%);
+  --color-ember-200: hsl(20, 100%, 83%);
+  --color-ember-300: hsl(19, 100%, 73%);
+  --color-ember-400: hsl(18, 100%, 66%);
+  --color-ember-500: hsl(18, 100%, 59%);
+  --color-ember-600: hsl(18, 90%, 50%);
+  --color-ember-700: hsl(19, 90%, 42%);
+  --color-ember-800: hsl(19, 90%, 35%);
+  --color-ember-900: hsl(19, 85%, 28%);
+}
+
+/* Theme-adaptive logo tokens (consumed by components/logo.tsx). */
+:root {
+  --logo-cloud: #101613;
+  --logo-chevron: #f1efe7;
+  --logo-line: #a83a08;
+}
+.dark {
+  --logo-cloud: #f1efe7;
+  --logo-chevron: #101613;
+  --logo-line: #ff6b2c;
+}
+
+/* Blog article typography (ember blog — self-contained). */
+.blog-prose {
+  color: var(--text-1);
+  font-size: 1.0625rem;
+  line-height: 1.75;
+}
+.blog-prose > * + * {
+  margin-top: 1.25rem;
+}
+.blog-prose h2 {
+  font-size: 1.6rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin-top: 2.75rem;
+  margin-bottom: 0.25rem;
+  color: var(--text-1);
+}
+.blog-prose h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-top: 2rem;
+  margin-bottom: 0.25rem;
+  color: var(--text-1);
+}
+.blog-prose p {
+  color: var(--text-2);
+}
+.blog-prose strong {
+  font-weight: 650;
+  color: var(--text-1);
+}
+.blog-prose a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.blog-prose a:hover {
+  opacity: 0.8;
+}
+.blog-prose ul,
+.blog-prose ol {
+  padding-left: 1.5rem;
+}
+.blog-prose ul {
+  list-style: disc;
+}
+.blog-prose ol {
+  list-style: decimal;
+}
+.blog-prose li {
+  margin-top: 0.5rem;
+  padding-left: 0.25rem;
+}
+.blog-prose li::marker {
+  color: var(--text-3);
+}
+.blog-prose :not(pre) > code {
+  font-family: var(--font-mono);
+  font-size: 0.875em;
+  padding: 0.15em 0.4em;
+  border-radius: 0.35rem;
+  background: var(--bg-3);
+  border: 1px solid var(--border);
+}
+.blog-prose pre {
+  margin-top: 1.75rem;
+  margin-bottom: 1.75rem;
+  padding: 1.1rem 1.25rem;
+  border-radius: 0.6rem;
+  overflow-x: auto;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  border: 1px solid var(--border);
+}
+.blog-prose pre code {
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: var(--font-mono);
+}
+.blog-prose blockquote {
+  border-left: 3px solid var(--border);
+  padding-left: 1rem;
+  color: var(--text-2);
+  font-style: italic;
 }

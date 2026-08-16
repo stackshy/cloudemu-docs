@@ -8,7 +8,7 @@ gcp: GKE
 
 Emulates managed Kubernetes as two layers: the cloud *control plane* (EKS/AKS/GKE — the API you call to create clusters and node groups) and a shared *data plane* — an in-memory Kubernetes API server that `kubectl` and `client-go` talk to. Create a cluster with the real cloud SDK, and the kubeconfig it hands back points at the data plane, so `kubectl apply` round-trips against actual resources.
 
-Reach for it in tests when your code provisions clusters, or when it drives Kubernetes objects directly — deployments, informers, watch streams — so you can exercise controller logic without a real cluster or a `kind` container. The data plane is a fast, deterministic test double: it stores and serves objects, but deliberately runs no controllers or scheduler.
+Reach for it when your code provisions clusters, or when it drives Kubernetes objects directly — deployments, informers, watch streams — so you can exercise controller logic without a real cluster or a `kind` container. The data plane is a fast, deterministic in-memory backend: it stores and serves objects, but deliberately runs no controllers or scheduler.
 
 | Provider | Service | SDK-compat | Driver |
 |----------|---------|:----------:|--------|

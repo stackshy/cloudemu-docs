@@ -8,7 +8,7 @@ gcp: Cloud DNS
 
 Emulates managed DNS — the hosted zones and resource records you'd create in Route53 to point a name at an address. You create a zone for a domain, then add records (A, CNAME, MX, TXT, and so on) that resolve names within it, and optionally attach health checks that gate which records serve traffic.
 
-Reach for it in tests when your code provisions zones, writes records, or depends on weighted routing to split traffic across endpoints — so you can exercise those paths without a live DNS provider. Because the SDK-compat server speaks the real wire protocol, your production DNS-management code runs unchanged against it. Under the hood a zone is a named container and each record is a name/type/value set with an optional TTL.
+Reach for it when your code provisions zones, writes records, or depends on weighted routing to split traffic across endpoints — so you can exercise those paths without a live DNS provider. Because the SDK-compat server speaks the real wire protocol, your production DNS-management code runs unchanged against it. Under the hood a zone is a named container and each record is a name/type/value set with an optional TTL.
 
 | Provider | Service | SDK-compat | Driver |
 |----------|---------|:----------:|--------|
@@ -102,7 +102,7 @@ aws.Route53.CreateRecord(ctx, dnsdriver.RecordConfig{
 
 ## Health checks
 
-Route53 health checks let a record serve traffic only while its endpoint is healthy. The driver models the full lifecycle — create, read, list, update, delete — plus a test-only `SetHealthCheckStatus` so you can flip an endpoint healthy or unhealthy and assert your failover logic reacts:
+Route53 health checks let a record serve traffic only while its endpoint is healthy. The driver models the full lifecycle — create, read, list, update, delete — plus a `SetHealthCheckStatus` control hook so you can flip an endpoint healthy or unhealthy and watch your failover logic react:
 
 ```go
 hc, _ := aws.Route53.CreateHealthCheck(ctx, dnsdriver.HealthCheckConfig{

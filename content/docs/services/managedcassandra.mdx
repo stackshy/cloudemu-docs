@@ -6,7 +6,7 @@ azure: Managed Cassandra
 
 Emulates the *control plane* of Azure Managed Instance for Apache Cassandra — the ARM API (under Cosmos DB) that provisions a Cassandra-compatible cluster and its data centers. CQL data operations are out of scope, so it has its own driver. A cluster carries a Cassandra version, delegated subnet, authentication method, and backup/repair config; data centers under it hold the actual nodes.
 
-Reach for it in tests when your provisioning or IaC code creates a cluster, adds data centers, deallocates and starts it, or runs a maintenance command — without a real (billed) cluster. Served as ARM REST/JSON under `Microsoft.DocumentDB/cassandraClusters`, so a real `armcosmos` `CassandraClusters`/`CassandraDataCenters` client with a custom endpoint works unchanged.
+Reach for it when your provisioning or IaC code creates a cluster, adds data centers, deallocates and starts it, or runs a maintenance command — without a real (billed) cluster. Served as ARM REST/JSON under `Microsoft.DocumentDB/cassandraClusters`, so a real `armcosmos` `CassandraClusters`/`CassandraDataCenters` client with a custom endpoint works unchanged.
 
 | Provider | Service | SDK-compat | Driver |
 |----------|---------|:----------:|--------|

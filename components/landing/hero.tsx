@@ -1,125 +1,114 @@
 'use client';
 
-import { useEffect, useState, type CSSProperties } from 'react';
-import Link from '@/components/link';
+import Link from 'next/link';
+import { motion, useReducedMotion } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
-import { PacketFlow } from '@/components/diagrams/packet-flow';
-import { TerminalTypeOn } from './terminal-typeon';
-import { LatencyTicker } from './latency-ticker';
-import { CountUp } from './count-up';
+import { fadeUp, staggerContainer } from '@/lib/motion';
+import { AnimatedBackground } from './animated-background';
+import { Terminal } from './code-window';
+import { Logo } from '../logo';
 
-/**
- * Hero: asymmetric two-column. Left — mono eyebrow, display headline with one
- * accent phrase, subhead, CTAs, and the type-on install terminal (the install
- * command IS the hero CTA). Right — the Packet Flow diagram. Below: mono stat
- * strip with the live Latency Ticker and one-time count-ups.
- *
- * Left-column entrance: each element plays the house 8px fade-rise on mount
- * (above the fold, so no IntersectionObserver), staggered 70ms apart —
- * eyebrow → h1 → subhead → buttons → terminal. Plays once. Skipped entirely
- * under prefers-reduced-motion (final state renders immediately).
- */
 export function Hero() {
-  const [mounted, setMounted] = useState(false);
-  const [reduced, setReduced] = useState(false);
-
-  useEffect(() => {
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      setReduced(true);
-    }
-    setMounted(true);
-  }, []);
-
-  // House 8px fade-rise as an inline transition, staggered per step.
-  const enter = (step: number): CSSProperties =>
-    reduced
-      ? {}
-      : {
-          opacity: mounted ? 1 : 0,
-          transform: mounted ? 'translateY(0)' : 'translateY(8px)',
-          transition: `opacity 250ms var(--ease-out) ${step * 70}ms, transform 250ms var(--ease-out) ${step * 70}ms`,
-        };
+  const reduce = useReducedMotion();
+  const container = staggerContainer(0.09, 0.04);
+  const item = fadeUp(0, 12);
 
   return (
-    <section className="w-full">
-      <div className="mx-auto w-full max-w-[1120px] px-6 pb-14 pt-20">
-        <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-[1.05fr_1fr] lg:gap-14">
-          {/* Left: copy */}
-          <div>
-            <p className="u-eyebrow mb-5" style={enter(0)}>
-              zero-cost cloud emulation for Go
-            </p>
+    <section className="relative w-full overflow-hidden">
+      <div className="absolute inset-0 -z-10">
+        <AnimatedBackground />
+      </div>
+      {/* Soft ember ambient glow — depth behind the headline, both themes. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[560px]"
+        style={{
+          background:
+            'radial-gradient(58% 55% at 50% 2%, rgba(255,107,44,0.12), transparent 72%)',
+        }}
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-px"
+        style={{ background: 'linear-gradient(90deg, transparent, var(--border-2), transparent)' }}
+      />
 
-            <h1
-              className="text-[2.6rem] font-semibold leading-[1.08] tracking-[-0.02em] text-ink sm:text-[3.4rem]"
-              style={enter(1)}
+      <div className="mx-auto w-full max-w-3xl px-6 pb-16 pt-24 text-center sm:pt-28">
+        <motion.div
+          variants={reduce ? undefined : container}
+          initial={reduce ? false : 'hidden'}
+          animate={reduce ? false : 'show'}
+        >
+          <motion.div variants={reduce ? undefined : item} className="mb-7 flex justify-center">
+            <Logo width={52} height={52} />
+          </motion.div>
+
+          <motion.div variants={reduce ? undefined : item} className="mb-5">
+            <span className="u-eyebrow">A real cloud emulator · any language</span>
+          </motion.div>
+
+          <motion.h1
+            variants={reduce ? undefined : item}
+            className="text-balance text-4xl font-semibold leading-[1.05] tracking-[-0.03em] text-ink sm:text-5xl lg:text-[3.5rem]"
+          >
+            Run the real cloud SDKs
+            <br />
+            without a{' '}
+            <span
+              className="bg-clip-text text-transparent"
+              style={{ backgroundImage: 'linear-gradient(92deg, var(--accent), #ff9a5c)' }}
             >
-              Test against real cloud SDKs{' '}
-              <span className="text-ink-2">without a real cloud</span>.
-            </h1>
+              real cloud
+            </span>
+            .
+          </motion.h1>
 
-            <p
-              className="mt-5 max-w-xl text-base leading-relaxed text-ink-2 sm:text-lg"
-              style={enter(2)}
-            >
-              Point the real AWS, Azure, and GCP Go SDKs at an in-memory
-              server that speaks their wire protocols. Production code,
-              unchanged. No mocks, no Docker, no bill.
-            </p>
+          <motion.p
+            variants={reduce ? undefined : item}
+            className="mx-auto mt-6 max-w-xl text-pretty text-base leading-relaxed text-ink-2 sm:text-lg"
+          >
+            A drop-in AWS, Azure, and GCP that runs entirely in memory. Point your real
+            app, SDK, or CLI at it — in-process, as a standalone server, or in Docker.
+            Any language, ~10&nbsp;ms a call, zero cloud accounts.
+          </motion.p>
 
-            <div
-              className="mt-7 flex flex-wrap items-center gap-3"
-              style={enter(3)}
-            >
-              <Link href="/docs/quick-start" className="u-btn u-btn-primary group">
-                Quick Start
-                <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
-              </Link>
-              <Link href="/docs/sdk-compat" className="u-btn u-btn-secondary">
-                SDK-compat coverage
-              </Link>
-            </div>
+          <motion.div
+            variants={reduce ? undefined : item}
+            className="mt-9 flex flex-wrap items-center justify-center gap-3"
+          >
+            <Link href="/docs/quick-start" className="u-btn u-btn-primary group">
+              Get started
+              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+            </Link>
+            <Link href="/docs/sdk-compat" className="u-btn u-btn-secondary">
+              How it works
+            </Link>
+          </motion.div>
+        </motion.div>
 
-            <div className="mt-5 max-w-md" style={enter(4)}>
-              <TerminalTypeOn />
-            </div>
-          </div>
+        <motion.div
+          initial={reduce ? false : { opacity: 0, y: 16 }}
+          animate={reduce ? false : { opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
+          className="mx-auto mt-14 max-w-2xl text-left"
+        >
+          <Terminal
+            title="your terminal"
+            lines={[
+              { kind: 'comment', text: 'Start the whole cloud with one command' },
+              { kind: 'cmd', text: 'docker run -p 4566:4566 ghcr.io/stackshy/cloudemu' },
+              { kind: 'out', text: 'cloudemu ready — AWS :4566  Azure :4568  GCP :4569' },
+              { kind: 'blank' },
+              { kind: 'comment', text: 'Point your real app, SDK, or CLI at it — any language' },
+              { kind: 'cmd', text: 'aws --endpoint-url http://localhost:4566 s3 mb s3://prod' },
+              { kind: 'out', text: 'make_bucket: prod' },
+            ]}
+          />
 
-          {/* Right: the wire */}
-          <PacketFlow />
-        </div>
-
-        {/* Stat strip */}
-        <div className="mt-16 flex flex-wrap items-center gap-x-8 gap-y-3 border-t border-line pt-6 font-mono text-xs tracking-[0.08em] text-ink-muted">
-          <span>
-            <span className="text-ink">
-              <CountUp to={3} />
-            </span>{' '}
-            PROVIDERS
-          </span>
-          <span aria-hidden className="text-line-strong">·</span>
-          <span>
-            <span className="text-ink">
-              <CountUp to={21} />
-            </span>{' '}
-            DOMAINS
-          </span>
-          <span aria-hidden className="text-line-strong">·</span>
-          <span>
-            <span className="text-ink">
-              <CountUp to={60} suffix="+" />
-            </span>{' '}
-            SERVICES
-          </span>
-          <span aria-hidden className="text-line-strong">·</span>
-          <span className="text-sm">
-            <LatencyTicker />
-          </span>
-          <span aria-hidden className="text-line-strong">·</span>
-          <span>
-            <span className="text-ink">0</span> DEPS
-          </span>
-        </div>
+          <p className="mt-3 text-center text-xs text-ink-3">
+            Prefer Go? Wire it straight into your app or tests with the in-process API.
+          </p>
+        </motion.div>
       </div>
     </section>
   );

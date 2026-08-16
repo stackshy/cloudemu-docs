@@ -8,7 +8,7 @@ gcp: Pub/Sub
 
 Emulates a managed message queue — the buffer you drop work onto so a producer and a consumer don't have to run at the same time. You create a named queue (or a Pub/Sub topic + subscription), send messages to it, then receive and delete them from the other side. Received messages stay hidden from other consumers until you delete them or their visibility timeout lapses.
 
-Reach for it in tests when your code enqueues jobs, drains a queue, relies on FIFO ordering, or leans on a dead-letter queue for poison messages — so you can exercise those paths without a live broker. Unlike the [event bus](/docs/services/eventbus), consumers pull messages and acknowledge each one, so nothing is lost if a worker crashes mid-batch.
+Reach for it when your code enqueues jobs, drains a queue, relies on FIFO ordering, or leans on a dead-letter queue for poison messages — so you can exercise those paths without a live broker. Unlike the [event bus](/docs/services/eventbus), consumers pull messages and acknowledge each one, so nothing is lost if a worker crashes mid-batch.
 
 | Provider | Service | SDK-compat | Driver |
 |----------|---------|:----------:|--------|

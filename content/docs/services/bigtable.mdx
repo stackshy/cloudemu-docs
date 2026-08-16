@@ -6,7 +6,7 @@ gcp: Bigtable
 
 Emulates the *control plane* of Cloud Bigtable, GCP's wide-column NoSQL database — the admin API that provisions instances and clusters, creates tables with column families, and manages app profiles and backups. The data plane (reading and writing rows) is out of scope, so it has its own driver. An instance owns clusters and tables; backups live under a cluster and restore into a new table.
 
-Reach for it in tests when your provisioning code creates a Bigtable instance, adds clusters, defines tables and column families, or backs up and restores a table — without a real (billed) instance. Served as GCP REST/JSON under `/v2/...`, so a real `google.golang.org/api/bigtableadmin/v2` client with a custom endpoint works unchanged; the wire layer uses the SDK's own types for exact fidelity.
+Reach for it when your provisioning code creates a Bigtable instance, adds clusters, defines tables and column families, or backs up and restores a table — without a real (billed) instance. Served as GCP REST/JSON under `/v2/...`, so a real `google.golang.org/api/bigtableadmin/v2` client with a custom endpoint works unchanged; the wire layer uses the SDK's own types for exact fidelity.
 
 | Provider | Service | SDK-compat | Driver |
 |----------|---------|:----------:|--------|

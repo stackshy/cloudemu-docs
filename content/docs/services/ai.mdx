@@ -7,7 +7,7 @@ azure: Azure OpenAI
 
 Emulates the managed generative-AI services — the model catalogs, deployments, guardrails, and agents of AWS Bedrock and Azure OpenAI (`Microsoft.CognitiveServices`) — plus a runtime that answers inference calls. Each ships a control plane you provision against and a deterministic runtime that echoes your prompt back inside the model-native response envelope, so there are no GPUs, accounts, or per-token costs involved.
 
-Reach for it in tests when your code invokes a model, deploys a model version, or orchestrates a retrieval-augmented agent — so you can exercise wiring, retries, and error handling without a live model. Because responses are deterministic, assertions stay stable across runs. For the training/endpoint/job side of AI — SageMaker, Vertex AI, and Azure ML — see [Machine Learning](/docs/services/machine-learning).
+Reach for it when your code invokes a model, deploys a model version, or orchestrates a retrieval-augmented agent — so you can exercise wiring, retries, and error handling without a live model. Because responses are deterministic, assertions stay stable across runs. For the training/endpoint/job side of AI — SageMaker, Vertex AI, and Azure ML — see [Machine Learning](/docs/services/machine-learning).
 
 | Provider | Service | SDK-compat | Driver |
 |----------|---------|:----------:|--------|

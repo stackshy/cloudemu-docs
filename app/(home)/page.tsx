@@ -1,23 +1,31 @@
 import { Hero } from '@/components/landing/hero';
-import { SDKCompatSection } from '@/components/landing/sdk-compat-section';
-import { ComparisonTable } from '@/components/landing/comparison-table';
+import { StatsBand } from '@/components/landing/stats-band';
+import { RunModes } from '@/components/landing/run-modes';
 import { FeatureCards } from '@/components/landing/feature-cards';
-import { CoverageMatrix } from '@/components/landing/coverage-matrix';
-import { TwoSurfaces } from '@/components/landing/two-surfaces';
+import { ServiceGrid } from '@/components/landing/service-grid';
 import { CTASection } from '@/components/landing/cta-section';
-import { ScrollWire } from '@/components/landing/scroll-wire';
+import { Problem } from '@/components/landing/problem';
+import { Footer } from '@/components/landing/footer';
 
 export default function HomePage() {
   return (
-    <main className="flex flex-col items-center">
-      <ScrollWire />
+    <main className="flex w-full flex-col items-center">
       <Hero />
-      <SDKCompatSection />
-      <ComparisonTable />
-      <FeatureCards />
-      <CoverageMatrix />
-      <TwoSurfaces />
-      <CTASection />
+      <StatsBand />
+      <div className="w-full flex justify-center">
+        <Problem />
+      </div>
+      <RunModes />
+      <div className="w-full flex justify-center">
+        <FeatureCards />
+      </div>
+      <div className="w-full flex justify-center">
+        <ServiceGrid />
+      </div>
+      <div className="w-full flex justify-center">
+        <CTASection />
+      </div>
+      <Footer />
     </main>
   );
 }

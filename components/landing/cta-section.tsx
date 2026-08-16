@@ -1,77 +1,115 @@
 'use client';
 
-import Link from '@/components/link';
+import Link from 'next/link';
 import { useState } from 'react';
-import { Check, Copy, ArrowRight } from 'lucide-react';
-import { Reveal } from '@/components/reveal';
+import { motion, useReducedMotion } from 'framer-motion';
+import { Copy, Check, ArrowRight } from 'lucide-react';
+import { fadeUp, staggerContainer, viewportOnce } from '@/lib/motion';
+import { useMagnetic } from '@/lib/interactions';
+import { PRODUCT, STATS } from '@/lib/product';
+import { services } from '@/lib/services';
 
-const CMD = 'go get github.com/stackshy/cloudemu/v2';
+const MotionLink = motion(Link);
 
-/**
- * Final CTA: open canvas between hairlines — no band fill. The terminal
- * command line is the one earned box in the section.
- */
 export function CTASection() {
+  const reduce = useReducedMotion();
   const [copied, setCopied] = useState(false);
+  const magnetic = useMagnetic(0.25);
+  const installCmd = PRODUCT.install;
+  const categories = services.length;
+  const implementations = categories * STATS.clouds;
+
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(installCmd);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   return (
-    <section className="w-full border-y border-line">
-      <div className="mx-auto w-full max-w-[1120px] px-6 py-20">
-        <Reveal>
-          <p className="u-eyebrow mb-3">
-            <span aria-hidden>$</span> get started
-          </p>
-        </Reveal>
-        <Reveal delay={70}>
-          <h2 className="max-w-[60ch] text-3xl font-bold tracking-[-0.01em] text-ink">
-            One <code className="font-mono font-semibold">go get</code> from
-            now, your tests stop needing the internet.
-          </h2>
-        </Reveal>
+    <section className="relative w-full">
+      <motion.div
+        variants={reduce ? undefined : staggerContainer(0.1, 0.05)}
+        initial={reduce ? false : 'hidden'}
+        whileInView={reduce ? undefined : 'show'}
+        viewport={viewportOnce}
+        className="relative w-full max-w-3xl mx-auto px-6 py-28 text-center"
+      >
+        <motion.h2
+          variants={reduce ? undefined : fadeUp(0, 24)}
+          className="text-3xl sm:text-4xl lg:text-[2.75rem] font-semibold tracking-[-0.02em] text-ink leading-[1.1]"
+        >
+          Build and test without a real cloud
+        </motion.h2>
 
-        <Reveal delay={140}>
-          <div className="mt-8 flex max-w-xl items-center gap-3 rounded-lg border border-line bg-inset px-4 py-3.5 font-mono text-sm text-ink-inset">
-            <span aria-hidden className="select-none text-ink-inset-muted">
-              $
+        <motion.p
+          variants={reduce ? undefined : fadeUp(0)}
+          className="mt-5 text-base sm:text-lg text-ink-2 leading-relaxed max-w-xl mx-auto"
+        >
+          {implementations} in-memory service implementations across {categories} categories and{' '}
+          {STATS.clouds} clouds. No dependencies, {STATS.latency} a call in-process, and your real
+          cloud SDKs call it unchanged. Nothing to spin up, nothing to tear down.
+        </motion.p>
+
+        <motion.div
+          variants={reduce ? undefined : fadeUp(0)}
+          className="mt-8 inline-flex items-center gap-3 px-5 py-3 rounded-xl border border-line bg-surface/80 backdrop-blur-sm font-mono text-sm text-ink"
+        >
+          <span className="text-ink-3 select-none">$</span>
+          <span>{installCmd}</span>
+          <button
+            onClick={handleCopy}
+            className="ml-1 p-1 rounded hover:bg-raised transition-colors"
+            aria-label="Copy install command"
+          >
+            {copied ? (
+              <Check className="w-4 h-4 text-accent" />
+            ) : (
+              <Copy className="w-4 h-4 text-ink-3" />
+            )}
+          </button>
+        </motion.div>
+
+        <motion.div
+          variants={reduce ? undefined : fadeUp(0)}
+          className="mt-9 flex items-center justify-center gap-3 flex-wrap"
+        >
+          <MotionLink
+            href="/docs/quick-start"
+            ref={magnetic.ref as React.RefObject<HTMLAnchorElement>}
+            style={magnetic.style}
+            onMouseMove={magnetic.onMouseMove}
+            onMouseLeave={magnetic.onMouseLeave}
+            whileHover={reduce ? undefined : { scale: 1.015 }}
+            whileTap={reduce ? undefined : { scale: 0.985 }}
+            className="group relative overflow-hidden u-btn u-btn-primary shadow-sm hover:shadow-lg transition-shadow duration-300 ease-out will-change-transform"
+          >
+            {!reduce && (
+              <span
+                aria-hidden
+                className="pointer-events-none absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-out"
+                style={{
+                  background:
+                    'linear-gradient(105deg, transparent 42%, hsl(0 0% 100% / 0.14) 50%, transparent 58%)',
+                }}
+              />
+            )}
+            <span className="relative inline-flex items-center gap-2">
+              Get started
+              <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
             </span>
-            <span className="flex-1 overflow-x-auto whitespace-nowrap">{CMD}</span>
-            <button
-              type="button"
-              aria-label="Copy install command"
-              onClick={async () => {
-                await navigator.clipboard.writeText(CMD);
-                setCopied(true);
-                setTimeout(() => setCopied(false), 1600);
-              }}
-              className="rounded p-1.5 text-ink-inset-muted transition-colors hover:bg-white/10 hover:text-ink-inset"
-            >
-              {copied ? (
-                <Check className="size-4 text-ok" />
-              ) : (
-                <Copy className="size-4" />
-              )}
-            </button>
-          </div>
-        </Reveal>
+          </MotionLink>
+          <Link href="/docs" className="u-btn u-btn-secondary">
+            Read the docs
+          </Link>
+        </motion.div>
 
-        <Reveal delay={210}>
-          <div className="mt-8 flex flex-wrap items-center gap-3">
-            <Link href="/docs" className="u-btn u-btn-primary group">
-              Read the docs
-              <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
-            </Link>
-            <Link href="/docs/quick-start" className="u-btn u-btn-secondary">
-              Quick Start
-            </Link>
-          </div>
-        </Reveal>
-
-        <Reveal delay={280}>
-          <p className="mt-10 font-mono text-xs uppercase tracking-[0.06em] text-ink-3">
-            MIT license · Go 1.25+ · zero dependencies
-          </p>
-        </Reveal>
-      </div>
+        <motion.p
+          variants={reduce ? undefined : fadeUp(0)}
+          className="mt-10 text-sm text-ink-3"
+        >
+          MIT License &middot; Requires Go 1.25+
+        </motion.p>
+      </motion.div>
     </section>
   );
 }

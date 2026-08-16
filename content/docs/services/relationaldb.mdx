@@ -8,7 +8,7 @@ gcp: Cloud SQL
 
 Emulates the *control plane* of managed relational databases — the API that provisions, stops, snapshots, and restores an RDS/Cloud SQL/Azure SQL instance. It models the instance lifecycle, Aurora-style clusters and their member instances, and snapshot/restore, but not the SQL surface itself: there's no query engine behind the endpoint. Instances move through realistic states (`creating → available → stopped → deleting`) so your infra code sees the same transitions it would in production.
 
-Reach for it in tests when your provisioning or IaC code creates a DB instance, waits for it to become available, stops it, or snapshots and restores it — so you can exercise those lifecycle paths without spinning up real (and slow, and billed) instances. For NoSQL stores (DynamoDB, Cosmos DB, Firestore), see [Database](/docs/services/database) instead.
+Reach for it when your provisioning or IaC code creates a DB instance, waits for it to become available, stops it, or snapshots and restores it — so you can exercise those lifecycle paths without spinning up real (and slow, and billed) instances. For NoSQL stores (DynamoDB, Cosmos DB, Firestore), see [Database](/docs/services/database) instead.
 
 | Provider | Service | SDK-compat | Driver |
 |----------|---------|:----------:|--------|

@@ -8,7 +8,7 @@ gcp: Eventarc
 
 Emulates a managed event bus — the router you publish events to and let rules decide where they go. You create a bus, attach rules that each carry a JSON event pattern, and point each rule at one or more targets; when a published event matches a rule's pattern, it's routed to that rule's targets.
 
-Reach for it in tests when your code emits domain events (`OrderCreated`, `UserSignedUp`) and downstream handlers subscribe by shape rather than by name. Unlike the [message queue](/docs/services/messagequeue), routing is content-based and there's no pull-and-ack — an event that matches no rule is simply not delivered anywhere.
+Reach for it when your code emits domain events (`OrderCreated`, `UserSignedUp`) and downstream handlers subscribe by shape rather than by name. Unlike the [message queue](/docs/services/messagequeue), routing is content-based and there's no pull-and-ack — an event that matches no rule is simply not delivered anywhere.
 
 | Provider | Service | SDK-compat | Driver |
 |----------|---------|:----------:|--------|

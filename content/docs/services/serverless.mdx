@@ -8,7 +8,7 @@ gcp: Cloud Functions
 
 Emulates functions-as-a-service — the Lambda/Azure Functions/Cloud Functions control plane where you create a function and invoke it with a payload. Instead of deploying a zip, you register a plain Go function as the handler; an `Invoke` then runs it in-process and returns its response bytes. That keeps the create/invoke path fast and deterministic while still exercising your production wiring.
 
-Reach for it in tests when your code creates a function, invokes it synchronously, and reads the response — for example verifying an orchestration that fans out to Lambdas, or a caller that depends on a function's output shape — without deploying to a real cloud. You get the function's response back exactly as the SDK would deliver it.
+Reach for it when your code creates a function, invokes it synchronously, and reads the response — for example verifying an orchestration that fans out to Lambdas, or a caller that depends on a function's output shape — without deploying to a real cloud. You get the function's response back exactly as the SDK would deliver it.
 
 | Provider | Service | SDK-compat | Driver |
 |----------|---------|:----------:|--------|

@@ -8,7 +8,7 @@ gcp: Vertex AI
 
 Emulates the managed ML platforms — the models, endpoints, training/tuning jobs, feature stores, and pipelines of AWS SageMaker, GCP Vertex AI, and Azure Machine Learning (`Microsoft.MachineLearningServices`). Each ships a control plane you provision against and a deterministic runtime that answers `InvokeEndpoint` / `Predict` calls, so there are no GPUs, accounts, or per-hour costs involved.
 
-Reach for it in tests when your code registers a model, stands up an endpoint, kicks off a training/tuning job, or writes to a feature store — so you can exercise that wiring without a live cluster. Asynchronous jobs complete synchronously to a terminal state, so Describe/List are deterministic and there are no polling loops in tests. For the generative side — Bedrock and Azure OpenAI — see [Generative AI](/docs/services/ai).
+Reach for it when your code registers a model, stands up an endpoint, kicks off a training/tuning job, or writes to a feature store — so you can exercise that wiring without a live cluster. Asynchronous jobs complete synchronously to a terminal state, so Describe/List are deterministic and there are no polling loops to wait on. For the generative side — Bedrock and Azure OpenAI — see [Generative AI](/docs/services/ai).
 
 | Provider | Service | SDK-compat | Driver |
 |----------|---------|:----------:|--------|

@@ -8,7 +8,7 @@ gcp: FCM
 
 Emulates a managed pub/sub notification service — the topic you publish one message to and have it fanned out to every subscriber at once. You create a topic, attach subscriptions that each point at an endpoint (an email address, an HTTP webhook, an SQS queue), then publish; the message is delivered to all matching subscriptions.
 
-Reach for it in tests when your code announces an event to several independent consumers and you don't want a queue's pull-and-ack cycle — publish is fire-and-forget fan-out. Unlike the [message queue](/docs/services/messagequeue), there's no per-consumer acknowledgement: a subscriber either matches the message or it doesn't.
+Reach for it when your code announces an event to several independent consumers and you don't want a queue's pull-and-ack cycle — publish is fire-and-forget fan-out. Unlike the [message queue](/docs/services/messagequeue), there's no per-consumer acknowledgement: a subscriber either matches the message or it doesn't.
 
 | Provider | Service | SDK-compat | Driver |
 |----------|---------|:----------:|--------|

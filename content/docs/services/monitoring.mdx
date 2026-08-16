@@ -8,7 +8,7 @@ gcp: Cloud Monitoring
 
 Emulates a managed metrics and alarms service — the place you push time-series datapoints and define thresholds that flip an alarm between `OK` and `ALARM`. You publish metric data under a namespace, define an alarm over one metric, and the alarm re-evaluates itself every time new data lands.
 
-Reach for it in tests when your code emits custom metrics or reacts to alarm state, so you can assert an alarm fired without waiting on a real evaluation cycle. Because the emulator drives evaluation on every write, you control alarm state directly by controlling the datapoints you push.
+Reach for it when your code emits custom metrics or reacts to alarm state, so you can assert an alarm fired without waiting on a real evaluation cycle. Because the emulator drives evaluation on every write, you control alarm state directly by controlling the datapoints you push.
 
 | Provider | Service | SDK-compat | Driver |
 |----------|---------|:----------:|--------|

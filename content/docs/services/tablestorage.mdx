@@ -1,0 +1,75 @@
+---
+title: Table Storage
+description: In-memory Azure Table Storage data plane — tables and entities, driven with the real aztables SDK
+azure: TableStorage
+---
+
+Emulates the **data plane** of Azure Table Storage — the OData REST API that creates tables and inserts, reads, updates, deletes, and queries entities keyed by partition and row key. It has its own driver rather than reusing the NoSQL database driver, because Table Storage's `(PartitionKey, RowKey)` addressing and OData query filters are its own shape. You write entities as property bags and read them back exactly as the real service returns them.
+
+Reach for it when your code stores or queries entities in Table Storage — a session store, a lookup table, a lightweight event log — without a real (billed) storage account. Served as the Azure Table Storage REST API, so a real `github.com/Azure/azure-sdk-for-go/sdk/data/aztables` client with a custom endpoint works unchanged.
+
+| Provider | Service | SDK-compat | Driver |
+|----------|---------|:----------:|--------|
+| Azure | Table Storage (data plane) | ✓ Live | `azure.TableStorage` |
+
+## Drive it with the real SDK
+
+Register the mock as the `TableStorage` data-plane driver, then point the stock `aztables` client at the server — only the endpoint changes. Azure clients expect TLS, so use `httptest.NewTLSServer`:
+
+```go
+import (
+    "github.com/stackshy/cloudemu/v2"
+    azureserver "github.com/stackshy/cloudemu/v2/server/azure"
+)
+
+cloud := cloudemu.NewAzure()
+ts := httptest.NewTLSServer(azureserver.New(azureserver.Drivers{
+    TableStorage: cloud.TableStorage,
+}))
+defer ts.Close()
+
+// aztables client, pointed at ts.URL — cloudemu doesn't validate signatures,
+// so a no-credential client is enough. Use ts.Client() for the test cert.
+//   svc := aztables.NewServiceClientWithNoCredential(ts.URL, opts)
+//   table := svc.NewClient("events")
+//   table.AddEntity(ctx, marshalledEntity, nil)
+```
+
+See the [SDK-Compat Server page](/docs/sdk-compat) for the Azure TLS setup.
+
+## Call the driver directly
+
+For in-process setup or assertions you can skip the HTTP hop and call the driver:
+
+```go
+import tsdriver "github.com/stackshy/cloudemu/v2/services/tablestorage/driver"
+
+azure.TableStorage.CreateTable(ctx, "events")
+
+azure.TableStorage.InsertEntity(ctx, "events", "2026-08", "evt-001", tsdriver.Entity{
+    "kind":  "signup",
+    "email": "a@example.com",
+})
+
+got, _ := azure.TableStorage.GetEntity(ctx, "events", "2026-08", "evt-001")
+
+page, _ := azure.TableStorage.QueryEntities(ctx, "events", tsdriver.QueryOptions{
+    Filter: "PartitionKey eq '2026-08'",
+})
+```
+
+`UpdateEntity` and `DeleteEntity` round out the CRUD set, and `ListTables` enumerates the tables you've created.
+
+## Behavior & fidelity
+
+| Behavior | What happens |
+|----------|--------------|
+| Partition + row key addressing | Every entity is uniquely addressed by `(PartitionKey, RowKey)`; inserting a duplicate errors, and reads target one entity exactly. |
+| Property bags | Entities are open sets of typed properties — you store whatever fields you like and read them back unchanged. |
+| OData query filters | `QueryEntities` applies OData `$filter` expressions (e.g. `PartitionKey eq '…'`) and pages results deterministically. |
+| Tables are namespaces | Tables must exist before entity writes and must be created and deleted explicitly. |
+| Wire fidelity | Responses are the Table Storage OData JSON the SDK's deserializer expects, so `aztables` decodes them without changes. |
+
+## SDK-compat — Live
+
+Real `aztables` clients drive it end-to-end against the Azure Table Storage REST API — see [SDK-Compat](/docs/sdk-compat) for the full Azure quick start.

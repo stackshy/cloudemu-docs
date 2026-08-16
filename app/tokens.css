@@ -11,21 +11,21 @@
  */
 
 :root {
-  /* ---- surfaces (light) ---- */
-  --bg: #fafaf9; /* paper */
-  --bg-2: #ffffff; /* sidebar, cards */
-  --bg-3: #f1f1ef; /* code blocks, popovers */
-  --border: #e4e4e1;
-  --border-2: #cfcfca; /* hover/strong */
+  /* ---- surfaces (light) — warm "Bone", aligned to the logo (#f1efe7) ---- */
+  --bg: #f6f4ec; /* warm paper */
+  --bg-2: #fcfbf5; /* sidebar, cards */
+  --bg-3: #eeebe0; /* code blocks, popovers */
+  --border: #e3ded1;
+  --border-2: #d0cabb; /* hover/strong */
 
-  /* ---- text (light) ---- */
-  --text-1: #17191c; /* ink — headings, primary */
-  --text-2: #494f57; /* body secondary */
-  --text-3: #6c7178; /* muted, labels */
+  /* ---- text (light) — warm ink ---- */
+  --text-1: #191712; /* ink — headings, primary */
+  --text-2: #4d4a41; /* body secondary */
+  --text-3: #706c60; /* muted, labels */
 
-  /* ---- the one accent (darker in light mode to hold 4.5:1 on paper) ---- */
-  --accent: #1d6fd1;
-  --accent-bg: rgba(29, 111, 209, 0.08);
+  /* ---- the one accent: ember (deep in light mode to hold 4.5:1 on paper) ---- */
+  --accent: #a83a08; /* Ember Deep — never #FF6B2C on paper */
+  --accent-bg: rgba(168, 58, 8, 0.08);
   --accent-ink: #ffffff; /* text on solid accent */
 
   /* ---- provider colors (semantic only: tabs, chips, dots, wires) ---- */
@@ -38,9 +38,11 @@
   --warn: #92600e;
   --danger: #bd3934;
 
-  /* ---- terminal / inset pane (adapts per theme; light values here) ---- */
-  --terminal-bg: #ecece9;
-  --terminal-ink: #24272c;
+  /* ---- terminal / inset pane (theme-adaptive: light here, dark in .dark).
+         Terminal syntax uses the theme-appropriate Shiki palette, so a light
+         pane gets dark, readable text in light mode. ---- */
+  --terminal-bg: #ecebe6;
+  --terminal-ink: #23262b;
   --terminal-muted: #6c7178;
 
   /* ---- one shadow token, modals/popovers only ---- */
@@ -64,27 +66,27 @@
 }
 
 .dark {
-  /* ---- surfaces (dark) ---- */
-  --bg: #0b0d10;
-  --bg-2: #111418;
-  --bg-3: #171b21;
-  --border: #21262e;
-  --border-2: #2e3540;
+  /* ---- surfaces (dark) — warm "Ink", aligned to the logo (#101613) ---- */
+  --bg: #0e1110;
+  --bg-2: #141815;
+  --bg-3: #1a1f1b;
+  --border: #272d28;
+  --border-2: #343b35;
 
   /* ---- terminal / inset pane (dark instrument screen) ---- */
-  --terminal-bg: #08090b;
-  --terminal-ink: #d6dade;
-  --terminal-muted: #6b7482;
+  --terminal-bg: #0a0c09;
+  --terminal-ink: #e7e3d9;
+  --terminal-muted: #7a7a6f;
 
-  /* ---- text (dark) ---- */
-  --text-1: #f2f4f6;
-  --text-2: #a9b1bc;
-  --text-3: #6b7482;
+  /* ---- text (dark) — warm Bone ---- */
+  --text-1: #f1efe7;
+  --text-2: #aeb1a6;
+  --text-3: #767a6f;
 
-  /* ---- accent: ice blue ---- */
-  --accent: #52a9ff;
-  --accent-bg: rgba(82, 169, 255, 0.1);
-  --accent-ink: #0b0d10;
+  /* ---- accent: ember ---- */
+  --accent: #ff6b2c;
+  --accent-bg: rgba(255, 107, 44, 0.12);
+  --accent-ink: #1a0f0a;
 
   /* ---- provider colors ---- */
   --aws: #e8912d;

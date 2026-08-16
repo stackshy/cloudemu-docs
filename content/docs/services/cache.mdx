@@ -8,7 +8,7 @@ gcp: Memorystore
 
 Emulates a managed in-memory cache — the Redis/Memcached instance you'd put in front of a database for sessions, rate counters, or hot lookups. You create a named cache instance, then store, read, and expire keys against it.
 
-Reach for it in tests when your code does cache-aside reads, sets values with a TTL, or depends on eviction — so you can exercise those paths without standing up a real Redis. Under the hood each instance is a plain key-value store: keys map to byte values, each with an optional expiry.
+Reach for it when your code does cache-aside reads, sets values with a TTL, or depends on eviction — so you can exercise those paths without standing up a real Redis. Under the hood each instance is a plain key-value store: keys map to byte values, each with an optional expiry.
 
 | Provider | Service | SDK-compat | Driver |
 |----------|---------|:----------:|--------|

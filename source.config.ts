@@ -19,6 +19,18 @@ export const { docs, meta } = defineDocs({
   },
 });
 
+// Blog runs on the same MDX pipeline as docs (same Shiki theme + components)
+// — no more hand-rolled markdown renderer.
+export const { docs: blogDocs, meta: blogMeta } = defineDocs({
+  dir: 'content/blog',
+  docs: {
+    schema: frontmatterSchema.extend({
+      date: z.string().optional(),
+      author: z.string().optional(),
+    }),
+  },
+});
+
 const defaults = rehypeCodeDefaultOptions;
 
 export default defineConfig({

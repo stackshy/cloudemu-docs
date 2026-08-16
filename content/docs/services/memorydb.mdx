@@ -6,7 +6,7 @@ aws: MemoryDB
 
 Emulates the *control plane* of AWS MemoryDB for Redis/Valkey — the API that provisions a durable, in-VPC cluster, manages its ACLs and users, and snapshots it. Unlike [Cache](/docs/services/cache), MemoryDB is control-plane only: there's no `Set`/`Get` data plane, so it has its own driver rather than reusing the cache service. A cluster is modelled as shards of nodes reachable through a cluster endpoint.
 
-Reach for it in tests when your provisioning or IaC code creates a MemoryDB cluster, wires an ACL, waits for it to become available, or snapshots and restores it — so you can exercise those paths without a real (billed) cluster. Served as AWS JSON 1.1 on the `AmazonMemoryDB.` target prefix, so a real `aws-sdk-go-v2/service/memorydb` client with a custom endpoint works unchanged.
+Reach for it when your provisioning or IaC code creates a MemoryDB cluster, wires an ACL, waits for it to become available, or snapshots and restores it — so you can exercise those paths without a real (billed) cluster. Served as AWS JSON 1.1 on the `AmazonMemoryDB.` target prefix, so a real `aws-sdk-go-v2/service/memorydb` client with a custom endpoint works unchanged.
 
 | Provider | Service | SDK-compat | Driver |
 |----------|---------|:----------:|--------|

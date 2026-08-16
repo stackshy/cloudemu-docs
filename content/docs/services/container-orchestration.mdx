@@ -8,7 +8,7 @@ gcp: —
 
 Emulates the ECS control plane — the clusters, task definitions, tasks, and services you call to schedule containers on AWS. You register a task definition, then run tasks or stand up a service; the emulator places EC2-launch-type tasks onto container instances with spare capacity, or synthesizes a Fargate ENI attachment, exactly the way the real scheduler would decide. Everything lives in memory, so a run starts empty and converges synchronously — no eventual-consistency waits.
 
-Reach for it in tests when your code provisions clusters, registers task definitions, or scales services up and down and then asserts on the resulting tasks and deployments — without a real ECS account or a container runtime. It is AWS-only: there is no cross-cloud abstraction, because ECS has no Azure or GCP counterpart to model.
+Reach for it when your code provisions clusters, registers task definitions, or scales services up and down and then asserts on the resulting tasks and deployments — without a real ECS account or a container runtime. It is AWS-only: there is no cross-cloud abstraction, because ECS has no Azure or GCP counterpart to model.
 
 | Provider | Service | SDK-compat | Driver |
 |----------|---------|:----------:|--------|

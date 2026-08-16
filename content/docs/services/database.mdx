@@ -8,7 +8,7 @@ gcp: Firestore
 
 Emulates a managed NoSQL store — the DynamoDB/Cosmos/Firestore table your app writes items to and queries by key. You create a table with a partition key (and optional sort key), then put, get, update, query, and scan schemaless items. Each item is just a map of attributes; the table indexes them by their key so lookups and range queries stay fast.
 
-Reach for it in tests when your code puts an item and reads it back by key, runs a query with a key condition, or scans with a filter — so you can exercise those paths without a real DynamoDB account. For managed *relational* databases (RDS/Aurora, Azure SQL, Cloud SQL), see [Relational Database](/docs/services/relationaldb) instead.
+Reach for it when your code puts an item and reads it back by key, runs a query with a key condition, or scans with a filter — so you can exercise those paths without a real DynamoDB account. For managed *relational* databases (RDS/Aurora, Azure SQL, Cloud SQL), see [Relational Database](/docs/services/relationaldb) instead.
 
 | Provider | Service | SDK-compat | Driver |
 |----------|---------|:----------:|--------|

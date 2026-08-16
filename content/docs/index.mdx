@@ -1,15 +1,32 @@
 ---
 title: Introduction
-description: In-memory cloud service emulation for Go — real SDKs, no cloud.
+description: In-memory cloud emulation for AWS, Azure, and GCP — real SDKs, no cloud accounts.
 ---
 
-cloudemu lets you point real `aws-sdk-go-v2`, `azure-sdk-for-go`, and `cloud.google.com/go` clients at an in-memory backend. Your production code runs unchanged: no mocks, no Docker, no cloud accounts, and calls complete in about 10 ms.
+cloudemu is a real cloud emulator for AWS, Azure, and GCP that runs entirely in memory. Point your real app, SDK, or CLI at it — running in-process, as a standalone server, or in Docker — and it answers like the real thing. No mocks, no cloud accounts, no bills; in-process calls complete in about 10 ms.
 
 ## How it works
 
-cloudemu starts an HTTP server that speaks the actual cloud wire protocols — S3 REST, DynamoDB JSON-RPC, EC2 query, ARM JSON, GCP REST, Smithy CBOR. You point the SDK's endpoint at it; the SDK cannot tell it apart from `s3.amazonaws.com`.
+cloudemu speaks the actual cloud wire protocols — S3 REST, DynamoDB JSON-RPC, EC2 query, ARM JSON, GCP REST, Smithy CBOR — so a real client can't tell it apart from `s3.amazonaws.com`. Run it however fits your stack, then point your existing client at the endpoint. That endpoint is the only thing that changes.
 
-```go title="main_test.go"
+### Run it, point real code at it
+
+Start it as a standalone server (or `docker run` the image) and aim any SDK or CLI — in **any language** — at the printed endpoint:
+
+```bash title="terminal"
+docker run -p 4566:4566 -p 4568:4568 -p 4569:4569 ghcr.io/stackshy/cloudemu
+
+# your real app, SDK, or CLI — any language:
+aws --endpoint-url http://localhost:4566 s3 mb s3://prod
+```
+
+See [Standalone server](/docs/standalone-server) for ports, flags, and the reset endpoint, and [Integrating cloudemu](/docs/integration) for wiring it into an app you already have.
+
+### Or embed it in Go
+
+Skip the network and run cloudemu inside a Go process (or test) with `httptest` — same real SDK, only the endpoint changes:
+
+```go title="main.go"
 cloud := cloudemu.NewAWS()
 ts := httptest.NewServer(awsserver.New(awsserver.Drivers{
     S3: cloud.S3, DynamoDB: cloud.DynamoDB, /* ... */
@@ -23,9 +40,9 @@ client.PutObject(ctx, &s3.PutObjectInput{ /* your real production code */ })
 ```
 
 <Callout type="info">
-  The endpoint override is the only change between test and production
-  configuration. Everything else — request signing, marshaling, retries —
-  is the real SDK code path.
+  The endpoint override is the only change between cloudemu and production.
+  Everything else — request signing, marshaling, retries — is the real SDK
+  (or CLI) code path.
 </Callout>
 
 ## Comparison with alternatives
@@ -33,9 +50,9 @@ client.PutObject(ctx, &s3.PutObjectInput{ /* your real production code */ })
 | Approach | Cost | Speed | Real SDKs |
 |----------|------|-------|-----------|
 | Real cloud (AWS/Azure/GCP) | $$$ | Seconds | ✓ |
-| LocalStack / emulators | $ | 100 ms+ | ✓ (requires Docker) |
+| LocalStack / emulators | $ | 100 ms+ | ✓ (Docker only) |
 | Hand-rolled mocks | Free | Fast | ✗ — rewrite every call site |
-| cloudemu | Free | ~10 ms | ✓ — no Docker, no rewrites |
+| cloudemu | Free | ~10 ms | ✓ — no rewrites; run in-process or standalone |
 
 ## What's included
 

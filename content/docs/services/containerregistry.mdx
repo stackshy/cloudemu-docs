@@ -8,7 +8,7 @@ gcp: Artifact Registry
 
 Emulates a managed container registry — the ECR, ACR, or Artifact Registry you push images to before a deploy. You create named repositories, put image manifests into them under tags or digests, and manage their lifecycle; each repository tracks its images the way the real registries do, down to tag mutability and scan-on-push settings.
 
-Reach for it in tests when your code creates repositories, pushes or lists images, or depends on lifecycle cleanup or scan results — so you can exercise those paths without a real registry or real image layers. You store a manifest (digest, tags, size), not actual bytes, which is all a test double needs.
+Reach for it when your code creates repositories, pushes or lists images, or depends on lifecycle cleanup or scan results — so you can exercise those paths without a real registry or real image layers. You store a manifest (digest, tags, size), not actual bytes, which is all the emulator needs.
 
 | Provider | Service | SDK-compat | Driver |
 |----------|---------|:----------:|--------|
@@ -82,7 +82,7 @@ fmt.Println(result.Status, result.FindingCounts["CRITICAL"])
 |----------|--------------|
 | References resolve by tag or digest | `GetImage`, `TagImage`, and the scan calls accept either a tag or a `sha256:` digest, matching how the real registries address images. |
 | Explicit lifecycle evaluation | `EvaluateLifecyclePolicy` computes the expiry set on demand and returns it rather than deleting in the background, so tests are deterministic and you see exactly what a rule matches. |
-| Manifests, not bytes | Images are stored as manifests (digest, tags, size, layers); there's no layer blob storage, which is all a control-plane test double needs. |
+| Manifests, not bytes | Images are stored as manifests (digest, tags, size, layers); there's no layer blob storage, which is all a control-plane emulator needs. |
 
 ## SDK-compat — Live
 

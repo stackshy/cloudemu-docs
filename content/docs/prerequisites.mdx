@@ -2,9 +2,11 @@
 title: Prerequisites
 description: What you need before using cloudemu
 ---
-Confirm your machine has Go 1.25+ and a Go module — cloudemu needs nothing else.
+What you need depends on how you run cloudemu. Running it **in-process as a Go library** (the path this guide starts with) needs Go 1.25+ and a Go SDK. Running it as a [standalone server or in Docker](/docs/standalone-server) needs neither — start the emulator, then point any SDK or CLI, in any language, at its endpoints.
 
-## Required
+## Required for the in-process (Go) path
+
+These apply when you import cloudemu as a Go library. For the [standalone server or Docker](/docs/standalone-server) path, skip straight to that guide — none of the items below are required there.
 
 ### Go 1.25+
 
@@ -48,11 +50,11 @@ While cloudemu handles everything in memory, familiarity with these cloud concep
 - **Monitoring**: Metrics, alarms, thresholds
 - **IAM**: Users, roles, policies, permissions
 
-You do **not** need:
+Whichever way you run it, you never need:
 - A cloud account (AWS, Azure, or GCP)
-- Docker or any container runtime
-- Network access or internet connection
-- Any cloud CLI tools or SDKs
+- Any real cloud service, network calls out to a provider, or a bill
+
+For the **in-process (Go) path** specifically, you also don't need Docker or a running server — everything lives inside your process. If you'd rather run cloudemu as a [standalone server or in Docker](/docs/standalone-server), that path uses a container runtime (or the `cloudemu` binary) and a local network endpoint by design, and lets you drive it with any SDK or CLI in any language.
 
 ## Verify your setup
 

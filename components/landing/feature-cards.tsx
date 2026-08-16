@@ -1,321 +1,397 @@
 'use client';
 
-import { Reveal } from '@/components/reveal';
+import { useState } from 'react';
+
+import { motion, useReducedMotion } from 'framer-motion';
+
+import { SectionHeader } from '@/components/landing/section';
+import { DUR, EASE, fadeUp, staggerContainer, viewportOnce } from '@/lib/motion';
 
 /**
- * Capability ledger: a full-width list on hairlines — no cards, no chrome.
- * Every row carries a small inline glyph drawn directly on the canvas,
- * animated slowly via SMIL. Glyphs are decorative (aria-hidden) and hidden
- * under prefers-reduced-motion. All share the 160×32 stage, hairline
- * strokes, and semantic colors only (--ok, --danger, neutrals).
+ * FeatureCards: the eight behaviors that separate cloudemu from a dumb mock,
+ * rendered as a clean monospace ledger — key · description · a small inline
+ * visual — instead of boxed cards. Rows stagger in on scroll; each row's
+ * micro-visual animates itself into being when it scrolls into view.
+ *
+ * On hover a row warms up: the key brightens to the accent, a faint accent
+ * slides in under the row, and that row's micro-visual re-triggers /
+ * accentuates (bars swell, dots re-sequence, the slider nudges). All of it is
+ * transform/opacity only and gated behind reduced-motion — when the viewer
+ * prefers reduced motion the hover is colour-only, no movement.
  */
 
-const G = { w: 160, h: 32, mid: 16 };
+/** The one accent, drawn straight from the theme token so it stays legible in
+ *  both light (ember-deep) and dark (ember) modes. */
+const ACCENT = 'var(--accent)';
 
-/* 01 — packet traveling the wire, sdk → cloudemu */
-function GlyphWire() {
-  return (
-    <svg viewBox={`0 0 ${G.w} ${G.h}`} className="h-8 w-[160px]" aria-hidden>
-      <line x1="6" y1={G.mid} x2="154" y2={G.mid} stroke="var(--border-2)" strokeWidth="1" />
-      <circle cx="6" cy={G.mid} r="2.5" fill="var(--bg)" stroke="var(--border-2)" strokeWidth="1.2" />
-      <circle cx="154" cy={G.mid} r="2.5" fill="var(--bg)" stroke="var(--border-2)" strokeWidth="1.2" />
-      <rect x="-3" y="-2.5" width="6" height="5" rx="1" fill="var(--text-3)">
-        <animateMotion
-          dur="2.8s"
-          repeatCount="indefinite"
-          path={`M 6 ${G.mid} H 154`}
-          calcMode="spline"
-          keyTimes="0;1"
-          keySplines="0.3 0 0.7 1"
-        />
-      </rect>
-    </svg>
-  );
-}
+type VizKind =
+  | 'slider' | 'bars' | 'nodes' | 'barchart'
+  | 'dots' | 'wave' | 'clock' | 'check';
 
-/* 02 — request ticks; the failure window pulses */
-function GlyphChaos() {
-  const ticks = Array.from({ length: 12 }, (_, i) => 6 + i * 13.5);
-  return (
-    <svg viewBox={`0 0 ${G.w} ${G.h}`} className="h-8 w-[160px]" aria-hidden>
-      {ticks.map((x) => {
-        const failing = x >= 60 && x <= 100;
-        return (
-          <line
-            key={x}
-            x1={x}
-            y1={failing ? 13 : 9}
-            x2={x}
-            y2={23}
-            stroke={failing ? 'var(--danger)' : 'var(--ok)'}
-            strokeOpacity={failing ? 0.9 : 0.5}
-            strokeWidth="2"
-            strokeLinecap="round"
-          >
-            {failing && (
-              <animate
-                attributeName="stroke-opacity"
-                values="0.9;0.35;0.9"
-                dur="2.6s"
-                repeatCount="indefinite"
-              />
-            )}
-          </line>
-        );
-      })}
-    </svg>
-  );
-}
-
-/* 03 — a token stepping through lifecycle states */
-function GlyphStates() {
-  const xs = [20, 80, 140];
-  return (
-    <svg viewBox={`0 0 ${G.w} ${G.h}`} className="h-8 w-[160px]" aria-hidden>
-      <line x1={xs[0]} y1={G.mid} x2={xs[2]} y2={G.mid} stroke="var(--border-2)" strokeWidth="1" />
-      {xs.map((x) => (
-        <circle key={x} cx={x} cy={G.mid} r="4" fill="var(--bg)" stroke="var(--border-2)" strokeWidth="1.2" />
-      ))}
-      <circle r="2.2" fill="var(--text-2)">
-        <animate
-          attributeName="cx"
-          values={`${xs[0]};${xs[0]};${xs[1]};${xs[1]};${xs[2]};${xs[2]};${xs[0]}`}
-          keyTimes="0;0.3;0.35;0.62;0.67;0.95;1"
-          calcMode="discrete"
-          dur="4.5s"
-          repeatCount="indefinite"
-        />
-        <animate attributeName="cy" values={`${G.mid}`} dur="4.5s" repeatCount="indefinite" />
-      </circle>
-    </svg>
-  );
-}
-
-/* 04 — metric bars rising as instances launch */
-function GlyphMetrics() {
-  const bars = [30, 55, 80, 105, 130];
-  return (
-    <svg viewBox={`0 0 ${G.w} ${G.h}`} className="h-8 w-[160px]" aria-hidden>
-      <line x1="18" y1="26" x2="142" y2="26" stroke="var(--border-2)" strokeWidth="1" />
-      {bars.map((x, i) => (
-        <line
-          key={x}
-          x1={x}
-          y1="26"
-          x2={x}
-          y2="12"
-          stroke="var(--text-3)"
-          strokeOpacity="0.7"
-          strokeWidth="4"
-          strokeLinecap="round"
-        >
-          <animate
-            attributeName="y2"
-            values="24;10;24"
-            dur="3.2s"
-            begin={`${i * 0.35}s`}
-            repeatCount="indefinite"
-            calcMode="spline"
-            keyTimes="0;0.5;1"
-            keySplines="0.4 0 0.6 1;0.4 0 0.6 1"
-          />
-        </line>
-      ))}
-    </svg>
-  );
-}
-
-/* 05 — steady calls; every Nth flashes as an injected failure */
-function GlyphInjection() {
-  const dots = Array.from({ length: 8 }, (_, i) => 14 + i * 19);
-  return (
-    <svg viewBox={`0 0 ${G.w} ${G.h}`} className="h-8 w-[160px]" aria-hidden>
-      {dots.map((x, i) => {
-        const injected = i === 2 || i === 5;
-        return (
-          <circle
-            key={x}
-            cx={x}
-            cy={G.mid}
-            r="2.5"
-            fill={injected ? 'var(--danger)' : 'var(--text-3)'}
-            fillOpacity={injected ? 1 : 0.6}
-          >
-            {injected && (
-              <animate
-                attributeName="fill-opacity"
-                values="1;0.2;1"
-                dur="2.2s"
-                begin={`${i * 0.4}s`}
-                repeatCount="indefinite"
-              />
-            )}
-          </circle>
-        );
-      })}
-    </svg>
-  );
-}
-
-/* 06 — recording: rec dot + call lines appearing in sequence */
-function GlyphRecording() {
-  const rows = [10, 16, 22];
-  return (
-    <svg viewBox={`0 0 ${G.w} ${G.h}`} className="h-8 w-[160px]" aria-hidden>
-      <circle cx="14" cy={G.mid} r="3" fill="var(--danger)" fillOpacity="0.85">
-        <animate attributeName="fill-opacity" values="0.85;0.3;0.85" dur="2s" repeatCount="indefinite" />
-      </circle>
-      {rows.map((y, i) => (
-        <line
-          key={y}
-          x1="30"
-          y1={y}
-          x2={i === 1 ? 140 : 110 + i * 12}
-          y2={y}
-          stroke="var(--text-3)"
-          strokeOpacity="0.6"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-        >
-          <animate
-            attributeName="stroke-opacity"
-            values="0;0.6;0.6;0"
-            keyTimes="0;0.15;0.85;1"
-            dur="3.6s"
-            begin={`${i * 0.5}s`}
-            repeatCount="indefinite"
-          />
-        </line>
-      ))}
-    </svg>
-  );
-}
-
-/* 07 — fake clock: a hand advancing in discrete steps */
-function GlyphClock() {
-  return (
-    <svg viewBox={`0 0 ${G.w} ${G.h}`} className="h-8 w-[160px]" aria-hidden>
-      <circle cx="80" cy={G.mid} r="11" fill="none" stroke="var(--border-2)" strokeWidth="1.2" />
-      <line x1="80" y1={G.mid} x2="80" y2="8" stroke="var(--text-2)" strokeWidth="1.5" strokeLinecap="round">
-        <animateTransform
-          attributeName="transform"
-          type="rotate"
-          values="0 80 16;90 80 16;180 80 16;270 80 16;360 80 16"
-          calcMode="discrete"
-          dur="4s"
-          repeatCount="indefinite"
-        />
-      </line>
-      <circle cx="80" cy={G.mid} r="1.5" fill="var(--text-2)" />
-    </svg>
-  );
-}
-
-/* 08 — zero deps: one lone module, breathing */
-function GlyphZeroDeps() {
-  return (
-    <svg viewBox={`0 0 ${G.w} ${G.h}`} className="h-8 w-[160px]" aria-hidden>
-      <rect x="72" y="8" width="16" height="16" rx="3" fill="none" stroke="var(--text-3)" strokeWidth="1.2">
-        <animate attributeName="stroke-opacity" values="1;0.4;1" dur="3.5s" repeatCount="indefinite" />
-      </rect>
-      <text x="98" y="20" fontSize="8" fontFamily="var(--font-mono)" fill="var(--text-3)">
-        stdlib
-      </text>
-    </svg>
-  );
-}
-
-const CAPABILITIES: {
-  name: string;
-  body: string;
-  visual: React.ReactNode;
-  lead?: boolean;
-}[] = [
+const features: { key: string; desc: string; viz: VizKind }[] = [
   {
-    name: 'real_sdks',
-    body: 'aws-sdk-go-v2, azure-sdk-for-go, and cloud.google.com/go drive an in-memory backend over their actual wire protocols. Nothing to mock, no call sites to rewrite.',
-    visual: <GlyphWire />,
-    lead: true,
+    key: 'real_sdks',
+    desc: 'The real AWS, Azure, and GCP SDKs — in any language — talk to an in-memory backend over their own wire protocols. Repoint the endpoint; the call sites stay.',
+    viz: 'slider',
   },
   {
-    name: 'chaos_engineering',
-    body: 'Outages, latency spikes, probabilistic failures, throttling — in time-bounded windows. Your retry paths get exercised every run.',
-    visual: <GlyphChaos />,
-    lead: true,
+    key: 'chaos_engineering',
+    desc: 'Schedule outages, latency spikes, throttling, and probabilistic errors inside time-bounded windows. Your retry and backoff paths run for real, every test.',
+    viz: 'bars',
   },
   {
-    name: 'state_machines',
-    body: 'VMs enforce real lifecycle transitions; illegal jumps return errors.',
-    visual: <GlyphStates />,
+    key: 'state_machines',
+    desc: 'VMs walk pending → running → stopping → stopped. Start a terminated instance and you get an error, not a shrug.',
+    viz: 'nodes',
   },
   {
-    name: 'auto_metrics',
-    body: 'Launching a VM pushes CPU, network, and disk metrics so alarms evaluate.',
-    visual: <GlyphMetrics />,
+    key: 'auto_metrics',
+    desc: 'Launch a VM and it backfills five metrics — CPU, network in/out, disk read/write — so alarms have datapoints to evaluate against.',
+    viz: 'barchart',
   },
   {
-    name: 'error_injection',
-    body: 'Fail always, every Nth call, probabilistically, or the first N calls.',
-    visual: <GlyphInjection />,
+    key: 'error_injection',
+    desc: 'Fail every call, every Nth, the first N, or at a fixed probability — scoped to one operation or the whole service.',
+    viz: 'dots',
   },
   {
-    name: 'call_recording',
-    body: 'Every call captured with inputs, outputs, errors, timing. Fluent asserts.',
-    visual: <GlyphRecording />,
+    key: 'call_recording',
+    desc: 'Every call is recorded — inputs, outputs, errors, timing — then asserted against with a fluent API. No spies to wire up.',
+    viz: 'wave',
   },
   {
-    name: 'fake_clock',
-    body: 'Deterministic TTL expiry, dedup windows, and alarm evaluation.',
-    visual: <GlyphClock />,
+    key: 'fake_clock',
+    desc: 'A clock you advance by hand. TTL expiry, dedup windows, and alarm evaluation fire on command, not on wall time.',
+    viz: 'clock',
   },
   {
-    name: 'zero_deps',
-    body: 'Pure Go standard library. Works anywhere Go runs.',
-    visual: <GlyphZeroDeps />,
+    key: 'zero_deps',
+    desc: 'The in-process library is standard-library only — no daemon, no network, no dependency tree. Runs anywhere your test suite already runs.',
+    viz: 'check',
   },
 ];
 
 export function FeatureCards() {
-  return (
-    <section className="w-full border-t border-line">
-      <div className="mx-auto w-full max-w-[1120px] px-6 py-20">
-        <Reveal>
-          <p className="u-eyebrow mb-3">
-            <span className="text-ink-3">03</span> · beyond basic mocks
-          </p>
-          <h2 className="text-3xl font-bold tracking-[-0.01em] text-ink">
-            Behavior, not stubs.
-          </h2>
-          <p className="mt-4 max-w-[60ch] text-base leading-relaxed text-ink-2">
-            Mocks return what you tell them to. cloudemu misbehaves like the
-            real thing — lifecycle rules, throttling, injected outages, clock
-            skew.
-          </p>
-        </Reveal>
+  const reduce = useReducedMotion();
 
-        <Reveal delay={60} className="mt-10">
-          <ul className="border-t border-line">
-            {CAPABILITIES.map((c) => (
-              <li
-                key={c.name}
-                className={`group grid grid-cols-1 items-center gap-x-8 gap-y-2 border-b border-line md:grid-cols-[280px_1fr_160px] ${
-                  c.lead ? 'py-6' : 'py-4'
-                }`}
-              >
-                <span className="font-mono text-[13px] text-ink-2 transition-colors group-hover:text-ink">
-                  {c.name}
-                </span>
-                <p className="text-sm leading-relaxed text-ink-2 transition-colors group-hover:text-ink">
-                  {c.body}
-                </p>
-                <span className="hidden justify-self-end opacity-70 transition-opacity group-hover:opacity-100 md:block motion-reduce:md:hidden">
-                  {c.visual}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </Reveal>
-      </div>
+  return (
+    <section className="w-full max-w-5xl mx-auto px-6 py-20">
+      <SectionHeader
+        className="mb-10 max-w-2xl"
+        index="04"
+        kicker="what it actually does"
+        title="Beyond basic mocks"
+        lede="A mock returns whatever you hardcoded. cloudemu enforces lifecycle rules, throttles under load, injects outages, and skews the clock — the failures your retry paths never hit otherwise."
+      />
+
+      <motion.div
+        variants={reduce ? undefined : staggerContainer()}
+        initial={reduce ? false : 'hidden'}
+        whileInView={reduce ? undefined : 'show'}
+        viewport={viewportOnce}
+        className="border-b border-line"
+      >
+        {features.map((f) => (
+          <Row key={f.key} feature={f} reduce={!!reduce} />
+        ))}
+      </motion.div>
     </section>
   );
+}
+
+/** A single ledger row. Owns its hover state so the key, the accent underline,
+ *  and the micro-visual all warm up together. Hover motion is suppressed under
+ *  reduced-motion — only the colour shift (via CSS `group-hover`) remains. */
+function Row({
+  feature,
+  reduce,
+}: {
+  feature: { key: string; desc: string; viz: VizKind };
+  reduce: boolean;
+}) {
+  const [hovered, setHovered] = useState(false);
+
+  return (
+    <motion.div
+      variants={reduce ? undefined : fadeUp(0, 14)}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      className="group relative grid grid-cols-[1fr_auto] md:grid-cols-[190px_1fr_120px] items-center gap-x-6 gap-y-1 py-5 border-t border-line"
+    >
+      <span className="font-mono text-sm text-ink col-start-1 transition-colors duration-300 group-hover:text-accent">
+        {feature.key}
+      </span>
+      <p className="text-sm text-ink-2 leading-relaxed col-span-2 md:col-span-1 md:col-start-2 order-last md:order-none">
+        {feature.desc}
+      </p>
+      <div className="hidden md:flex justify-end text-ink-3 group-hover:text-ink-2 transition-colors">
+        <Spark kind={feature.viz} reduce={reduce} hovered={hovered} />
+      </div>
+
+      {/* Faint accent that slides in under the row on hover. Motion, so
+          it's rendered only when motion is allowed. */}
+      {!reduce && (
+        <motion.span
+          aria-hidden
+          className="pointer-events-none absolute bottom-0 left-0 h-px w-full"
+          style={{ background: ACCENT, transformOrigin: 'left', willChange: 'transform, opacity' }}
+          initial={{ scaleX: 0, opacity: 0 }}
+          animate={{ scaleX: hovered ? 1 : 0, opacity: hovered ? 0.45 : 0 }}
+          transition={{ duration: DUR.fast, ease: EASE }}
+        />
+      )}
+    </motion.div>
+  );
+}
+
+/** Small inline visuals — muted line-art with a single accent mark each.
+ *  Each animates from a baseline into its final state when scrolled into view,
+ *  and re-triggers / accentuates when its row is hovered. The scroll reveal
+ *  lives on the inner primitives; hover motion rides on a wrapping group's
+ *  transform, so the two never fight over the same property.
+ *  Reduced motion renders the final state with no animation, hover or otherwise. */
+function Spark({ kind, reduce, hovered }: { kind: VizKind; reduce: boolean; hovered: boolean }) {
+  const W = 104;
+  const H = 26;
+  const mid = H / 2;
+  const stroke = 'currentColor';
+
+  // Active only when motion is allowed AND the row is hovered.
+  const hot = hovered && !reduce;
+  const hoverT = { duration: DUR.fast, ease: EASE };
+
+  // Motion props for a single SVG primitive; empty when reduced (final state only).
+  const anim = (
+    initial: Record<string, number>,
+    to: Record<string, number>,
+    delay = 0,
+  ) =>
+    reduce
+      ? {}
+      : {
+          initial,
+          whileInView: to,
+          viewport: viewportOnce,
+          transition: { duration: DUR.base, ease: EASE, delay },
+        };
+
+  switch (kind) {
+    case 'slider':
+      return (
+        <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} fill="none">
+          <line x1="4" y1={mid} x2={W - 4} y2={mid} stroke={stroke} strokeOpacity="0.35" />
+          <motion.g animate={hot ? { x: [0, 5, 0] } : { x: 0 }} transition={hoverT}>
+            <motion.rect
+              x={W - 34}
+              y={mid - 5}
+              width="10"
+              height="10"
+              rx="2"
+              fill={ACCENT}
+              {...anim({ x: 4 }, { x: W - 34 }, 0.1)}
+            />
+          </motion.g>
+        </svg>
+      );
+    case 'bars': {
+      const xs = [6, 16, 26, 36, 46, 56, 66, 76, 86, 96];
+      const accentBars = new Set([4, 6]);
+      return (
+        <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} fill="none">
+          <motion.g
+            animate={hot ? { scaleY: 1.2 } : { scaleY: 1 }}
+            transition={hoverT}
+            style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
+          >
+            {xs.map((x, i) => (
+              <motion.line
+                key={x}
+                x1={x}
+                y1={mid - 8}
+                x2={x}
+                y2={mid + 8}
+                stroke={accentBars.has(i) ? ACCENT : stroke}
+                strokeOpacity={accentBars.has(i) ? 1 : 0.35}
+                {...anim({ y1: mid, y2: mid }, { y1: mid - 8, y2: mid + 8 }, i * 0.04)}
+              />
+            ))}
+          </motion.g>
+        </svg>
+      );
+    }
+    case 'nodes':
+      return (
+        <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} fill="none">
+          <line x1="10" y1={mid} x2={W - 10} y2={mid} stroke={stroke} strokeOpacity="0.35" />
+          {[10, W / 2, W - 10].map((cx, i) => (
+            <motion.g
+              key={cx}
+              animate={hot ? { scale: [1, 1.35, 1] } : { scale: 1 }}
+              transition={{ ...hoverT, delay: i * 0.09 }}
+              style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
+            >
+              <motion.circle
+                cx={cx}
+                cy={mid}
+                r="4"
+                fill={i === 2 ? ACCENT : 'none'}
+                stroke={i === 2 ? ACCENT : stroke}
+                strokeOpacity={i === 2 ? 1 : 0.5}
+                {...anim({ r: 0, opacity: 0 }, { r: 4, opacity: 1 }, i * 0.14)}
+              />
+            </motion.g>
+          ))}
+        </svg>
+      );
+    case 'barchart': {
+      const data = [10, 4, 14, 7, 3, 11, 2];
+      return (
+        <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} fill="none">
+          <motion.g
+            animate={hot ? { scaleY: 1.16 } : { scaleY: 1 }}
+            transition={hoverT}
+            style={{ transformBox: 'fill-box', transformOrigin: '50% 100%' }}
+          >
+            {data.map((h, i) => (
+              <motion.line
+                key={i}
+                x1={8 + i * 15}
+                y1={H - 4}
+                x2={8 + i * 15}
+                y2={H - 4 - h}
+                stroke={i === 2 ? ACCENT : stroke}
+                strokeOpacity={i === 2 ? 1 : 0.4}
+                strokeWidth="2"
+                {...anim({ y2: H - 4 }, { y2: H - 4 - h }, i * 0.05)}
+              />
+            ))}
+          </motion.g>
+        </svg>
+      );
+    }
+    case 'dots': {
+      const accentDots = new Set([2, 5]);
+      return (
+        <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} fill="none">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <motion.g
+              key={i}
+              animate={hot ? { scale: [1, 1.4, 1] } : { scale: 1 }}
+              transition={{ ...hoverT, delay: i * 0.05 }}
+              style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
+            >
+              <motion.circle
+                cx={8 + i * 12}
+                cy={mid}
+                r="2.5"
+                fill={accentDots.has(i) ? ACCENT : stroke}
+                fillOpacity={accentDots.has(i) ? 1 : 0.35}
+                {...anim({ r: 0, opacity: 0 }, { r: 2.5, opacity: 1 }, i * 0.06)}
+              />
+            </motion.g>
+          ))}
+        </svg>
+      );
+    }
+    case 'wave':
+      return (
+        <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} fill="none">
+          <motion.g
+            animate={hot ? { scale: [1, 1.5, 1] } : { scale: 1 }}
+            transition={hoverT}
+            style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
+          >
+            <motion.circle cx="8" cy={mid} r="3" fill={ACCENT} {...anim({ opacity: 0 }, { opacity: 1 })} />
+          </motion.g>
+          <motion.g
+            animate={hot ? { scaleX: [1, 1.07, 1] } : { scaleX: 1 }}
+            transition={hoverT}
+            style={{ transformBox: 'fill-box', transformOrigin: '0% 50%' }}
+          >
+            {[mid - 4, mid, mid + 4].map((y, i) => {
+              const x2 = W - 8 - i * 14;
+              return (
+                <motion.line
+                  key={y}
+                  x1="20"
+                  y1={y}
+                  x2={x2}
+                  y2={y}
+                  stroke={stroke}
+                  strokeOpacity="0.35"
+                  {...anim({ x2: 20 }, { x2 }, 0.1 + i * 0.08)}
+                />
+              );
+            })}
+          </motion.g>
+        </svg>
+      );
+    case 'clock':
+      return (
+        <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} fill="none">
+          <motion.g
+            animate={hot ? { scale: [1, 1.09, 1] } : { scale: 1 }}
+            transition={hoverT}
+            style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
+          >
+            <g transform={`translate(${W - 16}, ${mid})`}>
+              <circle r="9" stroke={stroke} strokeOpacity="0.4" fill="none" />
+              <line x1="0" y1="0" x2="0" y2="-5" stroke={ACCENT} strokeWidth="1.5" strokeLinecap="round">
+                {/* One sweep on hover — never a perpetual loop. Mounting the
+                    element on hover starts a single rotation; it unmounts on leave. */}
+                {hot && (
+                  <animateTransform
+                    attributeName="transform"
+                    type="rotate"
+                    from="0 0 0"
+                    to="360 0 0"
+                    dur="1.2s"
+                    repeatCount="1"
+                  />
+                )}
+              </line>
+              <line x1="0" y1="0" x2="4" y2="0" stroke={stroke} strokeOpacity="0.6" strokeLinecap="round" />
+            </g>
+          </motion.g>
+        </svg>
+      );
+    case 'check':
+      return (
+        <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} fill="none">
+          <motion.g
+            animate={hot ? { scale: [1, 1.12, 1] } : { scale: 1 }}
+            transition={hoverT}
+            style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
+          >
+            <motion.rect
+              x={W - 66}
+              y={mid - 6}
+              width="12"
+              height="12"
+              rx="3"
+              stroke={stroke}
+              strokeOpacity="0.5"
+              {...anim({ opacity: 0 }, { opacity: 1 })}
+            />
+            <motion.path
+              d={`M ${W - 63} ${mid} l 2.5 2.5 l 4 -5`}
+              stroke={ACCENT}
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              fill="none"
+              initial={reduce ? false : { pathLength: 0 }}
+              whileInView={reduce ? undefined : { pathLength: 1 }}
+              viewport={reduce ? undefined : viewportOnce}
+              transition={reduce ? undefined : { duration: DUR.fast, ease: EASE, delay: 0.15 }}
+            />
+          </motion.g>
+          <text x={W - 44} y={mid + 3} className="text-[10px] font-mono" fill={stroke} fillOpacity="0.6">
+            stdlib
+          </text>
+        </svg>
+      );
+    default:
+      return null;
+  }
 }

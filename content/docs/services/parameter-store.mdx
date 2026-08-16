@@ -6,7 +6,7 @@ aws: SSM Parameter Store
 
 Emulates AWS Systems Manager Parameter Store — the hierarchical config store your app reads settings and secrets out of at startup instead of baking them into the image. You put named parameters (`String`, `StringList`, `SecureString`), read them back by name, version, or label, fetch a whole path prefix at once, and walk a parameter's version history. Everything lives in memory, so a test run starts from an empty store and leaves nothing behind.
 
-Reach for it in tests whenever your code loads config from `/app/prod/...`, resolves a `SecureString` credential, or pins a specific parameter version or label — so you can exercise those paths without a real SSM account or network. Because the SDK-compat server speaks the real wire protocol, your production config-loading code runs unchanged against it. Parameter Store is an **AWS-only** service; there is no Azure or GCP equivalent in cloudemu.
+Reach for it whenever your code loads config from `/app/prod/...`, resolves a `SecureString` credential, or pins a specific parameter version or label — so you can exercise those paths without a real SSM account or network. Because the SDK-compat server speaks the real wire protocol, your production config-loading code runs unchanged against it. Parameter Store is an **AWS-only** service; there is no Azure or GCP equivalent in cloudemu.
 
 | Provider | Service | SDK-compat | Driver |
 |----------|---------|:----------:|--------|

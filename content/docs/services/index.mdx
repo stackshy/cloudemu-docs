@@ -46,6 +46,7 @@ Services that exist on one (or a subset of) providers, matching the real cloud:
 | [Keyspaces](/docs/services/keyspaces) | AWS | Keyspaces (Cassandra) | ✓ |
 | [Managed Cassandra](/docs/services/managedcassandra) | Azure | Managed Instance for Apache Cassandra | ✓ |
 | [Bigtable](/docs/services/bigtable) | GCP | Cloud Bigtable | ✓ |
+| [Table Storage](/docs/services/tablestorage) | Azure | Table Storage (data plane) | ✓ |
 | [Cosmos DB for PostgreSQL](/docs/services/cosmospostgresql) | Azure | Cosmos DB for PostgreSQL (Citus) | ✓ |
 | [Generative AI](/docs/services/ai) | AWS, Azure | Bedrock (+ Agents), Azure OpenAI | ✓ |
 | [Machine Learning](/docs/services/machine-learning) | AWS, GCP, Azure | SageMaker, Vertex AI, Azure ML | ✓ |
@@ -76,6 +77,7 @@ azure.CosmosDB         // Database (NoSQL)
 azure.AKS              // Kubernetes
 azure.AI               // Azure OpenAI / AI
 azure.Databricks       // Databricks
+azure.TableStorage     // Table Storage
 
 gcp := cloudemu.NewGCP()
 gcp.GCE               // Compute

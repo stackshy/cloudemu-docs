@@ -3,9 +3,9 @@ title: Quick Start
 description: Drop cloudemu in front of the real cloud SDK in 5 minutes
 ---
 
-Stand up the **SDK-compat HTTP server**, point a real `aws-sdk-go-v2` client at it, run production code unchanged.
+cloudemu is a real cloud emulator: it speaks the actual AWS, Azure, and GCP wire protocols, so you point real SDK clients, CLIs, and apps at it and run production code unchanged. This page brings one up **in-process** with Go and drives it with `aws-sdk-go-v2` — the fastest way to see it work. The very same emulator also runs as a [standalone server or in Docker](/docs/standalone-server), which any SDK or CLI, in any language, can target the same way.
 
-No mocks. No Docker. No cloud accounts. Just `go get` and an `httptest.NewServer`.
+No mocks. No cloud accounts. No bills — just a running endpoint your code already knows how to talk to.
 
 <div className="u-steps">
 

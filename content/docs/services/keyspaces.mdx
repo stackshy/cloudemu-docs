@@ -6,7 +6,7 @@ aws: Keyspaces
 
 Emulates the *control plane* of Amazon Keyspaces, the managed Cassandra-compatible wide-column service — the API that creates keyspaces, defines tables with a Cassandra schema, and manages user-defined types. CQL data operations are out of scope, so it has its own driver rather than reusing the relational or cache drivers. You define a table's partition and clustering keys, capacity mode, encryption, and TTL, then read it back exactly as the real service returns it.
 
-Reach for it in tests when your provisioning code creates a keyspace and tables, adjusts capacity, or restores a table point-in-time — without a real (billed) Keyspaces account. Served as AWS JSON 1.0 on the `KeyspacesService.` target prefix, so a real `aws-sdk-go-v2/service/keyspaces` client with a custom endpoint works unchanged.
+Reach for it when your provisioning code creates a keyspace and tables, adjusts capacity, or restores a table point-in-time — without a real (billed) Keyspaces account. Served as AWS JSON 1.0 on the `KeyspacesService.` target prefix, so a real `aws-sdk-go-v2/service/keyspaces` client with a custom endpoint works unchanged.
 
 | Provider | Service | SDK-compat | Driver |
 |----------|---------|:----------:|--------|

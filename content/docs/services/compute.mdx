@@ -8,7 +8,7 @@ gcp: Compute Engine
 
 Emulates managed virtual machines — the EC2 instance, Azure VM, or Compute Engine instance you'd launch to run a workload. You run instances from an image, then start, stop, reboot, and terminate them; the full VPC networking stack (subnets, security groups, gateways, volumes) is available alongside so instances have somewhere to live.
 
-Reach for it in tests when your code provisions capacity, waits on instance state, or reacts to lifecycle events — so you can exercise those paths without paying for real VMs or waiting on real boot times. Under the hood each instance is a state machine that walks the same `pending → running → stopped → terminated` transitions the real services enforce.
+Reach for it when your code provisions capacity, waits on instance state, or reacts to lifecycle events — so you can exercise those paths without paying for real VMs or waiting on real boot times. Under the hood each instance is a state machine that walks the same `pending → running → stopped → terminated` transitions the real services enforce.
 
 | Provider | Service | SDK-compat | Driver |
 |----------|---------|:----------:|--------|

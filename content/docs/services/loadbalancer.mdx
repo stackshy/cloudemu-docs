@@ -8,7 +8,7 @@ gcp: LB
 
 Emulates a managed load balancer — the ELB-style front door that spreads traffic across a pool of backends. You create a load balancer, register targets in a target group, and attach a listener that routes a port to that group; listener rules and per-LB attributes tune how the traffic is steered.
 
-Reach for it in tests when your code provisions load balancers, registers or deregisters targets, or reacts to target health — so you can exercise those paths without a live LB. Because the SDK-compat server speaks the real wire protocol, your production provisioning code runs unchanged against it. Under the hood a load balancer, its target groups, and its listeners are plain named records wired together by ARN.
+Reach for it when your code provisions load balancers, registers or deregisters targets, or reacts to target health — so you can exercise those paths without a live LB. Because the SDK-compat server speaks the real wire protocol, your production provisioning code runs unchanged against it. Under the hood a load balancer, its target groups, and its listeners are plain named records wired together by ARN.
 
 | Provider | Service | SDK-compat | Driver |
 |----------|---------|:----------:|--------|

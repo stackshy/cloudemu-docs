@@ -8,7 +8,7 @@ gcp: IAM
 
 Emulates managed identity and access control — the users, roles, and policies you attach to principals, plus the evaluator that decides whether a given action on a given resource is allowed. You create identities, attach JSON policy documents, then ask "can this principal do this?" and get the same allow/deny answer real IAM would give.
 
-Reach for it in tests when your code provisions principals, wires up policies, or gates behaviour on a permission check — so you can exercise those paths without a live cloud account. Under the hood it's an in-memory identity store with a policy engine that parses JSON documents, expands wildcards, and applies explicit-deny precedence.
+Reach for it when your code provisions principals, wires up policies, or gates behaviour on a permission check — so you can exercise those paths without a live cloud account. Under the hood it's an in-memory identity store with a policy engine that parses JSON documents, expands wildcards, and applies explicit-deny precedence.
 
 | Provider | Service | SDK-compat | Access |
 |----------|---------|:----------:|--------|

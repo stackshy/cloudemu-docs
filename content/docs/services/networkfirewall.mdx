@@ -6,7 +6,7 @@ aws: Network Firewall
 
 Emulates AWS Network Firewall — the managed stateful/stateless firewall you attach to a VPC across subnets to inspect traffic against rule groups. It is a distinct service with its own AWS JSON API, separate from the EC2 VPC networking surface: you create reusable rule groups, reference them from a firewall policy, and attach that policy to a firewall spanning your subnets.
 
-Reach for it in tests when your code provisions firewalls, policies, or rule groups, or toggles delete protection and logging — so you can exercise those control-plane paths without a real Network Firewall deployment. This is a control-plane emulation: it models the resources and their relationships, not live packet inspection. Network Firewall is AWS-only; there is no Azure or GCP equivalent.
+Reach for it when your code provisions firewalls, policies, or rule groups, or toggles delete protection and logging — so you can exercise those control-plane paths without a real Network Firewall deployment. This is a control-plane emulation: it models the resources and their relationships, not live packet inspection. Network Firewall is AWS-only; there is no Azure or GCP equivalent.
 
 | Provider | Service | SDK-compat | Driver |
 |----------|---------|:----------:|--------|

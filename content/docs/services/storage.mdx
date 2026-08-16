@@ -8,7 +8,7 @@ gcp: GCS
 
 Emulates managed object storage — the S3/Blob/GCS bucket where your app keeps uploads, exports, and config blobs. You create named buckets, then put, get, list, and copy objects as byte payloads with a content type and metadata. Everything lives in memory, so a test run starts from an empty store and leaves nothing behind.
 
-Reach for it in tests whenever your code writes a file to a bucket and reads it back, paginates a listing, or copies objects between prefixes — so you can exercise those paths without a real S3 account or network. Because the SDK-compat server speaks the real wire protocol, your production upload/download code runs unchanged against it.
+Reach for it whenever your code writes a file to a bucket and reads it back, paginates a listing, or copies objects between prefixes — so you can exercise those paths without a real S3 account or network. Because the SDK-compat server speaks the real wire protocol, your production upload/download code runs unchanged against it.
 
 | Provider | Service | SDK-compat | Driver |
 |----------|---------|:----------:|--------|

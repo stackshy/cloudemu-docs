@@ -8,7 +8,7 @@ gcp: Cloud Asset Inventory
 
 Emulates the cross-service inventory APIs — the "list everything I have, filtered by service, type, region, or tag" layer that Resource Explorer, Resource Graph, and Cloud Asset Inventory provide. An engine walks your emulated compute, networking, storage, database, serverless, Databricks, Kubernetes, and relational-database resources and answers those queries over normalized, cross-cloud records.
 
-Reach for it in tests when your code enumerates resources, reconciles inventory, or drives tag-based automation — so you can assert on what's discoverable without a real account. Every provider auto-wires a `ResourceDiscovery` engine over its core drivers, so anything you create through those services is immediately discoverable, with no separate registration step.
+Reach for it when your code enumerates resources, reconciles inventory, or drives tag-based automation — so you can assert on what's discoverable without a real account. Every provider auto-wires a `ResourceDiscovery` engine over its core drivers, so anything you create through those services is immediately discoverable, with no separate registration step.
 
 | Provider | Service | SDK-compat | Driver |
 |----------|---------|:----------:|--------|

@@ -25,6 +25,7 @@
     "keyspaces",
     "managedcassandra",
     "bigtable",
+    "tablestorage",
     "secrets",
     "parameter-store",
     "logging",
