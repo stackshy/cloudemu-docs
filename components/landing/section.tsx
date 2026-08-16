@@ -4,16 +4,13 @@ import { motion, useReducedMotion } from 'framer-motion';
 
 import { fadeUp, staggerContainer, viewportOnce } from '@/lib/motion';
 
-/** The one accent color — ember on warm charcoal. Used sparingly. */
-const EMBER = '#FF6B2C';
-
 /** Join truthy class fragments. Local so this file stays self-contained. */
 function join(...parts: Array<string | false | undefined>): string {
   return parts.filter(Boolean).join(' ');
 }
 
 type KickerProps = {
-  /** Optional section number, rendered in ember and zero-padded as-passed (e.g. "01"). */
+  /** Optional section number, rendered in the accent color and zero-padded as-passed (e.g. "01"). */
   index?: string;
   /** The eyebrow label. Rendered uppercase, letter-spaced. */
   children: React.ReactNode;
@@ -23,8 +20,9 @@ type KickerProps = {
 /**
  * Kicker — a monospace eyebrow.
  *
- * Renders `01 — THE PROBLEM`: the index in ember, an em-dash separator, then the
- * label in uppercase with wide tracking. Omit `index` for a bare label.
+ * Renders `01 — THE PROBLEM`: the index in the accent color, an em-dash
+ * separator, then the label in uppercase with wide tracking (via `u-eyebrow`).
+ * Omit `index` for a bare label.
  *
  * @example
  * <Kicker index="01">The problem</Kicker>
@@ -32,16 +30,11 @@ type KickerProps = {
  */
 export function Kicker({ index, children, className }: KickerProps) {
   return (
-    <span
-      className={join(
-        'inline-flex items-center gap-2 font-mono text-xs uppercase tracking-widest text-fd-muted-foreground',
-        className,
-      )}
-    >
+    <span className={join('u-eyebrow inline-flex items-center gap-2', className)}>
       {index && (
         <>
-          <span style={{ color: EMBER }}>{index}</span>
-          <span aria-hidden className="text-fd-muted-foreground/60">
+          <span className="text-accent">{index}</span>
+          <span aria-hidden className="text-ink-3">
             —
           </span>
         </>
@@ -112,7 +105,7 @@ export function SectionHeader({
 
       <motion.h2
         variants={reduce ? undefined : fadeUp(0, 12)}
-        className="text-3xl font-bold tracking-tight sm:text-4xl"
+        className="text-3xl font-semibold tracking-[-0.02em] text-ink sm:text-4xl"
       >
         {title}
       </motion.h2>
@@ -121,7 +114,7 @@ export function SectionHeader({
         <motion.p
           variants={reduce ? undefined : fadeUp(0, 12)}
           className={join(
-            'max-w-2xl text-lg text-fd-muted-foreground',
+            'max-w-2xl text-lg text-ink-2',
             centered && 'mx-auto',
           )}
         >
