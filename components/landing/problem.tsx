@@ -53,7 +53,7 @@ export function Problem() {
       />
 
       <motion.ul
-        className="mt-12 border-t border-fd-border"
+        className="mt-12 border-t border-line"
         variants={reduce ? undefined : staggerContainer(0.12)}
         initial={reduce ? undefined : 'hidden'}
         whileInView={reduce ? undefined : 'show'}
@@ -62,18 +62,18 @@ export function Problem() {
         {options.map((opt) => (
           <motion.li
             key={opt.name}
-            className="grid grid-cols-1 gap-x-8 gap-y-2 border-b border-fd-border py-6 sm:grid-cols-[minmax(0,11rem)_1fr] sm:items-baseline"
+            className="grid grid-cols-1 gap-x-8 gap-y-2 border-b border-line py-6 sm:grid-cols-[minmax(0,11rem)_1fr] sm:items-baseline"
             variants={reduce ? undefined : fadeUp()}
           >
             <div className="min-w-0">
-              <h3 className="font-mono text-sm font-semibold tracking-tight text-fd-foreground">
+              <h3 className="font-mono text-sm font-semibold tracking-tight text-ink">
                 {opt.name}
               </h3>
-              <p className="mt-1 font-mono text-xs text-fd-muted-foreground/70">
+              <p className="mt-1 font-mono text-xs text-ink-3">
                 {opt.detail}
               </p>
             </div>
-            <p className="text-base leading-relaxed text-fd-muted-foreground">
+            <p className="text-base leading-relaxed text-ink-2">
               {opt.verdict}
             </p>
           </motion.li>
@@ -81,7 +81,7 @@ export function Problem() {
       </motion.ul>
 
       <motion.p
-        className="mt-10 max-w-2xl text-lg leading-relaxed text-fd-foreground"
+        className="mt-10 max-w-2xl text-lg leading-relaxed text-ink"
         initial={reduce ? undefined : 'hidden'}
         whileInView={reduce ? undefined : 'show'}
         viewport={viewportOnce}
