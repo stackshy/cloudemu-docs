@@ -1,41 +1,38 @@
 ---
 title: Database
-description: Emulate DynamoDB, Cosmos DB, and Firestore — drive them with the real cloud SDK.
+description: In-memory NoSQL document/key-value store modelled on DynamoDB, Cosmos DB, and Firestore, driven with the real cloud SDKs
+aws: DynamoDB
+azure: Cosmos DB
+gcp: Firestore
 ---
 
-Model a NoSQL database entirely in memory. cloudemu implements the **document / key-value data plane** of all three clouds — creating tables and containers, writing and reading items, querying and scanning, batching, and the indexes and streams around them. The exact SDK code you'd write against real DynamoDB, Cosmos DB, or Firestore runs against a local server instead: no table is ever provisioned, nothing is billed, and every call returns in milliseconds.
+Emulates a managed NoSQL store — the DynamoDB/Cosmos/Firestore table your app writes items to and queries by key. You create a table with a partition key (and optional sort key), then put, get, update, query, and scan schemaless items. Each item is just a map of attributes; the table indexes them by their key so lookups and range queries stay fast.
 
-| Provider | Real service | cloudemu driver |
-|---|---|---|
-| **AWS** | DynamoDB — tables, items, queries, GSIs, streams | `aws.DynamoDB` |
-| **Azure** | Cosmos DB — databases, containers, documents | `azure.CosmosDB` |
-| **GCP** | Firestore — collections, documents, queries | `gcp.Firestore` |
+Reach for it when your code puts an item and reads it back by key, runs a query with a key condition, or scans with a filter — so you can exercise those paths without a real DynamoDB account. For managed *relational* databases (RDS/Aurora, Azure SQL, Cloud SQL), see [Relational Database](/docs/services/relationaldb) instead.
 
-There are two ways to drive it, both backed by the same in-memory state:
-
-- **Real cloud SDK** — point your existing `aws-sdk-go-v2`, `azcosmos`, or `cloud.google.com/go/firestore` client at a local server. Only the endpoint changes; your real code is untouched — the same client works in a test, a local dev server, or your running app.
-- **Portable Go API** — call cloudemu's Go interface directly from your application code — discover resources, perform actions, skip the HTTP hop entirely. The same method shape works across every cloud, so you can switch providers by changing one field.
+| Provider | Service | SDK-compat | Driver |
+|----------|---------|:----------:|--------|
+| AWS | DynamoDB | ✓ Live | `aws.DynamoDB` |
+| Azure | Cosmos DB | ✓ Live | `azure.CosmosDB` |
+| GCP | Firestore | ✓ Live | `gcp.Firestore` |
 
 ## Drive it with the real SDK
 
-cloudemu ships an HTTP server per cloud that speaks that provider's real wire protocol. Run it with `httptest` in a test or behind a real `http.Server` in your app, hand it the drivers you need, and point your normal SDK client at its URL — nothing else in your code changes.
-
-<Tabs items={['AWS', 'Azure', 'GCP']}>
-
-<Tab value="AWS">
+The recommended path is to point the real SDK at the SDK-compat server, so your production data-access code runs unchanged. This creates a table keyed on `id` and writes one item — the client is the stock AWS SDK, only the endpoint is redirected:
 
 ```go
 import (
     "github.com/aws/aws-sdk-go-v2/service/dynamodb"
     "github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
-    awsserver "github.com/stackshy/cloudemu/server/aws"
+    "github.com/stackshy/cloudemu/v2"
+    awsserver "github.com/stackshy/cloudemu/v2/server/aws"
 )
 
 cloud := cloudemu.NewAWS()
 ts := httptest.NewServer(awsserver.New(awsserver.Drivers{DynamoDB: cloud.DynamoDB}))
 
 client := dynamodb.NewFromConfig(cfg, func(o *dynamodb.Options) {
-    o.BaseEndpoint = aws.String(ts.URL) // the only change from real AWS
+    o.BaseEndpoint = aws.String(ts.URL)
 })
 
 client.CreateTable(ctx, &dynamodb.CreateTableInput{
@@ -58,109 +55,15 @@ client.PutItem(ctx, &dynamodb.PutItemInput{
 })
 ```
 
-</Tab>
+Same shape with `azcosmos` (Azure) and `cloud.google.com/go/firestore` (GCP). See the [SDK-Compat Server page](/docs/sdk-compat) for the full quick starts.
 
-<Tab value="Azure">
+## Call the driver directly
 
-```go
-import (
-    "github.com/Azure/azure-sdk-for-go/sdk/data/azcosmos"
-    azureserver "github.com/stackshy/cloudemu/server/azure"
-)
-
-cloud := cloudemu.NewAzure()
-ts := httptest.NewTLSServer(azureserver.New(azureserver.Drivers{
-    CosmosDB: cloud.CosmosDB,
-}))
-
-// The Cosmos SDK requires TLS; point the real azcosmos client at ts.
-cred, _ := azcosmos.NewKeyCredential(key)
-client, _ := azcosmos.NewClientWithKey(ts.URL, cred, optsFor(ts))
-
-client.CreateDatabase(ctx, azcosmos.DatabaseProperties{ID: "app"}, nil)
-db, _ := client.NewDatabase("app")
-db.CreateContainer(ctx, azcosmos.ContainerProperties{
-    ID:                     "Users",
-    PartitionKeyDefinition: azcosmos.PartitionKeyDefinition{Paths: []string{"/pk"}},
-}, nil)
-
-cc, _ := db.NewContainer("Users")
-item, _ := json.Marshal(map[string]any{"id": "u1", "pk": "u1", "name": "Alice"})
-cc.CreateItem(ctx, azcosmos.NewPartitionKeyString("u1"), item, nil)
-```
-
-</Tab>
-
-<Tab value="GCP">
+For in-process setup or assertions you can skip the HTTP hop and call the driver. Items are plain `map[string]any`, so there's no attribute-value wrapping to deal with:
 
 ```go
-import (
-    firestore "cloud.google.com/go/firestore"
-    gcpserver "github.com/stackshy/cloudemu/server/gcp"
-)
+import dbdriver "github.com/stackshy/cloudemu/v2/services/database/driver"
 
-cloud := cloudemu.NewGCP()
-ts := httptest.NewServer(gcpserver.New(gcpserver.Drivers{Firestore: cloud.Firestore}))
-
-client, _ := firestore.NewRESTClient(ctx, "my-project",
-    option.WithEndpoint(ts.URL), // the only change from real GCP
-    option.WithoutAuthentication(),
-    option.WithHTTPClient(ts.Client()),
-)
-
-client.Collection("Users").Doc("u1").Set(ctx, map[string]any{
-    "name": "Alice",
-})
-snap, _ := client.Collection("Users").Doc("u1").Get(ctx)
-```
-
-</Tab>
-
-</Tabs>
-
-## What each provider supports
-
-Not every provider exposes the same operations — cloudemu matches what each cloud's own API offers.
-
-<Tabs items={['AWS', 'Azure', 'GCP']}>
-
-<Tab value="AWS">
-
-**DynamoDB** — table lifecycle with `CreateTable`, `DeleteTable`, `DescribeTable`, and `ListTables`. Item operations cover `PutItem`, `GetItem`, `DeleteItem`, and `UpdateItem` (SET / REMOVE), plus `Query` and `Scan` with `FilterExpression`. Batch and transactional writes are supported via `BatchWriteItem`, `BatchGetItem`, and `TransactWriteItems`.
-
-</Tab>
-
-<Tab value="Azure">
-
-**Cosmos DB** — the document data plane over databases, containers, and documents, with full CRUD and query. Requests carry the real `x-ms-documentdb-*` headers and partition-key routing, so the `azcosmos` SDK behaves as it does against a real account.
-
-</Tab>
-
-<Tab value="GCP">
-
-**Firestore** — the REST data plane: document CRUD alongside `:commit` (batched writes), `:batchGet` (batched reads), and `:runQuery`. Writing into a not-yet-existent collection auto-creates it, matching real Firestore.
-
-</Tab>
-
-</Tabs>
-
-## How the emulator behaves
-
-cloudemu doesn't just store objects — it reproduces the side effects of the real service, so your code exercises realistic behavior instead of a dumb key-value store:
-
-- **TTL expiry.** Items with a TTL attribute expire on read, so your code can advance the clock and see the row disappear without a background sweeper.
-- **Numeric-aware comparisons.** Filters compare numbers by value, not lexically — `"10" > "9"` evaluates correctly.
-- **Streams and change feeds.** With streams enabled, `PutItem` / `UpdateItem` / `DeleteItem` emit INSERT / MODIFY / REMOVE records. Global Secondary Indexes are managed with `CreateIndex`, `DescribeIndex`, and `DeleteIndex`, and queries target one via `QueryInput.IndexName`.
-
-## Or call the Portable Go API directly
-
-When you don't need the HTTP layer, call cloudemu's Go interface directly inside your application — discovery, provisioning, teardown — no server, no wire protocol. The method shape is identical across clouds, so switching providers is a one-line change.
-
-<Tabs items={['AWS', 'Azure', 'GCP']}>
-
-<Tab value="AWS">
-
-```go
 aws.DynamoDB.CreateTable(ctx, dbdriver.TableConfig{
     Name: "Users", PartitionKey: "id",
 })
@@ -168,30 +71,18 @@ aws.DynamoDB.PutItem(ctx, "Users", map[string]any{"id": "u1", "name": "Alice"})
 item, _ := aws.DynamoDB.GetItem(ctx, "Users", map[string]any{"id": "u1"})
 ```
 
-</Tab>
+`GetItem` takes just the key attributes and returns the full item (or nil if absent). `Query`, `Scan`, `UpdateItem`, and batch/transactional writes take the same shape via `dbdriver` input structs.
 
-<Tab value="Azure">
+## Behavior & fidelity
 
-```go
-azure.CosmosDB.CreateTable(ctx, dbdriver.TableConfig{
-    Name: "Users", PartitionKey: "id",
-})
-azure.CosmosDB.PutItem(ctx, "Users", map[string]any{"id": "u1", "name": "Alice"})
-item, _ := azure.CosmosDB.GetItem(ctx, "Users", map[string]any{"id": "u1"})
-```
+| Behavior | What happens |
+|----------|--------------|
+| Query and scan paginate | Results come back in stable key order; pass a `Limit` and resume with an offset `PageToken` or a DynamoDB-style `ExclusiveStartKey`, and page tokens stay valid across calls. |
+| Numeric-aware comparisons | Numbers order numerically (`"10" > "9"`), strings lexically, and bools `false < true`, matching the real services rather than naive string compare. |
+| TTL expiry on read | An item past its TTL attribute reads as absent, so a `Get` or `Query` never returns expired data. |
+| Streams / change feed | With streams enabled, writes emit INSERT / MODIFY / REMOVE records you can read back — useful for change-driven pipelines. |
+| Global secondary indexes | GSIs can be created, described, listed, and deleted, and a `Query` can target one via its `IndexName`. |
 
-</Tab>
+## SDK-compat — Live
 
-<Tab value="GCP">
-
-```go
-gcp.Firestore.CreateTable(ctx, dbdriver.TableConfig{
-    Name: "Users", PartitionKey: "id",
-})
-gcp.Firestore.PutItem(ctx, "Users", map[string]any{"id": "u1", "name": "Alice"})
-item, _ := gcp.Firestore.GetItem(ctx, "Users", map[string]any{"id": "u1"})
-```
-
-</Tab>
-
-</Tabs>
+Real `dynamodb`, `azcosmos`, and Firestore clients drive it end-to-end — see [SDK-Compat](/docs/sdk-compat) for the full operation list.

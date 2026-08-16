@@ -1,19 +1,25 @@
 {
   "title": "Documentation",
   "pages": [
+    "---Getting started---",
     "index",
     "prerequisites",
     "installation",
     "quick-start",
+    "integration",
+    "---Guides---",
     "configuration",
-    "---",
+    "error-handling",
     "architecture",
+    "structure",
+    "---Reference---",
+    "services",
+    "features",
+    "---Advanced---",
     "portable-api",
     "sdk-compat",
-    "error-handling",
+    "standalone-server",
     "chaos",
-    "---",
-    "services",
-    "features"
+    "topology"
   ]
 }

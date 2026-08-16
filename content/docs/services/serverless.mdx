@@ -1,41 +1,37 @@
 ---
 title: Serverless
-description: Emulate Lambda, Azure Functions, and Cloud Functions — drive them with the real cloud SDK.
+description: In-memory functions-as-a-service modelled on Lambda, Azure Functions, and Cloud Functions, driven with the real cloud SDKs
+aws: Lambda
+azure: Functions
+gcp: Cloud Functions
 ---
 
-Deploy and invoke functions-as-a-service entirely in memory. cloudemu implements the **serverless control plane** of all three clouds — creating function definitions, listing and describing them, deleting them, and running them synchronously. You register a plain Go function as the handler, and the exact SDK code you'd write against real AWS, Azure, or GCP invokes it against a local server instead: nothing is deployed, nothing is billed, and every call returns in milliseconds.
+Emulates functions-as-a-service — the Lambda/Azure Functions/Cloud Functions control plane where you create a function and invoke it with a payload. Instead of deploying a zip, you register a plain Go function as the handler; an `Invoke` then runs it in-process and returns its response bytes. That keeps the create/invoke path fast and deterministic while still exercising your production wiring.
 
-| Provider | Real service | cloudemu driver |
-|---|---|---|
-| **AWS** | Lambda — REST + JSON functions API | `aws.Lambda` |
-| **Azure** | Functions — Function Apps (`Microsoft.Web/sites`) + `/api/{name}` invoke | `azure.Functions` |
-| **GCP** | Cloud Functions v1 — Create LRO + `:call` invoke | `gcp.CloudFunctions` |
+Reach for it when your code creates a function, invokes it synchronously, and reads the response — for example verifying an orchestration that fans out to Lambdas, or a caller that depends on a function's output shape — without deploying to a real cloud. You get the function's response back exactly as the SDK would deliver it.
 
-There are two ways to drive it, both backed by the same in-memory state:
-
-- **Real cloud SDK** — point your existing `aws-sdk-go-v2`, `azure-sdk-for-go`, or `google.golang.org/api` client at a local server. Only the endpoint changes; your real code is untouched — the same client works in a test, a local dev server, or your running app.
-- **Portable Go API** — call cloudemu's Go interface directly from your application code — discover resources, perform actions, skip the HTTP hop entirely. The same method shape works across every cloud, so you can switch providers by changing one field.
+| Provider | Service | SDK-compat | Driver |
+|----------|---------|:----------:|--------|
+| AWS | Lambda (REST + JSON) | ✓ Live | `aws.Lambda` |
+| Azure | Functions (Function Apps + `/api/{name}` invoke) | ✓ Live | `azure.Functions` |
+| GCP | Cloud Functions v1 (Create LRO + `:call`) | ✓ Live | `gcp.CloudFunctions` |
 
 ## Drive it with the real SDK
 
-cloudemu ships an HTTP server per cloud that speaks that provider's real wire protocol. You start it with `httptest`, hand it the drivers you need, register a Go handler so `Invoke` has something to run, and point your normal SDK client at its URL — nothing else in your code changes.
-
-<Tabs items={['AWS', 'Azure', 'GCP']}>
-
-<Tab value="AWS">
+The recommended path is to point the real SDK at the SDK-compat server. Because there's no real runtime, you register a Go handler so `Invoke` has something to execute — then the stock Lambda client creates and calls the function unchanged:
 
 ```go
 import (
     "github.com/aws/aws-sdk-go-v2/service/lambda"
     lambdatypes "github.com/aws/aws-sdk-go-v2/service/lambda/types"
-    awsserver "github.com/stackshy/cloudemu/server/aws"
+    awsserver "github.com/stackshy/cloudemu/v2/server/aws"
 )
 
 cloud := cloudemu.NewAWS()
 ts := httptest.NewServer(awsserver.New(awsserver.Drivers{Lambda: cloud.Lambda}))
 
 client := lambda.NewFromConfig(cfg, func(o *lambda.Options) {
-    o.BaseEndpoint = aws.String(ts.URL) // the only change from real AWS
+    o.BaseEndpoint = aws.String(ts.URL)
 })
 
 client.CreateFunction(ctx, &lambda.CreateFunctionInput{
@@ -58,115 +54,14 @@ resp, _ := client.Invoke(ctx, &lambda.InvokeInput{
 fmt.Println(string(resp.Payload)) // {"status":"ok"}
 ```
 
-</Tab>
+Same shape with `armappservice` (Azure) and `google.golang.org/api/cloudfunctions/v1` (GCP) — see [SDK-Compat Server](/docs/sdk-compat#azure-handlers).
 
-<Tab value="Azure">
+## Call the driver directly
 
-```go
-import (
-    "github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/appservice/armappservice/v3"
-    azureserver "github.com/stackshy/cloudemu/server/azure"
-)
-
-cloud := cloudemu.NewAzure()
-ts := httptest.NewTLSServer(azureserver.New(azureserver.Drivers{
-    Functions: cloud.Functions,
-}))
-
-// Point the real armappservice client at ts (endpoint + ts.Client()).
-client, _ := armappservice.NewWebAppsClient("sub-1", cred, optsFor(ts))
-
-poller, _ := client.BeginCreateOrUpdate(ctx, "my-rg", "my-func-app", armappservice.Site{
-    Location: to.Ptr("eastus"),
-}, nil)
-site, _ := poller.PollUntilDone(ctx, nil)
-
-// Register a Go handler, then invoke it via the non-ARM /api/{name} route.
-cloud.Functions.RegisterHandler("my-handler", func(ctx context.Context, payload []byte) ([]byte, error) {
-    return []byte(`{"status":"ok"}`), nil
-})
-```
-
-</Tab>
-
-<Tab value="GCP">
+For in-process setup you can skip the HTTP hop. The flow is the same three steps — create, register a handler, invoke — with the driver's own input structs:
 
 ```go
-import (
-    cloudfunctions "google.golang.org/api/cloudfunctions/v1"
-    "google.golang.org/api/option"
-    gcpserver "github.com/stackshy/cloudemu/server/gcp"
-)
-
-cloud := cloudemu.NewGCP()
-ts := httptest.NewServer(gcpserver.New(gcpserver.Drivers{CloudFunctions: cloud.CloudFunctions}))
-
-svc, _ := cloudfunctions.NewService(ctx,
-    option.WithEndpoint(ts.URL), // the only change from real GCP
-    option.WithoutAuthentication(),
-    option.WithHTTPClient(ts.Client()),
-)
-
-parent := "projects/my-project/locations/us-central1"
-op, _ := svc.Projects.Locations.Functions.Create(parent, &cloudfunctions.CloudFunction{
-    Name:       parent + "/functions/my-handler",
-    Runtime:    "go119",
-    EntryPoint: "Handler",
-}).Do()
-
-// Register a Go handler so the :call invoke has something to run.
-cloud.CloudFunctions.RegisterHandler("my-handler", func(ctx context.Context, payload []byte) ([]byte, error) {
-    return []byte(`{"status":"ok"}`), nil
-})
-```
-
-</Tab>
-
-</Tabs>
-
-## What each provider supports
-
-Not every provider exposes the same operations — cloudemu matches what each cloud's own API offers.
-
-<Tabs items={['AWS', 'Azure', 'GCP']}>
-
-<Tab value="AWS">
-
-**Lambda** — `CreateFunction`, `GetFunction`, `ListFunctions`, `DeleteFunction`, and synchronous `Invoke`. Beyond the SDK-compat surface, the Portable API also carries published versions, weighted aliases, layers, function concurrency, and event source mappings.
-
-</Tab>
-
-<Tab value="Azure">
-
-**Functions** — `Microsoft.Web/sites` `CreateOrUpdate` / `Get` / `List` / `Delete` for Function Apps, plus a non-ARM `/api/{name}` route that invokes a registered handler the way an HTTP-triggered function would.
-
-</Tab>
-
-<Tab value="GCP">
-
-**Cloud Functions v1** — `Create` (returns an LRO), `Get`, `List`, `Delete` (LRO), and `:call` for synchronous invocation. `Operations.Get` polls the long-running operations, so `op.Wait`-style polling behaves the same as it does against real GCP.
-
-</Tab>
-
-</Tabs>
-
-## How the emulator behaves
-
-cloudemu doesn't just store function definitions — it reproduces the parts of the real service your code depends on:
-
-- **Handlers are real Go functions.** Register one with `RegisterHandler` and `Invoke` (or `:call`, or `/api/{name}`) actually runs it and returns its bytes — so your code can create a function and assert on the exact response payload.
-- **Mutations mirror each cloud's wire shape.** GCP `Create` and `Delete` return long-running-operation envelopes and complete synchronously; Azure surfaces Function Apps as `Microsoft.Web/sites` resources; AWS speaks the REST + JSON functions API. Your SDK client sees what it would against the real endpoint.
-
-## Or call the Portable Go API directly
-
-When you don't need the HTTP layer, call cloudemu's Go interface directly inside your application — discovery, provisioning, teardown — no server, no wire protocol. The method shape is identical across clouds, so switching providers is a one-line change.
-
-<Tabs items={['AWS', 'Azure', 'GCP']}>
-
-<Tab value="AWS">
-
-```go
-import sdriver "github.com/stackshy/cloudemu/serverless/driver"
+import sdriver "github.com/stackshy/cloudemu/v2/services/serverless/driver"
 
 aws.Lambda.CreateFunction(ctx, sdriver.FunctionConfig{
     Name: "my-handler", Runtime: "go1.x", Handler: "main",
@@ -179,42 +74,25 @@ out, _ := aws.Lambda.Invoke(ctx, sdriver.InvokeInput{
 })
 ```
 
-</Tab>
+`Invoke` returns an `InvokeOutput` carrying the status code, response payload, and any handler error string. `UpdateFunction(ctx, name, config)` patches an existing function's configuration in place and returns the updated `FunctionInfo`.
 
-<Tab value="Azure">
+## Behavior & fidelity
 
-```go
-import sdriver "github.com/stackshy/cloudemu/serverless/driver"
+| Behavior | What happens |
+|----------|--------------|
+| Invoke runs your handler | A function with no handler registered via `RegisterHandler` has nothing to execute; the handler's returned bytes come straight back as the invocation payload. |
+| Handler errors are invocation errors | An error from the handler is reported on the invocation result, not as a transport failure — the same way the real services separate a function error from a call failure. |
+| GCP create/delete are long-running | Cloud Functions create and delete return an LRO you poll via `Operations.Get`, mirroring the real v1 API; `:call` is the synchronous invoke. |
+| Portable-API-only extras | Layers and reserved/provisioned concurrency are not yet on the SDK-compat layer — reach for them through the [Portable Go API](/docs/sdk-compat). |
 
-azure.Functions.CreateFunction(ctx, sdriver.FunctionConfig{
-    Name: "my-handler", Runtime: "dotnet", Handler: "run",
-})
-azure.Functions.RegisterHandler("my-handler", func(_ context.Context, p []byte) ([]byte, error) {
-    return []byte(`{"ok":true}`), nil
-})
-out, _ := azure.Functions.Invoke(ctx, sdriver.InvokeInput{
-    FunctionName: "my-handler", Payload: []byte(`{}`),
-})
-```
+## SDK-compat — Live
 
-</Tab>
+Real `lambda`, `armappservice`, and `cloudfunctions/v1` clients drive the emulator end-to-end:
 
-<Tab value="GCP">
+| Provider | Coverage |
+|----------|----------|
+| AWS Lambda | Function CRUD, versions, aliases, event source mappings, resource policy, tagging, sync invoke |
+| Azure Functions | Function-app CRUD plus HTTP invoke |
+| GCP Cloud Functions | Create/Delete LROs, get, list, synchronous call |
 
-```go
-import sdriver "github.com/stackshy/cloudemu/serverless/driver"
-
-gcp.CloudFunctions.CreateFunction(ctx, sdriver.FunctionConfig{
-    Name: "my-handler", Runtime: "go119", Handler: "Handler",
-})
-gcp.CloudFunctions.RegisterHandler("my-handler", func(_ context.Context, p []byte) ([]byte, error) {
-    return []byte(`{"ok":true}`), nil
-})
-out, _ := gcp.CloudFunctions.Invoke(ctx, sdriver.InvokeInput{
-    FunctionName: "my-handler", Payload: []byte(`{}`),
-})
-```
-
-</Tab>
-
-</Tabs>
+See [SDK-Compat](/docs/sdk-compat) for the full per-operation list.

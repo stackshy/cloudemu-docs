@@ -8,6 +8,7 @@ import {
   Box, MemoryStick, Lock, FileText,
 } from 'lucide-react';
 import { services } from '@/lib/services';
+import { STATS } from '@/lib/product';
 import { fadeUp, staggerContainer, viewportOnce } from '@/lib/motion';
 import { SectionHeader } from '@/components/landing/section';
 
@@ -17,23 +18,24 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Box, MemoryStick, Lock, FileText,
 };
 
-const PROVIDER = {
-  aws: '#FF9900',
-  azure: '#0078D4',
-  gcp: '#4285F4',
-  oci: '#C74634',
+/** Semantic provider tokens — the only place provider colors touch text. */
+const PROVIDER_CLASS = {
+  aws: 'text-aws',
+  azure: 'text-azure',
+  gcp: 'text-gcp',
 };
 
 export function ServiceGrid() {
   const reduce = useReducedMotion();
+  const categories = services.length;
 
   return (
     <section className="w-full max-w-5xl mx-auto px-6 py-20">
       <SectionHeader
         index="05"
         kicker="Coverage"
-        title="16 service categories"
-        lede="48 implementations behind them — every category built for AWS, Azure, and GCP. OCI lands service by service."
+        title={`${categories} service categories`}
+        lede={`${categories * STATS.clouds} implementations behind them — every category built for AWS, Azure, and GCP.`}
         className="mb-8"
       />
 
@@ -50,12 +52,12 @@ export function ServiceGrid() {
             <motion.div key={service.slug} variants={reduce ? undefined : fadeUp(0, 12)}>
               <Link
                 href={`/docs/services/${service.slug}`}
-                className="group relative flex items-baseline justify-between gap-4 py-4 border-t border-fd-border transition-colors duration-200 hover:border-ember-500/60"
+                className="group relative flex items-baseline justify-between gap-4 py-4 border-t border-line transition-colors duration-200 hover:border-line-2"
               >
                 <span
                   aria-hidden
                   className={
-                    'pointer-events-none absolute left-0 top-[-1px] h-[2px] rounded-full bg-ember-500 origin-left ' +
+                    'pointer-events-none absolute left-0 top-[-1px] h-[2px] rounded-full bg-accent origin-left ' +
                     'w-8 opacity-0 transition-[opacity,transform] duration-200 ease-out group-hover:opacity-100' +
                     (reduce ? '' : ' -translate-x-2 group-hover:translate-x-0')
                   }
@@ -69,20 +71,19 @@ export function ServiceGrid() {
                   {Icon && (
                     <Icon
                       className={
-                        'w-4 h-4 text-fd-muted-foreground transition-[color,transform] duration-200 ease-out group-hover:text-ember-500' +
+                        'w-4 h-4 text-ink-3 transition-[color,transform] duration-200 ease-out group-hover:text-accent' +
                         (reduce ? '' : ' group-hover:-translate-y-[1px]')
                       }
                     />
                   )}
-                  <span className="font-medium transition-colors duration-200 group-hover:text-ember-500">
+                  <span className="font-medium text-ink transition-colors duration-200 group-hover:text-accent">
                     {service.category}
                   </span>
                 </span>
-                <span className="flex flex-wrap justify-end gap-x-3 gap-y-0.5 font-mono text-[11px] text-fd-muted-foreground/80 text-right">
-                  <Chip color={PROVIDER.aws} label="aws" value={service.aws} />
-                  <Chip color={PROVIDER.azure} label="az" value={service.azure} />
-                  <Chip color={PROVIDER.gcp} label="gcp" value={service.gcp} />
-                  {service.oci && <Chip color={PROVIDER.oci} label="oci" value={service.oci} />}
+                <span className="flex flex-wrap justify-end gap-x-3 gap-y-0.5 font-mono text-[11px] text-ink-3 text-right">
+                  <Chip colorClass={PROVIDER_CLASS.aws} label="aws" value={service.aws} />
+                  <Chip colorClass={PROVIDER_CLASS.azure} label="az" value={service.azure} />
+                  <Chip colorClass={PROVIDER_CLASS.gcp} label="gcp" value={service.gcp} />
                 </span>
               </Link>
             </motion.div>
@@ -93,10 +94,10 @@ export function ServiceGrid() {
   );
 }
 
-function Chip({ color, label, value }: { color: string; label: string; value: string }) {
+function Chip({ colorClass, label, value }: { colorClass: string; label: string; value: string }) {
   return (
     <span className="whitespace-nowrap">
-      <span style={{ color }}>{label}</span> {value}
+      <span className={colorClass}>{label}</span> {value}
     </span>
   );
 }

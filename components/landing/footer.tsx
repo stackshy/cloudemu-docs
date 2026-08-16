@@ -4,9 +4,9 @@ import Link from 'next/link';
 import { motion, useReducedMotion } from 'framer-motion';
 
 import { fadeUp, staggerContainer, viewportOnce } from '@/lib/motion';
-
-/** The one accent color — ember on warm charcoal. Used sparingly. */
-const EMBER = '#FF6B2C';
+import { STATS } from '@/lib/product';
+import { services } from '@/lib/services';
+import { LogoMark } from '@/components/logo';
 
 type FooterLink = {
   label: string;
@@ -49,15 +49,16 @@ const COLUMNS: FooterColumn[] = [
  *
  * A hairline-bordered slab: the cloudemu wordmark and a one-line sign-off on the
  * left, three real link columns (Docs, Blog, GitHub) on the right, and a
- * monospace bottom line stating the license and Go version. Ember shows up once,
- * on the wordmark's terminal caret. Reveals once on scroll via `fadeUp`; static
- * when the viewer prefers reduced motion.
+ * monospace bottom line stating the license and Go version. The accent shows up
+ * once, on the wordmark's terminal caret. Reveals once on scroll via `fadeUp`;
+ * static when the viewer prefers reduced motion.
  */
 export function Footer() {
   const reduce = useReducedMotion();
+  const implementations = services.length * STATS.clouds;
 
   return (
-    <footer className="relative w-full border-t border-fd-border bg-fd-card/30">
+    <footer className="relative w-full border-t border-line bg-surface/30">
       <motion.div
         variants={reduce ? undefined : staggerContainer(0.08)}
         initial={reduce ? false : 'hidden'}
@@ -70,18 +71,16 @@ export function Footer() {
             variants={reduce ? undefined : fadeUp(0, 12)}
             className="max-w-sm"
           >
-            <div className="flex items-baseline gap-1 font-mono text-lg font-bold tracking-tight">
-              <span aria-hidden style={{ color: EMBER }}>
-                $
-              </span>
-              <span>cloudemu</span>
-            </div>
-            <p className="mt-4 text-sm leading-relaxed text-fd-muted-foreground">
-              48 in-memory cloud service implementations in pure Go. Your real cloud SDKs call it
-              unchanged — no accounts, no Docker, no network.
+            <LogoMark />
+            <p className="mt-2 font-mono text-[11px] uppercase tracking-[0.18em] text-accent">
+              The cloud, in memory
             </p>
-            <p className="mt-4 text-sm text-fd-foreground/80">
-              Built for Go teams who&apos;d rather not mock the cloud.
+            <p className="mt-4 text-sm leading-relaxed text-ink-2">
+              {implementations} in-memory cloud service implementations across AWS, Azure, and GCP.
+              Your real cloud SDKs call it unchanged — no cloud accounts, no bills.
+            </p>
+            <p className="mt-4 text-sm text-ink-2">
+              Run it in-process, as a standalone server, or in Docker — from any language.
             </p>
           </motion.div>
 
@@ -92,9 +91,7 @@ export function Footer() {
           >
             {COLUMNS.map((column) => (
               <div key={column.heading} className="flex flex-col gap-3">
-                <h2 className="font-mono text-xs uppercase tracking-widest text-fd-muted-foreground">
-                  {column.heading}
-                </h2>
+                <h2 className="u-eyebrow">{column.heading}</h2>
                 <ul className="flex flex-col gap-2.5">
                   {column.links.map((link) => (
                     <li key={link.label}>
@@ -103,14 +100,14 @@ export function Footer() {
                           href={link.href}
                           target="_blank"
                           rel="noreferrer"
-                          className="text-sm text-fd-foreground/80 transition-colors hover:text-fd-foreground"
+                          className="text-sm text-ink-2 transition-colors hover:text-ink"
                         >
                           {link.label}
                         </a>
                       ) : (
                         <Link
                           href={link.href}
-                          className="text-sm text-fd-foreground/80 transition-colors hover:text-fd-foreground"
+                          className="text-sm text-ink-2 transition-colors hover:text-ink"
                         >
                           {link.label}
                         </Link>
@@ -125,9 +122,9 @@ export function Footer() {
 
         <motion.div
           variants={reduce ? undefined : fadeUp(0, 12)}
-          className="mt-14 border-t border-fd-border pt-6"
+          className="mt-14 border-t border-line pt-6"
         >
-          <p className="font-mono text-xs tracking-wide text-fd-muted-foreground">
+          <p className="font-mono text-xs tracking-wide text-ink-3">
             MIT License &middot; Requires Go 1.25+ &middot; an open-source project
           </p>
         </motion.div>

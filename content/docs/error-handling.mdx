@@ -2,13 +2,13 @@
 title: Error Handling
 description: Canonical error codes and helper functions in cloudemu
 ---
-All cloudemu operations return errors with canonical codes. Import the errors package:
+Match any cloudemu error against the 11 canonical codes and their helper functions. Import the errors package:
 
 ```go
-import cerrors "github.com/stackshy/cloudemu/errors"
+import cerrors "github.com/stackshy/cloudemu/v2/errors"
 ```
 
-## Error Codes
+## Error codes
 
 | Code | Description |
 |------|-------------|
@@ -24,7 +24,7 @@ import cerrors "github.com/stackshy/cloudemu/errors"
 | `ResourceExhausted` | Resource quota exceeded |
 | `Unavailable` | Service temporarily unavailable |
 
-## Checking Error Types
+## Checking error types
 
 Use the helper functions to check specific error types:
 
@@ -40,7 +40,7 @@ if cerrors.IsAlreadyExists(err) {
 }
 ```
 
-### Available Helpers
+### Available helpers
 
 ```go
 cerrors.IsNotFound(err) bool
@@ -51,7 +51,7 @@ cerrors.IsFailedPrecondition(err) bool
 cerrors.IsPermissionDenied(err) bool
 ```
 
-## Extracting Error Codes
+## Extracting error codes
 
 For error codes without dedicated helpers, use `GetCode`:
 
@@ -75,7 +75,7 @@ default:
 - The cloudemu error code for `*cerrors.Error` values
 - `Internal` for any other error type
 
-## Error Format
+## Error format
 
 Error messages follow the pattern `"Code: message"`:
 

@@ -5,31 +5,27 @@ import { motion, useReducedMotion } from 'framer-motion';
 
 import { DUR, EASE, fadeUp, staggerContainer, viewportOnce } from '@/lib/motion';
 import { AnimatedNumber } from '@/components/landing/animated-number';
+import { STATS } from '@/lib/product';
 
 /**
- * StatsBand: a boxless spec strip under the hero — read it like a datasheet, not
- * a marketing stat band. A mono caption row (`// spec` … pure Go · zero deps) sits
- * on a hairline over four left-aligned spec cells: big ember tabular numbers with
- * monospace field labels beneath, split by thin vertical hairlines. Numbers count
- * up on scroll (AnimatedNumber); as each reveals, an ember underline draws left→
- * right beneath it. Cells lift softly on hover. Reduced motion renders it static.
+ * StatsBand: a boxless spec strip under the hero — read like a datasheet. A mono
+ * caption on a hairline over four left-aligned cells: large tabular numbers in ink
+ * (accent is spent only on the draw-in underline), monospace field labels beneath.
+ * Numbers count up on scroll; the underline draws left→right as each reveals.
  */
 
-const EMBER = '#FF6B2C';
-
-/** Ember underline that draws left→right in step with its cell's reveal. */
 const drawUnderline: Variants = {
   hidden: { scaleX: 0 },
   show: { scaleX: 1, transition: { duration: DUR.base, ease: EASE, delay: 0.12 } },
 };
 
-type Stat = { label: string; value?: number; suffix?: string; static?: string; extra?: string };
+type Stat = { label: string; value?: number; suffix?: string; static?: string };
 
 const stats: Stat[] = [
-  { value: 48, label: 'in-memory services' },
-  { value: 16, label: 'service categories' },
-  { value: 3, extra: '+OCI', label: 'clouds · AWS Azure GCP' },
-  { static: '~10ms', label: 'per call' },
+  { value: STATS.sdkCompatServices, suffix: '+', label: 'SDK-compatible services' },
+  { value: STATS.serviceDomains, label: 'service domains' },
+  { value: STATS.clouds, label: 'clouds · AWS Azure GCP' },
+  { static: STATS.latency, label: 'per in-process call' },
 ];
 
 export function StatsBand() {
@@ -45,27 +41,26 @@ export function StatsBand() {
       >
         <motion.div
           variants={reduce ? undefined : fadeUp(0, 12)}
-          className="flex items-center justify-between border-t border-fd-border py-2.5 font-mono text-[11px] uppercase tracking-widest text-fd-muted-foreground"
+          className="flex items-center justify-between border-t border-line py-2.5 font-mono text-[11px] uppercase tracking-widest text-ink-3"
         >
           <span className="inline-flex items-center gap-2">
-            <span style={{ color: EMBER }}>//</span>
-            spec
+            <span className="text-accent">//</span>
+            coverage
           </span>
-          <span>pure Go · zero deps</span>
+          <span>AWS · Azure · GCP</span>
         </motion.div>
 
         <motion.dl
           variants={reduce ? undefined : staggerContainer(0.1)}
-          className="grid grid-cols-2 md:grid-cols-4 border-t border-b border-fd-border"
+          className="grid grid-cols-2 md:grid-cols-4 border-t border-b border-line"
         >
           {stats.map((s, i) => (
             <motion.div
               key={s.label}
               variants={reduce ? undefined : fadeUp(0, 16)}
-              whileHover={reduce ? undefined : { y: -3, transition: { duration: DUR.fast, ease: EASE } }}
               className={[
                 'flex flex-col items-start text-left gap-1.5 py-7 px-5',
-                'border-fd-border',
+                'border-line',
                 i === 0 ? 'pl-0' : '',
                 i > 0 ? 'border-l' : '',
                 i === 2 ? 'border-l-0 md:border-l' : '',
@@ -73,32 +68,27 @@ export function StatsBand() {
               ].join(' ')}
             >
               <dd
-                className="relative text-4xl md:text-5xl font-bold leading-none flex items-baseline pb-2"
-                style={{ color: EMBER, fontVariantNumeric: 'tabular-nums' }}
+                className="relative flex items-baseline pb-2 text-4xl font-semibold leading-none text-ink md:text-5xl"
+                style={{ fontVariantNumeric: 'tabular-nums' }}
               >
                 {s.static ? (
                   <span style={{ fontVariantNumeric: 'tabular-nums' }}>{s.static}</span>
                 ) : (
                   <AnimatedNumber value={s.value ?? 0} suffix={s.suffix ?? ''} />
                 )}
-                {s.extra && (
-                  <span className="ml-1 text-base font-semibold text-fd-muted-foreground">
-                    {s.extra}
-                  </span>
-                )}
                 <motion.span
                   aria-hidden
                   variants={reduce ? undefined : drawUnderline}
-                  className="pointer-events-none absolute left-0 bottom-0 h-[2px] w-full rounded-full origin-left"
+                  className="pointer-events-none absolute left-0 bottom-0 h-[2px] w-full origin-left rounded-full"
                   style={{
                     transformOrigin: 'left',
                     scaleX: reduce ? 1 : undefined,
-                    background: `linear-gradient(90deg, ${EMBER}, ${EMBER}00)`,
-                    opacity: 0.5,
+                    background: 'linear-gradient(90deg, var(--accent), transparent)',
+                    opacity: 0.65,
                   }}
                 />
               </dd>
-              <dt className="font-mono text-[11px] md:text-xs uppercase tracking-wider text-fd-muted-foreground">
+              <dt className="font-mono text-[11px] md:text-xs uppercase tracking-wider text-ink-3">
                 {s.label}
               </dt>
             </motion.div>

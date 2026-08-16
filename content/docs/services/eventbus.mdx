@@ -1,118 +1,24 @@
 ---
 title: Event Bus
-description: Emulate EventBridge, Event Grid, and Eventarc — route events through buses, rules, and targets entirely in memory.
+description: Content-based event routing — rules match a JSON pattern and forward events to targets, modelled on EventBridge, Event Grid, and Eventarc
+aws: EventBridge
+azure: Event Grid
+gcp: Eventarc
 ---
 
-Route events between services without any real infrastructure. cloudemu emulates the **event-routing control plane** of all three clouds — creating event buses, defining rules that filter events by pattern, attaching targets, and publishing events that get matched and delivered. Every call runs against local in-memory state, so your code can publish an event and immediately assert on what the rules matched, with nothing to provision or tear down.
+Emulates a managed event bus — the router you publish events to and let rules decide where they go. You create a bus, attach rules that each carry a JSON event pattern, and point each rule at one or more targets; when a published event matches a rule's pattern, it's routed to that rule's targets.
 
-| Provider | Real service | cloudemu driver |
-|---|---|---|
-| **AWS** | EventBridge — buses, rules, targets | `aws.EventBridge` |
-| **Azure** | Event Grid — topics and subscriptions | `azure.EventGrid` |
-| **GCP** | Eventarc — event routing | `gcp.Eventarc` |
+Reach for it when your code emits domain events (`OrderCreated`, `UserSignedUp`) and downstream handlers subscribe by shape rather than by name. Unlike the [message queue](/docs/services/messagequeue), routing is content-based and there's no pull-and-ack — an event that matches no rule is simply not delivered anywhere.
 
-There are two ways to drive it, both backed by the same in-memory state:
+| Provider | Service | SDK-compat | Driver |
+|----------|---------|:----------:|--------|
+| AWS | EventBridge | ✓ Live | `aws.EventBridge` |
+| Azure | Event Grid | ✓ Live | `azure.EventGrid` |
+| GCP | Eventarc | ✓ Live | `gcp.Eventarc` |
 
-- **Real cloud SDK** — point your existing `aws-sdk-go-v2`, `armeventgrid`, or Eventarc REST client at a local server. Only the endpoint changes; your real code is untouched — the same client works in a test, a local dev server, or your running app.
-- **Portable Go API** — call cloudemu's Go interface directly from your application code — discover resources, perform actions, skip the HTTP hop entirely. The same method shape works across every cloud, so you can switch providers by changing one field.
+## Create an event bus
 
-## Drive it with the real SDK
-
-cloudemu ships an HTTP server per cloud that speaks that provider's real wire protocol. Run it with `httptest` in a test or behind a real `http.Server` in your app, hand it the drivers you need, and point your normal SDK client at its URL — nothing else in your code changes.
-
-<Tabs items={['AWS', 'Azure', 'GCP']}>
-
-<Tab value="AWS">
-
-```go
-import (
-    "github.com/aws/aws-sdk-go-v2/aws"
-    awseb "github.com/aws/aws-sdk-go-v2/service/eventbridge"
-    ebtypes "github.com/aws/aws-sdk-go-v2/service/eventbridge/types"
-    awsserver "github.com/stackshy/cloudemu/v2/server/aws"
-)
-
-cloud := cloudemu.NewAWS()
-ts := httptest.NewServer(awsserver.New(awsserver.Drivers{EventBridge: cloud.EventBridge}))
-
-client := awseb.NewFromConfig(cfg, func(o *awseb.Options) {
-    o.BaseEndpoint = aws.String(ts.URL) // the only change from real AWS
-})
-
-client.CreateEventBus(ctx, &awseb.CreateEventBusInput{Name: aws.String("orders-bus")})
-client.PutRule(ctx, &awseb.PutRuleInput{
-    Name:         aws.String("order-created"),
-    EventBusName: aws.String("orders-bus"),
-    EventPattern: aws.String(`{"source":["orders"]}`),
-    State:        ebtypes.RuleStateEnabled,
-})
-```
-
-</Tab>
-
-<Tab value="Azure">
-
-```go
-import (
-    "github.com/Azure/azure-sdk-for-go/sdk/azcore/to"
-    "github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/eventgrid/armeventgrid/v2"
-    azureserver "github.com/stackshy/cloudemu/v2/server/azure"
-)
-
-cloud := cloudemu.NewAzure()
-ts := httptest.NewTLSServer(azureserver.New(azureserver.Drivers{EventGrid: cloud.EventGrid}))
-
-// Point the real armeventgrid client at ts (endpoint + ts.Client()).
-cf, _ := armeventgrid.NewClientFactory("sub-1", cred, optsFor(ts))
-topics := cf.NewTopicsClient()
-
-poller, _ := topics.BeginCreateOrUpdate(ctx, "rg-1", "orders-topic", armeventgrid.Topic{
-    Location: to.Ptr("global"),
-}, nil)
-topic, _ := poller.PollUntilDone(ctx, nil)
-```
-
-</Tab>
-
-<Tab value="GCP">
-
-```go
-import (
-    eventarc "google.golang.org/api/eventarc/v1"
-    "google.golang.org/api/option"
-    gcpserver "github.com/stackshy/cloudemu/v2/server/gcp"
-)
-
-cloud := cloudemu.NewGCP()
-ts := httptest.NewServer(gcpserver.New(gcpserver.Drivers{Eventarc: cloud.Eventarc}))
-
-svc, _ := eventarc.NewService(ctx,
-    option.WithEndpoint(ts.URL), // the only change from real GCP
-    option.WithoutAuthentication(),
-)
-
-parent := "projects/demo/locations/us-central1"
-svc.Projects.Locations.Triggers.Create(parent, &eventarc.Trigger{
-    EventFilters: []*eventarc.EventFilter{
-        {Attribute: "type", Value: "google.cloud.storage.object.v1.finalized"},
-    },
-    Destination: &eventarc.Destination{
-        CloudRun: &eventarc.CloudRun{Service: "my-service", Region: "us-central1"},
-    },
-}).TriggerId("obj-created").Context(ctx).Do()
-```
-
-</Tab>
-
-</Tabs>
-
-## Drive it with the Portable Go API
-
-Call cloudemu's Go interface directly and skip the HTTP hop. The method shape is identical across every cloud, so switching providers is a one-field change — the buses, rules, targets, and publishing all behave the same way underneath.
-
-<Tabs items={['AWS', 'Azure', 'GCP']}>
-
-<Tab value="AWS">
+The bus is the container rules and events live on — the equivalent of a custom EventBridge bus. Create one before adding rules; events without an explicit bus fall through to the provider's default bus.
 
 ```go
 import ebdriver "github.com/stackshy/cloudemu/v2/services/eventbus/driver"
@@ -120,114 +26,47 @@ import ebdriver "github.com/stackshy/cloudemu/v2/services/eventbus/driver"
 bus, _ := aws.EventBridge.CreateEventBus(ctx, ebdriver.EventBusConfig{
     Name: "app-events",
 })
+```
 
+## Add a rule and its targets
+
+A rule's `EventPattern` is the filter: only events whose fields match the JSON pattern trigger it. `PutRule` upserts the rule (creating it, or updating its pattern while keeping existing targets), then `PutTargets` attaches the destinations that matched events are forwarded to.
+
+```go
 aws.EventBridge.PutRule(ctx, &ebdriver.RuleConfig{
-    Name:         "order-rule",
     EventBus:     bus.Name,
+    Name:         "order-rule",
     EventPattern: `{"source": ["orders"]}`,
 })
+
 aws.EventBridge.PutTargets(ctx, bus.Name, "order-rule", []ebdriver.Target{
-    {ID: "process-order", ARN: "arn:aws:sqs:::orders-queue"},
+    {ID: "process-order", ARN: "arn:aws:lambda:...:function:process-order"},
 })
-
-aws.EventBridge.PutEvents(ctx, []ebdriver.Event{{
-    Source:     "orders",
-    DetailType: "OrderCreated",
-    Detail:     `{"orderId": "123"}`,
-    EventBus:   bus.Name,
-}})
 ```
 
-</Tab>
+## Publish events
 
-<Tab value="Azure">
+`PutEvents` takes a batch and routes each event through every rule on its bus. Each event's `Source` and `DetailType` classify it and `Detail` carries the JSON payload the pattern is matched against; the result reports how many events were accepted.
 
 ```go
-import ebdriver "github.com/stackshy/cloudemu/v2/services/eventbus/driver"
-
-bus, _ := azure.EventGrid.CreateEventBus(ctx, ebdriver.EventBusConfig{
-    Name: "app-events",
+aws.EventBridge.PutEvents(ctx, []ebdriver.Event{
+    {
+        Source:     "orders",
+        DetailType: "OrderCreated",
+        Detail:     `{"orderId": "123"}`,
+        EventBus:   bus.Name,
+    },
 })
-
-azure.EventGrid.PutRule(ctx, &ebdriver.RuleConfig{
-    Name:         "order-rule",
-    EventBus:     bus.Name,
-    EventPattern: `{"source": ["orders"]}`,
-})
-azure.EventGrid.PutTargets(ctx, bus.Name, "order-rule", []ebdriver.Target{
-    {ID: "process-order", ARN: "/subscriptions/sub-1/.../orders-queue"},
-})
-
-azure.EventGrid.PutEvents(ctx, []ebdriver.Event{{
-    Source:     "orders",
-    DetailType: "OrderCreated",
-    Detail:     `{"orderId": "123"}`,
-    EventBus:   bus.Name,
-}})
 ```
 
-</Tab>
+## Behavior & fidelity
 
-<Tab value="GCP">
+| Behavior | What happens |
+|----------|--------------|
+| Content-based routing | Each published event is matched against all rules on its bus; a rule fires only when the event satisfies its `EventPattern`, and an event matching no rule is dropped, not queued. |
+| Default bus fallback | An event or rule with an empty `EventBus` routes to the provider's default bus, matching EventBridge's default-bus behaviour. |
+| Rule state and replay | Rules can be enabled or disabled without deletion, and published events are retained so `GetEventHistory` can replay what was sent to a bus. |
 
-```go
-import ebdriver "github.com/stackshy/cloudemu/v2/services/eventbus/driver"
+## SDK-compat — Live
 
-bus, _ := gcp.Eventarc.CreateEventBus(ctx, ebdriver.EventBusConfig{
-    Name: "app-events",
-})
-
-gcp.Eventarc.PutRule(ctx, &ebdriver.RuleConfig{
-    Name:         "order-rule",
-    EventBus:     bus.Name,
-    EventPattern: `{"source": ["orders"]}`,
-})
-gcp.Eventarc.PutTargets(ctx, bus.Name, "order-rule", []ebdriver.Target{
-    {ID: "process-order", ARN: "projects/my-project/.../orders-queue"},
-})
-
-gcp.Eventarc.PutEvents(ctx, []ebdriver.Event{{
-    Source:     "orders",
-    DetailType: "OrderCreated",
-    Detail:     `{"orderId": "123"}`,
-    EventBus:   bus.Name,
-}})
-```
-
-</Tab>
-
-</Tabs>
-
-## What each provider supports
-
-All three providers implement the same event-routing interface — cloudemu maps each cloud's real service onto a shared set of operations.
-
-<Tabs items={['AWS', 'Azure', 'GCP']}>
-
-<Tab value="AWS">
-
-**EventBridge** — full bus lifecycle with `CreateEventBus`, `GetEventBus`, `UpdateEventBus`, `ListEventBuses`, and `DeleteEventBus`. Rules are managed with `PutRule`, `GetRule`, `ListRules`, `DeleteRule`, and can be toggled via `EnableRule` / `DisableRule`. Targets attach through `PutTargets`, `ListTargets`, and `RemoveTargets`. Publish with `PutEvents`, and replay with `GetEventHistory`.
-
-</Tab>
-
-<Tab value="Azure">
-
-**Event Grid** — the same interface, scoped to an Azure subscription and resource group. Create and manage topics as event buses, define subscriptions as pattern-filtered rules (`PutRule` / `EnableRule` / `DisableRule`), attach targets, and publish with `PutEvents`. `ListEventBuses` honors the subscription/resource-group scope.
-
-</Tab>
-
-<Tab value="GCP">
-
-**Eventarc** — the same operations, scoped to a GCP project. Buses, rules, and targets all use the shared methods, and `PutEvents` matches published events against your rules exactly as the AWS and Azure backends do.
-
-</Tab>
-
-</Tabs>
-
-## How the emulator behaves
-
-cloudemu doesn't just store buses and rules — it reproduces the routing behavior of the real service, so your code exercises real matching logic:
-
-- **Events are matched against patterns.** `PutEvents` evaluates each event against every rule's `EventPattern` and routes only the matches. An empty pattern matches everything; a `{"source": [...]}` pattern filters by source, just like real EventBridge.
-- **Matched deliveries emit metrics.** Each publish records how many events were matched into the monitoring service, so your code can assert how many events a rule actually caught.
-- **History is replayable.** `GetEventHistory` returns recently published events for a bus, letting tests inspect or replay what was emitted.
+Real EventBridge, Event Grid, and Eventarc clients drive it end-to-end. See [SDK-Compat](/docs/sdk-compat) for the full operation list.

@@ -1,0 +1,163 @@
+---
+title: Standalone Server
+description: Run cloudemu as a long-lived server and point real SDK clients at it over the network
+---
+
+Run cloudemu as a real server and point any SDK — in any language — at it over the network. This is the out-of-process counterpart to the in-process [SDK-Compatible Server](/docs/sdk-compat): same wire protocols, but a long-lived process instead of a `httptest.NewServer` inside your test.
+
+Use it for local development, a shared dev environment, or a test suite that runs out-of-process.
+
+<ServePorts />
+
+## Run it
+
+```bash
+go install github.com/stackshy/cloudemu/v2/cmd/cloudemu@latest
+cloudemu serve
+```
+
+Or straight from a checkout:
+
+```bash
+go run ./cmd/cloudemu serve
+```
+
+On start it prints the live endpoints:
+
+```
+cloudemu — standalone server
+────────────────────────────
+  AWS         http://127.0.0.1:4566
+  Azure       https://127.0.0.1:4568   (self-signed TLS)
+  GCP         http://127.0.0.1:4569
+  Kubernetes  http://127.0.0.1:4570
+```
+
+## Docker
+
+No Go toolchain needed — pull the published image (it runs `serve --host 0.0.0.0`):
+
+```bash
+docker run --rm -p 4566:4566 -p 4568:4568 -p 4569:4569 ghcr.io/stackshy/cloudemu:latest
+```
+
+Or bring up the whole emulated cloud with the example compose file:
+
+```bash
+docker compose up
+```
+
+## Testcontainers (Go)
+
+Go test suites can start and stop the container automatically with the
+[Testcontainers module](https://github.com/stackshy/cloudemu/tree/development/contrib/testcontainers)
+— a separate module, so it doesn't add Docker deps to your app:
+
+```go
+ctr, _ := cloudemu.Run(ctx)
+defer ctr.Terminate(ctx)
+
+endpoint, _ := ctr.AWSEndpoint(ctx) // point aws-sdk-go-v2 here
+ctr.Reset(ctx)                      // clean slate between tests
+```
+
+## Ports
+
+| Provider   | Default | Protocol | Notes                                 |
+| ---------- | ------- | -------- | ------------------------------------- |
+| AWS        | `4566`  | HTTP     | same port LocalStack uses             |
+| Azure      | `4568`  | HTTPS    | the ARM SDK requires TLS              |
+| GCP        | `4569`  | HTTP     |                                       |
+| Kubernetes | `4570`  | HTTP     | shared data-plane for EKS / AKS / GKE |
+
+Override any of them with `--aws-port`, `--azure-port`, `--gcp-port`, `--k8s-port`. Start a subset with `--providers=aws,gcp`, and bind an interface with `--host 0.0.0.0` (the default `127.0.0.1` keeps it local-only).
+
+## Point your SDK at it
+
+### AWS
+
+```go
+client := s3.NewFromConfig(cfg, func(o *s3.Options) {
+    o.BaseEndpoint = aws.String("http://127.0.0.1:4566")
+    o.UsePathStyle = true
+})
+```
+
+Other languages: set `AWS_ENDPOINT_URL=http://127.0.0.1:4566` (or `--endpoint-url` on the CLI). Any credentials work — cloudemu doesn't validate signatures.
+
+### GCP
+
+```go
+client, _ := storage.NewClient(ctx,
+    option.WithEndpoint("http://127.0.0.1:4569"),
+    option.WithoutAuthentication())
+```
+
+### Azure
+
+Azure is served over HTTPS with a self-signed cert. Point the SDK at it through a `cloud.Configuration` and either trust the cert or skip verification for local dev:
+
+```go
+cloudCfg := cloud.Configuration{
+    Services: map[cloud.ServiceName]cloud.ServiceConfiguration{
+        cloud.ResourceManager: {
+            Endpoint: "https://127.0.0.1:4568",
+            Audience: "https://management.azure.com",
+        },
+    },
+}
+opts := &arm.ClientOptions{ClientOptions: azcore.ClientOptions{Cloud: cloudCfg}}
+```
+
+<Callout type="info">
+Bring your own cert with `--tls-cert` / `--tls-key`, or add SAN hosts to the generated one with `--tls-host myhost.local`.
+</Callout>
+
+## Common flags
+
+| Flag                                                    | Default          | Purpose                                        |
+| ------------------------------------------------------- | ---------------- | ---------------------------------------------- |
+| `--providers`                                           | `aws,azure,gcp`  | which providers to start                       |
+| `--host`                                                | `127.0.0.1`      | bind interface (`0.0.0.0` to expose)           |
+| `--account-id` / `--region` / `--project-id`            | defaults         | identity reported by the emulator              |
+| `--latency`                                             | `0`              | artificial per-call latency (e.g. `20ms`)      |
+| `--endpoints-file`                                      | —                | write the resolved endpoints as JSON           |
+| `--admin`                                               | `true`           | mount the `/_cloudemu` control plane           |
+| `--shutdown-timeout`                                    | default          | grace period for in-flight requests on exit    |
+| `--log-requests` / `--quiet`                            | off              | request logging / suppress the banner          |
+
+`--endpoints-file cloudemu.json` writes a machine-readable bundle so an app can be wired at the whole emulated cloud at once:
+
+```json
+{
+  "aws": "http://127.0.0.1:4566",
+  "azure": "https://127.0.0.1:4568",
+  "gcp": "http://127.0.0.1:4569"
+}
+```
+
+## Building your own binary
+
+The `serve` command builds a server from a fully-constructed provider using the `NewFromProvider` helper, so you can embed the same thing in your own `main`:
+
+```go
+srv := awsserver.NewFromProvider(cloudemu.NewAWS())
+http.ListenAndServe(":4566", srv)
+```
+
+`DriversFrom(provider)` returns the wired `Drivers` if you want to customize before serving.
+
+## Admin control plane
+
+The server mounts a small `/_cloudemu` control plane (on by default; disable with `--admin=false`) for test isolation:
+
+- `POST /_cloudemu/reset` — wipes all in-memory state so a suite can start each test from a clean slate.
+- a health endpoint for readiness checks.
+
+<Callout type="warn">
+`POST /_cloudemu/reset` wipes everything. When binding a non-loopback `--host` (e.g. `0.0.0.0`), cloudemu warns that the reset endpoint is reachable off-box — pass `--admin=false` to disable it in shared environments.
+</Callout>
+
+## State is in-memory
+
+The server holds all state in memory and starts empty on each run — there's no built-in seeding or persistence across restarts. Your test or app creates the resources it needs after the server starts.

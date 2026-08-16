@@ -2,13 +2,15 @@
 title: Chaos Engineering
 description: Inject controlled failures, latency spikes, and throttling so your retry, timeout, and graceful-degradation paths get exercised in tests
 ---
-cloudemu can deliberately fail or slow down services in controlled, time-bounded windows. Retry logic, timeouts, circuit breakers, and graceful-degradation paths in your code stay dead until something exercises them — chaos lets you exercise them deterministically in unit tests, no real cloud needed.
+Inject outages, latency spikes, and throttling into any emulated service, in time-bounded windows. Retry logic, timeouts, circuit breakers, and graceful-degradation paths in your code stay dead until something exercises them — chaos lets you exercise them deterministically in unit tests, no real cloud needed.
+
+<ChaosTimeline />
 
 ```go
 import (
-    "github.com/stackshy/cloudemu"
-    "github.com/stackshy/cloudemu/chaos"
-    "github.com/stackshy/cloudemu/config"
+    "github.com/stackshy/cloudemu/v2"
+    "github.com/stackshy/cloudemu/v2/features/chaos"
+    "github.com/stackshy/cloudemu/v2/config"
 )
 
 cloud := cloudemu.NewAWS()
@@ -88,6 +90,8 @@ ebus    := chaos.WrapEventBus(cloud.EventBridge, engine)
 acr     := chaos.WrapContainerRegistry(cloud.ECR, engine)
 cache   := chaos.WrapCache(cloud.ElastiCache, engine)
 network := chaos.WrapNetworking(cloud.VPC, engine)
+smaker  := chaos.WrapSageMaker(cloud.SageMaker, engine)
+// GCP: vai := chaos.WrapVertexAI(cloud.VertexAI, engine)
 ```
 
 The wrappers preserve the underlying driver interface, so existing code (or the [Portable API](/docs/portable-api), or the [SDK-Compat Server](/docs/sdk-compat)) sees no API change — only the runtime behavior changes when scenarios are active.

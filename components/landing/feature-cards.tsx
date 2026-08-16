@@ -13,14 +13,16 @@ import { DUR, EASE, fadeUp, staggerContainer, viewportOnce } from '@/lib/motion'
  * visual — instead of boxed cards. Rows stagger in on scroll; each row's
  * micro-visual animates itself into being when it scrolls into view.
  *
- * On hover a row warms up: the key brightens to ember, a faint ember accent
+ * On hover a row warms up: the key brightens to the accent, a faint accent
  * slides in under the row, and that row's micro-visual re-triggers /
  * accentuates (bars swell, dots re-sequence, the slider nudges). All of it is
  * transform/opacity only and gated behind reduced-motion — when the viewer
  * prefers reduced motion the hover is colour-only, no movement.
  */
 
-const EMBER = '#FF6B2C';
+/** The one accent, drawn straight from the theme token so it stays legible in
+ *  both light (ember-deep) and dark (ember) modes. */
+const ACCENT = 'var(--accent)';
 
 type VizKind =
   | 'slider' | 'bars' | 'nodes' | 'barchart'
@@ -29,7 +31,7 @@ type VizKind =
 const features: { key: string; desc: string; viz: VizKind }[] = [
   {
     key: 'real_sdks',
-    desc: 'The real aws-sdk-go-v2, azure-sdk-for-go, and cloud.google.com/go talk to an in-memory backend over their own wire protocols. Repoint the endpoint; the call sites stay.',
+    desc: 'The real AWS, Azure, and GCP SDKs — in any language — talk to an in-memory backend over their own wire protocols. Repoint the endpoint; the call sites stay.',
     viz: 'slider',
   },
   {
@@ -64,7 +66,7 @@ const features: { key: string; desc: string; viz: VizKind }[] = [
   },
   {
     key: 'zero_deps',
-    desc: 'Pure Go, standard library only — no Docker, no network, no dependency tree. Runs anywhere Go 1.25+ runs.',
+    desc: 'The in-process library is standard-library only — no daemon, no network, no dependency tree. Runs anywhere your test suite already runs.',
     viz: 'check',
   },
 ];
@@ -87,7 +89,7 @@ export function FeatureCards() {
         initial={reduce ? false : 'hidden'}
         whileInView={reduce ? undefined : 'show'}
         viewport={viewportOnce}
-        className="border-b border-fd-border"
+        className="border-b border-line"
       >
         {features.map((f) => (
           <Row key={f.key} feature={f} reduce={!!reduce} />
@@ -97,7 +99,7 @@ export function FeatureCards() {
   );
 }
 
-/** A single ledger row. Owns its hover state so the key, the ember underline,
+/** A single ledger row. Owns its hover state so the key, the accent underline,
  *  and the micro-visual all warm up together. Hover motion is suppressed under
  *  reduced-motion — only the colour shift (via CSS `group-hover`) remains. */
 function Row({
@@ -114,25 +116,25 @@ function Row({
       variants={reduce ? undefined : fadeUp(0, 14)}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      className="group relative grid grid-cols-[1fr_auto] md:grid-cols-[190px_1fr_120px] items-center gap-x-6 gap-y-1 py-5 border-t border-fd-border"
+      className="group relative grid grid-cols-[1fr_auto] md:grid-cols-[190px_1fr_120px] items-center gap-x-6 gap-y-1 py-5 border-t border-line"
     >
-      <span className="font-mono text-sm text-fd-foreground/90 col-start-1 transition-colors duration-300 group-hover:text-ember-500">
+      <span className="font-mono text-sm text-ink col-start-1 transition-colors duration-300 group-hover:text-accent">
         {feature.key}
       </span>
-      <p className="text-sm text-fd-muted-foreground leading-relaxed col-span-2 md:col-span-1 md:col-start-2 order-last md:order-none">
+      <p className="text-sm text-ink-2 leading-relaxed col-span-2 md:col-span-1 md:col-start-2 order-last md:order-none">
         {feature.desc}
       </p>
-      <div className="hidden md:flex justify-end text-fd-muted-foreground/70 group-hover:text-fd-muted-foreground transition-colors">
+      <div className="hidden md:flex justify-end text-ink-3 group-hover:text-ink-2 transition-colors">
         <Spark kind={feature.viz} reduce={reduce} hovered={hovered} />
       </div>
 
-      {/* Faint ember accent that slides in under the row on hover. Motion, so
+      {/* Faint accent that slides in under the row on hover. Motion, so
           it's rendered only when motion is allowed. */}
       {!reduce && (
         <motion.span
           aria-hidden
           className="pointer-events-none absolute bottom-0 left-0 h-px w-full"
-          style={{ background: EMBER, transformOrigin: 'left', willChange: 'transform, opacity' }}
+          style={{ background: ACCENT, transformOrigin: 'left', willChange: 'transform, opacity' }}
           initial={{ scaleX: 0, opacity: 0 }}
           animate={{ scaleX: hovered ? 1 : 0, opacity: hovered ? 0.45 : 0 }}
           transition={{ duration: DUR.fast, ease: EASE }}
@@ -142,7 +144,7 @@ function Row({
   );
 }
 
-/** Small inline visuals — muted line-art with a single ember accent each.
+/** Small inline visuals — muted line-art with a single accent mark each.
  *  Each animates from a baseline into its final state when scrolled into view,
  *  and re-triggers / accentuates when its row is hovered. The scroll reveal
  *  lives on the inner primitives; hover motion rides on a wrapping group's
@@ -185,7 +187,7 @@ function Spark({ kind, reduce, hovered }: { kind: VizKind; reduce: boolean; hove
               width="10"
               height="10"
               rx="2"
-              fill={EMBER}
+              fill={ACCENT}
               {...anim({ x: 4 }, { x: W - 34 }, 0.1)}
             />
           </motion.g>
@@ -193,7 +195,7 @@ function Spark({ kind, reduce, hovered }: { kind: VizKind; reduce: boolean; hove
       );
     case 'bars': {
       const xs = [6, 16, 26, 36, 46, 56, 66, 76, 86, 96];
-      const emberBars = new Set([4, 6]);
+      const accentBars = new Set([4, 6]);
       return (
         <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} fill="none">
           <motion.g
@@ -208,8 +210,8 @@ function Spark({ kind, reduce, hovered }: { kind: VizKind; reduce: boolean; hove
                 y1={mid - 8}
                 x2={x}
                 y2={mid + 8}
-                stroke={emberBars.has(i) ? EMBER : stroke}
-                strokeOpacity={emberBars.has(i) ? 1 : 0.35}
+                stroke={accentBars.has(i) ? ACCENT : stroke}
+                strokeOpacity={accentBars.has(i) ? 1 : 0.35}
                 {...anim({ y1: mid, y2: mid }, { y1: mid - 8, y2: mid + 8 }, i * 0.04)}
               />
             ))}
@@ -232,8 +234,8 @@ function Spark({ kind, reduce, hovered }: { kind: VizKind; reduce: boolean; hove
                 cx={cx}
                 cy={mid}
                 r="4"
-                fill={i === 2 ? EMBER : 'none'}
-                stroke={i === 2 ? EMBER : stroke}
+                fill={i === 2 ? ACCENT : 'none'}
+                stroke={i === 2 ? ACCENT : stroke}
                 strokeOpacity={i === 2 ? 1 : 0.5}
                 {...anim({ r: 0, opacity: 0 }, { r: 4, opacity: 1 }, i * 0.14)}
               />
@@ -257,7 +259,7 @@ function Spark({ kind, reduce, hovered }: { kind: VizKind; reduce: boolean; hove
                 y1={H - 4}
                 x2={8 + i * 15}
                 y2={H - 4 - h}
-                stroke={i === 2 ? EMBER : stroke}
+                stroke={i === 2 ? ACCENT : stroke}
                 strokeOpacity={i === 2 ? 1 : 0.4}
                 strokeWidth="2"
                 {...anim({ y2: H - 4 }, { y2: H - 4 - h }, i * 0.05)}
@@ -268,7 +270,7 @@ function Spark({ kind, reduce, hovered }: { kind: VizKind; reduce: boolean; hove
       );
     }
     case 'dots': {
-      const emberDots = new Set([2, 5]);
+      const accentDots = new Set([2, 5]);
       return (
         <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} fill="none">
           {Array.from({ length: 8 }).map((_, i) => (
@@ -282,8 +284,8 @@ function Spark({ kind, reduce, hovered }: { kind: VizKind; reduce: boolean; hove
                 cx={8 + i * 12}
                 cy={mid}
                 r="2.5"
-                fill={emberDots.has(i) ? EMBER : stroke}
-                fillOpacity={emberDots.has(i) ? 1 : 0.35}
+                fill={accentDots.has(i) ? ACCENT : stroke}
+                fillOpacity={accentDots.has(i) ? 1 : 0.35}
                 {...anim({ r: 0, opacity: 0 }, { r: 2.5, opacity: 1 }, i * 0.06)}
               />
             </motion.g>
@@ -299,7 +301,7 @@ function Spark({ kind, reduce, hovered }: { kind: VizKind; reduce: boolean; hove
             transition={hoverT}
             style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
           >
-            <motion.circle cx="8" cy={mid} r="3" fill={EMBER} {...anim({ opacity: 0 }, { opacity: 1 })} />
+            <motion.circle cx="8" cy={mid} r="3" fill={ACCENT} {...anim({ opacity: 0 }, { opacity: 1 })} />
           </motion.g>
           <motion.g
             animate={hot ? { scaleX: [1, 1.07, 1] } : { scaleX: 1 }}
@@ -334,15 +336,17 @@ function Spark({ kind, reduce, hovered }: { kind: VizKind; reduce: boolean; hove
           >
             <g transform={`translate(${W - 16}, ${mid})`}>
               <circle r="9" stroke={stroke} strokeOpacity="0.4" fill="none" />
-              <line x1="0" y1="0" x2="0" y2="-5" stroke={EMBER} strokeWidth="1.5" strokeLinecap="round">
-                {!reduce && (
+              <line x1="0" y1="0" x2="0" y2="-5" stroke={ACCENT} strokeWidth="1.5" strokeLinecap="round">
+                {/* One sweep on hover — never a perpetual loop. Mounting the
+                    element on hover starts a single rotation; it unmounts on leave. */}
+                {hot && (
                   <animateTransform
                     attributeName="transform"
                     type="rotate"
                     from="0 0 0"
                     to="360 0 0"
-                    dur="6s"
-                    repeatCount="indefinite"
+                    dur="1.2s"
+                    repeatCount="1"
                   />
                 )}
               </line>
@@ -371,7 +375,7 @@ function Spark({ kind, reduce, hovered }: { kind: VizKind; reduce: boolean; hove
             />
             <motion.path
               d={`M ${W - 63} ${mid} l 2.5 2.5 l 4 -5`}
-              stroke={EMBER}
+              stroke={ACCENT}
               strokeWidth="1.5"
               strokeLinecap="round"
               strokeLinejoin="round"

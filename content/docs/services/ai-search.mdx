@@ -1,0 +1,70 @@
+---
+title: AI Search
+description: Azure AI Search ARM control plane plus the index/document data plane, driven end-to-end by the real Azure SDKs
+azure: Azure AI Search
+---
+
+Emulates both layers of Azure AI Search — the **ARM control plane** (`Microsoft.Search/searchServices`) that provisions a search service and the **data plane** (`{service}.search.windows.net`) that manages indexes and answers queries. It's the RAG / retrieval backbone: you stand up a service over ARM, create an index, upload documents, and search/suggest/autocomplete against them, all in memory.
+
+Reach for it when your code provisions a search service and then indexes and queries documents — so you can cover that full control-plane-then-data-plane flow without a real Azure AI Search account. Both layers share one backend, so a service created over ARM is immediately usable over the data-plane API. AWS and GCP have no equivalent in cloudemu.
+
+| Provider | Service | SDK-compat | Driver |
+|----------|---------|:----------:|--------|
+| Azure | Azure AI Search (`Microsoft.Search`) | ✓ Live | `azure.Search` |
+
+## Drive it with the real SDK
+
+Register the same mock as both the ARM control plane and the data plane, then let the real Azure SDKs walk the flow — provision over ARM, then index and query against the data plane. The data-plane host is routed from the `{service}.search.windows.net` subdomain:
+
+```go
+import (
+    "github.com/stackshy/cloudemu/v2"
+    azureserver "github.com/stackshy/cloudemu/v2/server/azure"
+)
+
+cloud := cloudemu.NewAzure()
+ts := httptest.NewTLSServer(azureserver.New(azureserver.Drivers{
+    SearchControl:   cloud.Search, // Microsoft.Search/searchServices (ARM)
+    SearchDataPlane: cloud.Search, // {service}.search.windows.net (data plane)
+}))
+defer ts.Close()
+
+// armsearch provisions the service; the data-plane REST client
+// (azsearch / go-autorest) creates an index, uploads documents, and searches.
+```
+
+See the [SDK-Compat Server page](/docs/sdk-compat#quick-start-azure) for the Azure TLS setup.
+
+## Call the driver directly
+
+The `azure.Search` mock implements both driver interfaces, so you can provision a service and operate its data plane directly — create the service, define an index, upload documents, then query:
+
+```go
+import searchdriver "github.com/stackshy/cloudemu/v2/services/azuresearch/driver"
+
+svc, _ := azure.Search.CreateService(ctx, /* ServiceConfig */)      // Microsoft.Search/searchServices
+azure.Search.CreateOrUpdateIndex(ctx, /* Index */)
+azure.Search.IndexDocuments(ctx, "my-index", /* upload / merge / mergeOrUpload / delete */)
+
+res, _ := azure.Search.SearchDocuments(ctx, "my-index", /* query */)
+azure.Search.SuggestDocuments(ctx, "my-index", /* ... */)
+azure.Search.AutocompleteDocuments(ctx, "my-index", /* ... */)
+```
+
+## Behavior & fidelity
+
+| Behavior | What happens |
+|----------|--------------|
+| Shared backend | Both layers share one in-memory backend, so a service created over ARM is immediately usable over the data-plane API. |
+| Inline ARM provisioning | An ARM create returns the resource inline with a terminal provisioning state, so the SDK LRO poller terminates on the first response. |
+| Full index lifecycle | Indexes, indexers, data sources, skillsets, synonym maps, and aliases are all modeled, plus service statistics. |
+| Documents indexed and queried | Documents can be uploaded, merged, or deleted, then searched with suggest and autocomplete. |
+| Keys round-trip | Admin and query keys can be listed, regenerated, created, and deleted. |
+| Private networking is store-and-echo | Shared private-link resources and private-endpoint connections keep their approval state, with no real private endpoint on the platform side. |
+| Automatic metrics | Metrics push to Azure Monitor via `SetMonitoring`. |
+
+## SDK-compat — Live
+
+Real `armsearch` and data-plane clients drive both layers end-to-end — 19 control-plane and 34 data-plane operations. A portable wrapper (`search/search.go`), chaos injection (`chaos.WrapAzureSearch`), and cost rates integrate it like every other service.
+
+See [SDK-Compat](/docs/sdk-compat) for the full per-operation list.
