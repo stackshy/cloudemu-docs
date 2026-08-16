@@ -1,0 +1,80 @@
+---
+title: Managed Cassandra
+description: In-memory control plane for Azure Managed Instance for Apache Cassandra — clusters and data centers, driven with the real armcosmos SDK
+azure: Managed Cassandra
+---
+
+Emulates the *control plane* of Azure Managed Instance for Apache Cassandra — the ARM API (under Cosmos DB) that provisions a Cassandra-compatible cluster and its data centers. CQL data operations are out of scope, so it has its own driver. A cluster carries a Cassandra version, delegated subnet, authentication method, and backup/repair config; data centers under it hold the actual nodes.
+
+Reach for it when your provisioning or IaC code creates a cluster, adds data centers, deallocates and starts it, or runs a maintenance command — without a real (billed) cluster. Served as ARM REST/JSON under `Microsoft.DocumentDB/cassandraClusters`, so a real `armcosmos` `CassandraClusters`/`CassandraDataCenters` client with a custom endpoint works unchanged.
+
+| Provider | Service | SDK-compat | Driver |
+|----------|---------|:----------:|--------|
+| Azure | Managed Instance for Apache Cassandra | ✓ Live | `azure.ManagedCassandra` |
+
+## Drive it with the real SDK
+
+Stand up the Azure SDK-compat server and point an `armcosmos` client factory at it. Mutating operations complete synchronously, so the SDK's LRO pollers terminate on the first response:
+
+```go
+import (
+    "github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/cosmos/armcosmos/v3"
+    "github.com/stackshy/cloudemu/v2"
+    azureserver "github.com/stackshy/cloudemu/v2/server/azure"
+)
+
+cp := cloudemu.NewAzure()
+ts := httptest.NewTLSServer(azureserver.New(azureserver.Drivers{
+    ManagedCassandra: cp.ManagedCassandra,
+}))
+defer ts.Close()
+
+// armcosmos.NewClientFactory(subID, cred, opts) with opts pointing Cloud.ResourceManager
+// at ts.URL and Transport at ts.Client() — see the SDK-Compat page for the ARM/TLS setup.
+cc := factory.NewCassandraClustersClient()
+poller, _ := cc.BeginCreateUpdate(ctx, "rg1", "cass", armcosmos.ClusterResource{
+    Location: to.Ptr("eastus"),
+    Properties: &armcosmos.ClusterResourceProperties{
+        DelegatedManagementSubnetID: to.Ptr("/subnets/sn"),
+        CassandraVersion:            to.Ptr("3.11"),
+    },
+}, nil)
+created, _ := poller.PollUntilDone(ctx, nil)
+```
+
+See the [SDK-Compat Server page](/docs/sdk-compat) for the Azure ARM/TLS setup.
+
+## Call the driver directly
+
+For in-process setup or assertions you can skip the HTTP hop and call the driver:
+
+```go
+import mcdriver "github.com/stackshy/cloudemu/v2/services/managedcassandra/driver"
+
+cluster, _ := azure.ManagedCassandra.CreateOrUpdateCluster(ctx, mcdriver.CreateClusterConfig{
+    Name: "cass", ResourceGroup: "rg1", Location: "eastus",
+    CassandraVersion:            "3.11",
+    DelegatedManagementSubnetID: "/subnets/sn",
+})
+
+azure.ManagedCassandra.CreateOrUpdateDataCenter(ctx, mcdriver.CreateDataCenterConfig{
+    ClusterName: "cass", ResourceGroup: "rg1", Name: "dc1",
+    DataCenterLocation: "eastus", NodeCount: 3,
+})
+```
+
+`DeallocateCluster`/`StartCluster` model the stop/start lifecycle; `ClusterStatus` reports per-node health; `InvokeCommand` runs a maintenance command (e.g. `nodetool`).
+
+## Behavior & fidelity
+
+| Behavior | What happens |
+|----------|--------------|
+| Clusters own data centers | A cluster carries its Cassandra version, delegated subnet, auth method, repair, backups, and certs; deleting it removes its data centers. |
+| Data centers hold the nodes | Each data center carries node count, disk capacity, SKU, zone, subnet, and seed nodes, and its parent cluster must exist first. |
+| Deallocate/start lifecycle | Deallocating or starting a cluster propagates to all of its data centers. |
+| Status and maintenance | Per-node health is reportable, and a maintenance command (e.g. `nodetool`) runs against the cluster. |
+| LRO fidelity | Mutating ops complete synchronously, so SDK pollers terminate on the first response. |
+
+## SDK-compat — Live
+
+Real `armcosmos` `CassandraClusters`/`CassandraDataCenters` clients drive it end-to-end (`Microsoft.DocumentDB/cassandraClusters`) — see [SDK-Compat](/docs/sdk-compat) for the full operation list.
