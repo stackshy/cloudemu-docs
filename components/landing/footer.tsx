@@ -7,6 +7,7 @@ import { fadeUp, staggerContainer, viewportOnce } from '@/lib/motion';
 import { STATS } from '@/lib/product';
 import { services } from '@/lib/services';
 import { LogoMark } from '@/components/logo';
+import { DeployBadge } from '@/components/deploy-badge';
 
 type FooterLink = {
   label: string;
@@ -122,11 +123,12 @@ export function Footer() {
 
         <motion.div
           variants={reduce ? undefined : fadeUp(0, 12)}
-          className="mt-14 border-t border-line pt-6"
+          className="mt-14 flex flex-col gap-4 border-t border-line pt-6 sm:flex-row sm:items-center sm:justify-between"
         >
           <p className="font-mono text-xs tracking-wide text-ink-3">
             MIT License &middot; Requires Go 1.25+ &middot; an open-source project
           </p>
+          <DeployBadge />
         </motion.div>
       </motion.div>
     </footer>
