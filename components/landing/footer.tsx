@@ -128,7 +128,13 @@ export function Footer() {
           <p className="font-mono text-xs tracking-wide text-ink-3">
             MIT License &middot; Requires Go 1.25+ &middot; an open-source project
           </p>
-          <DeployBadge />
+          <div className="flex flex-col items-start gap-2 sm:items-end">
+            <p className="text-xs text-ink-3 sm:text-right">
+              This site is deployed on <span className="text-accent">ZopCloud</span> — deploy your app
+              with <span className="text-accent">ZopDay</span>.
+            </p>
+            <DeployBadge />
+          </div>
         </motion.div>
       </motion.div>
     </footer>
