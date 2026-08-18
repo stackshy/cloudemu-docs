@@ -4,7 +4,7 @@
 export function DeployBadge() {
   return (
     <a
-      href="https://zop.dev/zopday/app"
+      href="https://zop.dev/zopday"
       target="_blank"
       rel="noreferrer"
       aria-label="Deploy your own cloudemu on ZopCloud with ZopDay"
