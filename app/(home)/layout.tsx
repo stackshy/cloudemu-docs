@@ -12,6 +12,7 @@ export default function Layout({ children }: { children: ReactNode }) {
       }}
       links={[
         { text: 'Docs', url: '/docs' },
+        { text: 'Changelog', url: '/changelog' },
         { text: 'Blog', url: '/blog' },
         { type: 'custom', children: <GitHubStars />, secondary: true },
       ]}
