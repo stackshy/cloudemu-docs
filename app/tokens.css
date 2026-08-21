@@ -2,121 +2,118 @@
  * tokens.css — single source of truth for every color/surface/type token.
  * No raw hex in components; everything references these variables.
  *
- * Philosophy: quiet interface, loud content. Near-monochrome surfaces,
- * one cool accent (--accent) whose use is restricted to: link hover/active,
- * the 2px active rail (sidebar/TOC), focus rings, the primary button, and
- * one live element in the hero diagram. Nothing else.
- *
- * Dark is the primary theme (.dark); light (:root) is a full first-class pass.
+ * IDENTITY: "The Field Manual" — a warm, printed technical-reference feel.
+ * LIGHT is primary (warm "Bone" paper, ink type, ember as the one spot color).
+ * DARK is the "night edition" (warm dark paper). Ember is spent like it's rare
+ * (<~10% of any viewport): links on hover/active, the 2px active rail, focus
+ * rings, the primary button, FIG. accents, one italic accent word.
  */
 
 :root {
-  /* ---- surfaces (light) — warm "Bone", aligned to the logo (#f1efe7) ---- */
-  --bg: #f6f4ec; /* warm paper */
-  --bg-2: #fcfbf5; /* sidebar, cards */
-  --bg-3: #eeebe0; /* code blocks, popovers */
-  --border: #e3ded1;
-  --border-2: #d0cabb; /* hover/strong */
+  /* ---- surfaces (light) — warm Bone paper ---- */
+  --bg: #f3efe3; /* main ground — warm paper */
+  --bg-2: #faf7ee; /* sidebar, plates, cards */
+  --bg-3: #eae5d6; /* code blocks, insets, popovers */
+  --border: #ddd6c4;
+  --border-2: #c7bea9; /* hover/strong rule */
 
   /* ---- text (light) — warm ink ---- */
-  --text-1: #191712; /* ink — headings, primary */
-  --text-2: #4d4a41; /* body secondary */
-  --text-3: #706c60; /* muted, labels */
+  --text-1: #221d14; /* ink — headings, primary */
+  --text-2: #4c473a; /* body */
+  --text-3: #6e6857; /* marginalia, captions, labels (AA on paper) */
 
-  /* ---- the one accent: ember (deep in light mode to hold 4.5:1 on paper) ---- */
-  --accent: #a83a08; /* Ember Deep — never #FF6B2C on paper */
-  --accent-bg: rgba(168, 58, 8, 0.08);
-  --accent-ink: #ffffff; /* text on solid accent */
+  /* ---- the one accent: ember (deep in light to hold 4.5:1 on paper) ---- */
+  --accent: #b23c0c; /* Ember Deep — never #FF6B2C on paper */
+  --accent-bg: rgba(178, 60, 12, 0.07);
+  --accent-ink: #faf7ee; /* paper — text on solid accent */
 
-  /* ---- provider colors (semantic only: tabs, chips, dots, wires) ---- */
-  --aws: #96610a;
-  --azure: #2b48c6; /* deeper indigo — never confusable with --accent */
-  --gcp: #1e7a44;
+  /* ---- provider colors (semantic only: coverage cells, tabs, dots) ---- */
+  --aws: #97620b;
+  --azure: #2c48c2; /* deep indigo — never confusable with --accent */
+  --gcp: #1f7a45;
 
   /* ---- status semantics ---- */
-  --ok: #1e7a44;
-  --warn: #92600e;
-  --danger: #bd3934;
+  --ok: #1f7a45;
+  --warn: #8a5a12;
+  --danger: #b23431;
 
-  /* ---- terminal / inset pane (theme-adaptive: light here, dark in .dark).
-         Terminal syntax uses the theme-appropriate Shiki palette, so a light
-         pane gets dark, readable text in light mode. ---- */
-  --terminal-bg: #ecebe6;
-  --terminal-ink: #23262b;
-  --terminal-muted: #6c7178;
+  /* ---- terminal / inset pane (light: reads as a code slab on paper) ---- */
+  --terminal-bg: #eae5d6;
+  --terminal-ink: #2a251b;
+  --terminal-muted: #857e6d;
 
   /* ---- one shadow token, modals/popovers only ---- */
-  --shadow-popover: 0 12px 32px -8px rgba(10, 14, 22, 0.16);
+  --shadow-popover: 0 14px 34px -12px rgba(40, 30, 15, 0.2);
 
   /* ---- motion ---- */
-  --ease-out: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
 
-  /* ---- code syntax (light) — calm, low saturation ---- */
-  --code-plain: #24272c;
-  --code-keyword: #1f5fb8; /* cool blue */
-  --code-string: #8a6a2f; /* warm sand */
-  --code-comment: #6c7178; /* muted italic */
-  --code-function: #17191c; /* text-1 */
-  --code-type: #494f57;
-  --code-number: #8a6a2f;
-  --code-punct: #5b6169;
-  --code-diff-add: rgba(30, 122, 68, 0.08);
-  --code-diff-del: rgba(189, 57, 52, 0.08);
+  /* ---- code syntax (light) — calm, low saturation, warm ---- */
+  --code-plain: #2a251b;
+  --code-keyword: #24499f; /* cool blue */
+  --code-string: #8a5a12; /* warm sand */
+  --code-comment: #9b9482; /* muted italic */
+  --code-function: #221d14; /* ink */
+  --code-type: #5a5446;
+  --code-number: #8a5a12;
+  --code-punct: #6b6656;
+  --code-diff-add: rgba(31, 122, 69, 0.09);
+  --code-diff-del: rgba(178, 52, 49, 0.09);
   --code-hl: var(--accent-bg);
 }
 
 .dark {
-  /* ---- surfaces (dark) — warm "Ink", aligned to the logo (#101613) ---- */
-  --bg: #0e1110;
-  --bg-2: #141815;
-  --bg-3: #1a1f1b;
-  --border: #272d28;
-  --border-2: #343b35;
+  /* ---- surfaces (dark) — night edition, warm dark paper ---- */
+  --bg: #14140f;
+  --bg-2: #191a13;
+  --bg-3: #201f17;
+  --border: #2b2a20;
+  --border-2: #3b392c;
 
   /* ---- terminal / inset pane (dark instrument screen) ---- */
-  --terminal-bg: #0a0c09;
-  --terminal-ink: #e7e3d9;
-  --terminal-muted: #7a7a6f;
+  --terminal-bg: #100f0a;
+  --terminal-ink: #e7e1d0;
+  --terminal-muted: #837c6a;
 
   /* ---- text (dark) — warm Bone ---- */
-  --text-1: #f1efe7;
-  --text-2: #aeb1a6;
-  --text-3: #767a6f;
+  --text-1: #efe9d8;
+  --text-2: #bdb6a2;
+  --text-3: #837c6a;
 
-  /* ---- accent: ember ---- */
-  --accent: #ff6b2c;
-  --accent-bg: rgba(255, 107, 44, 0.12);
-  --accent-ink: #1a0f0a;
+  /* ---- accent: ember (bright on dark paper) ---- */
+  --accent: #ff7a3c;
+  --accent-bg: rgba(255, 122, 60, 0.12);
+  --accent-ink: #14140f;
 
   /* ---- provider colors ---- */
   --aws: #e8912d;
-  --azure: #2f6feb;
-  --gcp: #3ba55d;
+  --azure: #6f93f5;
+  --gcp: #4cbb72;
 
   /* ---- status semantics ---- */
-  --ok: #3ba55d;
+  --ok: #4cbb72;
   --warn: #d9a03f;
-  --danger: #e5534b;
+  --danger: #e5645c;
 
-  --shadow-popover: 0 16px 40px -12px rgba(0, 0, 0, 0.6);
+  --shadow-popover: 0 18px 44px -14px rgba(0, 0, 0, 0.62);
 
   /* ---- code syntax (dark) ---- */
-  --code-plain: #d5dae0;
-  --code-keyword: #7eb6ff; /* cool blue */
-  --code-string: #c9a97c; /* warm sand */
-  --code-comment: #6b7482; /* muted italic */
-  --code-function: #f2f4f6; /* text-1 */
-  --code-type: #a9b1bc;
-  --code-punct: #8b93a0;
-  --code-number: #c9a97c;
-  --code-diff-add: rgba(59, 165, 93, 0.1);
-  --code-diff-del: rgba(229, 83, 75, 0.1);
+  --code-plain: #d9d3c3;
+  --code-keyword: #8fb6ff; /* cool blue */
+  --code-string: #d3b483; /* warm sand */
+  --code-comment: #7c7566; /* muted italic */
+  --code-function: #f2ede0; /* text-1 */
+  --code-type: #b3ab97;
+  --code-punct: #8f887a;
+  --code-number: #d3b483;
+  --code-diff-add: rgba(76, 187, 114, 0.1);
+  --code-diff-del: rgba(229, 100, 92, 0.1);
   --code-hl: var(--accent-bg);
 }
 
 /* ------------------------------------------------------------------ */
 /* Compatibility aliases — legacy names consumed by components not yet */
-/* rebuilt on the new token set. Remove once the rollout completes.    */
+/* rebuilt on the new token set. Kept so nothing goes uncolored.       */
 /* ------------------------------------------------------------------ */
 
 :root,
@@ -147,6 +144,6 @@
   --error-dim: color-mix(in srgb, var(--danger) 9%, transparent);
   --info-dim: var(--accent-bg);
   --error: var(--danger);
-  --info: var(--text-3); /* plain notes are neutral, not colored */
+  --info: var(--text-3);
   --ease-signal: var(--ease-out);
 }
