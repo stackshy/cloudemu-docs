@@ -3,33 +3,43 @@ import { findNeighbour } from 'fumadocs-core/page-tree';
 import { source } from '@/lib/source';
 
 /**
- * Prev/next page furniture: two mono text links on a hairline-topped
- * footer row — no cards. Hover goes accent.
+ * Prev/next — manual pagination. A double-ruled footer with two leaves:
+ * a mono "PREVIOUS / NEXT LEAF" label over the destination title in Fraunces.
+ * The whole leaf warms to ember on hover.
  */
 export function PrevNext({ url }: { url: string }) {
   const { previous, next } = findNeighbour(source.pageTree, url);
   if (!previous && !next) return null;
 
   return (
-    <div className="not-prose mt-12 flex items-center justify-between gap-4 border-t border-line pt-6 font-mono text-[13px]">
+    <nav
+      aria-label="Manual pagination"
+      className="not-prose mt-16 grid grid-cols-2 gap-4 border-t-[3px] border-double border-line-2 pt-7"
+    >
       {previous ? (
-        <Link
-          href={previous.url}
-          className="text-ink-2 transition-colors hover:text-accent"
-        >
-          ← {previous.name}
+        <Link href={previous.url} className="group flex flex-col gap-1.5 text-left">
+          <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-3">
+            ← Previous leaf
+          </span>
+          <span className="font-serif text-lg font-medium leading-tight text-ink transition-colors group-hover:text-accent">
+            {previous.name}
+          </span>
         </Link>
       ) : (
         <span aria-hidden />
       )}
-      {next && (
-        <Link
-          href={next.url}
-          className="text-right text-ink-2 transition-colors hover:text-accent"
-        >
-          {next.name} →
+      {next ? (
+        <Link href={next.url} className="group flex flex-col items-end gap-1.5 text-right">
+          <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-3">
+            Next leaf →
+          </span>
+          <span className="font-serif text-lg font-medium leading-tight text-ink transition-colors group-hover:text-accent">
+            {next.name}
+          </span>
         </Link>
+      ) : (
+        <span aria-hidden />
       )}
-    </div>
+    </nav>
   );
 }
