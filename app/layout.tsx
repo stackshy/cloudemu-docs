@@ -1,6 +1,6 @@
 import './global.css';
 import { RootProvider } from 'fumadocs-ui/provider/next';
-import { Instrument_Sans, JetBrains_Mono } from 'next/font/google';
+import { Instrument_Sans, JetBrains_Mono, Fraunces } from 'next/font/google';
 import type { ReactNode } from 'react';
 import type { Metadata } from 'next';
 import CustomSearchDialog from '@/components/search-dialog';
@@ -17,19 +17,49 @@ const mono = JetBrains_Mono({
   display: 'swap',
 });
 
+// Fraunces — the Field Manual's editorial display voice. Variable optical
+// sizing (opsz) so titles read like a printed reference face, plus an italic
+// used for the ember accent words and pull quotes.
+const serif = Fraunces({
+  subsets: ['latin'],
+  variable: '--font-fraunces',
+  display: 'swap',
+  style: ['normal', 'italic'],
+  axes: ['opsz'],
+});
+
 const description =
-  'Run the real AWS, Azure, and GCP SDKs against a local, in-memory emulator — in-process, as a standalone server, or in Docker. Any language. No cloud accounts, no bills.';
+  'A real emulator of AWS, Azure, and GCP that lives in memory. Point real code, SDKs, or CLIs at it — any language, ~10 ms a call, no cloud accounts, no bills.';
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://cloudemu.info'),
   title: {
-    template: '%s | cloudemu',
-    default: 'cloudemu — Zero-Cost Cloud Emulator for AWS, Azure & GCP',
+    template: '%s · cloudemu',
+    default: 'cloudemu — the cloud, in memory',
   },
   description,
+  applicationName: 'cloudemu',
+  keywords: [
+    'cloud emulator',
+    'AWS emulator',
+    'Azure emulator',
+    'GCP emulator',
+    'LocalStack alternative',
+    'in-memory cloud',
+    'Go',
+    'testing',
+  ],
   openGraph: {
-    title: 'cloudemu — Zero-Cost Cloud Emulator for AWS, Azure & GCP',
+    type: 'website',
+    title: 'cloudemu — the cloud, in memory',
     description,
     siteName: 'cloudemu',
+    url: 'https://cloudemu.info',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'cloudemu — the cloud, in memory',
+    description,
   },
 };
 
@@ -38,7 +68,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${sans.variable} ${mono.variable}`}
+      className={`${sans.variable} ${mono.variable} ${serif.variable}`}
     >
       <body>
         <a

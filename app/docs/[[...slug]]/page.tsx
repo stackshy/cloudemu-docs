@@ -21,6 +21,46 @@ import { WireProtocols } from '@/components/diagrams/wire-protocols';
 import { TopologyGraph } from '@/components/diagrams/topology-graph';
 import { FeatureGlyph } from '@/components/diagrams/feature-glyph';
 import { ServePorts } from '@/components/diagrams/serve-ports';
+import { DiagramFrame } from '@/components/docs/figure';
+
+/** Diagrams framed as FIG. plates at the mapping layer — no MDX edits. */
+const framed = {
+  RequestFlow: () => (
+    <DiagramFrame caption="The request path — a real SDK call into the in-memory backend and back.">
+      <RequestFlow />
+    </DiagramFrame>
+  ),
+  WireProtocols: () => (
+    <DiagramFrame caption="The wire protocols cloudemu speaks, per provider.">
+      <WireProtocols />
+    </DiagramFrame>
+  ),
+  ServePorts: () => (
+    <DiagramFrame caption="One long-lived server; stable endpoints per cloud.">
+      <ServePorts />
+    </DiagramFrame>
+  ),
+  TopologyGraph: () => (
+    <DiagramFrame caption="The network topology the connectivity engine evaluates.">
+      <TopologyGraph />
+    </DiagramFrame>
+  ),
+  ChaosTimeline: () => (
+    <DiagramFrame caption="A time-bounded chaos window, with automatic recovery.">
+      <ChaosTimeline />
+    </DiagramFrame>
+  ),
+  PortableFlow: () => (
+    <DiagramFrame caption="The portable API layered over per-provider drivers.">
+      <PortableFlow />
+    </DiagramFrame>
+  ),
+  PacketFlow: () => (
+    <DiagramFrame caption="A packet traversing the simulated network path.">
+      <PacketFlow />
+    </DiagramFrame>
+  ),
+};
 
 export default async function Page(props: {
   params: Promise<{ slug?: string[] }>;
@@ -39,34 +79,41 @@ export default async function Page(props: {
       breadcrumb={{ className: 'u-breadcrumb' }}
       footer={{ enabled: false }}
       tableOfContent={{
-        header: <p className="u-toc-title mb-2">On this page</p>,
+        header: <p className="u-toc-title mb-2">Contents of this leaf</p>,
       }}
     >
-      <DocsTitle className="text-[32px] leading-[1.25] tracking-[-0.02em] text-ink">
-        {data.title}
-      </DocsTitle>
-      <DocsDescription className="mb-6 text-base text-ink-2">
-        {data.description}
-      </DocsDescription>
-      {(data.aws || data.azure || data.gcp) && (
-        <p className="-mt-2 mb-4 flex flex-wrap gap-x-5 gap-y-1 font-mono text-xs text-ink-2">
-          {data.aws && (
-            <span>
-              <span style={{ color: 'var(--aws)' }}>aws</span> {data.aws}
-            </span>
-          )}
-          {data.azure && (
-            <span>
-              <span style={{ color: 'var(--azure)' }}>azr</span> {data.azure}
-            </span>
-          )}
-          {data.gcp && (
-            <span>
-              <span style={{ color: 'var(--gcp)' }}>gcp</span> {data.gcp}
-            </span>
-          )}
+      <div className="u-chapter-opener not-prose mb-8 border-b border-line pb-7">
+        <p className="mb-3 font-mono text-[11px] uppercase tracking-[0.18em] text-ink-3">
+          <span className="text-accent">§</span> The Field Manual
         </p>
-      )}
+        <DocsTitle className="font-serif text-[40px] leading-[1.08] tracking-[-0.025em] text-ink">
+          {data.title}
+        </DocsTitle>
+        {data.description && (
+          <DocsDescription className="mb-0 mt-3 text-[17px] leading-relaxed text-ink-2">
+            {data.description}
+          </DocsDescription>
+        )}
+        {(data.aws || data.azure || data.gcp) && (
+          <p className="mt-4 flex flex-wrap gap-x-5 gap-y-1 font-mono text-xs text-ink-2">
+            {data.aws && (
+              <span>
+                <span style={{ color: 'var(--aws)' }}>aws</span> {data.aws}
+              </span>
+            )}
+            {data.azure && (
+              <span>
+                <span style={{ color: 'var(--azure)' }}>azr</span> {data.azure}
+              </span>
+            )}
+            {data.gcp && (
+              <span>
+                <span style={{ color: 'var(--gcp)' }}>gcp</span> {data.gcp}
+              </span>
+            )}
+          </p>
+        )}
+      </div>
       <DocsBody>
         <MDX
           components={{
@@ -76,14 +123,8 @@ export default async function Page(props: {
             Callout,
             ProviderTabs,
             ProviderTab,
-            PacketFlow,
-            ChaosTimeline,
-            RequestFlow,
-            PortableFlow,
-            WireProtocols,
-            TopologyGraph,
             FeatureGlyph,
-            ServePorts,
+            ...framed,
           }}
         />
         <PrevNext url={page.url} />

@@ -10,6 +10,7 @@
 @theme inline {
   --font-sans: var(--font-instrument-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-jetbrains-mono), ui-monospace, 'SF Mono', monospace;
+  --font-serif: var(--font-fraunces), Georgia, 'Times New Roman', serif;
 
   /* canonical */
   --color-canvas: var(--bg);
@@ -81,6 +82,24 @@ body {
   color: var(--text-1);
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
+  /* Faint paper grain — the tooth of a printed manual page. */
+  background-image: radial-gradient(rgba(33, 29, 21, 0.02) 1px, transparent 1px);
+  background-size: 4px 4px;
+}
+.dark body {
+  background-image: radial-gradient(rgba(239, 233, 216, 0.014) 1px, transparent 1px);
+}
+
+/* Fraunces optical sizing — titles read like a printed reference face. */
+.font-serif {
+  font-optical-sizing: auto;
+}
+
+/* Masthead — the fumadocs top nav re-set as a manual masthead: paper ground,
+   a double rule at the foot (the print-manual signature). */
+#nd-nav {
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  border-bottom: 3px double var(--border-2);
 }
 
 code,
@@ -205,6 +224,49 @@ samp {
 }
 
 /* ------------------------------------------------------------------ */
+/* Hero emblem — the memory cloud: dots ripple ember as a wave of      */
+/* "writes" sweeps through; the terminal cursor blinks.                */
+/* ------------------------------------------------------------------ */
+
+.ce-blink {
+  animation: ce-blink 1.1s steps(1) infinite;
+}
+@keyframes ce-blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+.ce-dot {
+  fill: var(--text-3);
+  fill-opacity: 0.26;
+  animation: ce-dotwave 3.2s ease-in-out infinite;
+}
+@keyframes ce-dotwave {
+  0%,
+  72%,
+  100% {
+    fill: var(--text-3);
+    fill-opacity: 0.26;
+  }
+  84% {
+    fill: var(--accent);
+    fill-opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ce-blink,
+  .ce-dot {
+    animation: none !important;
+  }
+  .ce-dot {
+    fill: var(--text-3);
+    fill-opacity: 0.35;
+  }
+}
+
+/* ------------------------------------------------------------------ */
 /* Docs shell                                                          */
 /* ------------------------------------------------------------------ */
 
@@ -231,6 +293,13 @@ samp {
 }
 .u-breadcrumb a:hover {
   color: var(--text-1) !important;
+}
+/* Breadcrumb reads as a manual reference path — "§ Reference › Services". */
+.u-breadcrumb::before {
+  content: '§';
+  margin-right: 7px;
+  color: var(--accent) !important;
+  font-weight: 700 !important;
 }
 
 /* TOC title: ours only — the default icon+label h3 is replaced */
@@ -281,18 +350,36 @@ samp {
   background: var(--bg-2);
   border-color: var(--border);
 }
+/* Group labels read as manual "Part" dividers: a hairline above, an ember
+   tick, wide-tracked mono. */
 #nd-sidebar [data-radix-collection-item] > p,
 #nd-sidebar p.u-sidebar-group {
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 10.5px;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.12em;
   color: var(--text-3);
+  margin-top: 22px;
+  padding-top: 13px;
+  border-top: 1px solid var(--border);
+}
+#nd-sidebar [data-radix-collection-item] > p::before,
+#nd-sidebar p.u-sidebar-group::before {
+  content: '—';
+  color: var(--accent);
+  margin-right: 7px;
+}
+/* First group sits right under the theme banner — no rule needed. */
+#nd-sidebar [data-radix-collection-item]:first-child > p {
+  margin-top: 4px;
+  padding-top: 0;
+  border-top: 0;
 }
 #nd-sidebar a {
   position: relative;
   font-size: 14px;
   color: var(--text-2);
+  border-radius: 4px;
   transition:
     color 150ms var(--ease-out),
     background-color 150ms var(--ease-out);
@@ -301,16 +388,17 @@ samp {
   color: var(--text-1);
   background: transparent;
 }
+/* Current leaf: brighter text, a faint ember wash, and the 2px ember rail. */
 #nd-sidebar a[data-active='true'] {
   color: var(--text-1);
-  background: transparent;
+  background: var(--accent-bg);
 }
 #nd-sidebar a[data-active='true']::before {
   content: '';
   position: absolute;
   left: 0;
-  top: 5px;
-  bottom: 5px;
+  top: 4px;
+  bottom: 4px;
   width: 2px;
   border-radius: 1px;
   background: var(--accent);
@@ -369,24 +457,45 @@ samp {
 }
 .prose :is(h1, h2, h3, h4) {
   color: var(--text-1);
+  font-family: var(--font-serif);
+  font-optical-sizing: auto;
   font-weight: 600;
   text-decoration: none;
 }
 .prose h1 {
-  font-size: 32px;
-  letter-spacing: -0.02em;
-  line-height: 1.25;
+  font-size: 38px;
+  letter-spacing: -0.025em;
+  line-height: 1.12;
 }
 .prose h2 {
-  font-size: 22px;
-  letter-spacing: -0.01em;
-  margin-top: 48px;
+  font-size: 27px;
+  letter-spacing: -0.018em;
+  line-height: 1.15;
+  margin-top: 52px;
   padding-top: 24px;
   border-top: 1px solid var(--border);
 }
 .prose h3 {
-  font-size: 17px;
-  margin-top: 32px;
+  font-size: 20px;
+  letter-spacing: -0.012em;
+  margin-top: 34px;
+}
+
+/* Docs page title (fumadocs DocsTitle) — the manual's chapter head. */
+#nd-page h1:first-of-type,
+.fd-docs-title {
+  font-family: var(--font-serif) !important;
+  font-optical-sizing: auto;
+  font-weight: 600;
+  font-size: 40px !important;
+  line-height: 1.1 !important;
+  letter-spacing: -0.025em !important;
+}
+
+/* Pull quote / blockquote — set in Fraunces italic, a printed-manual aside. */
+.prose blockquote p {
+  font-family: var(--font-serif);
+  font-optical-sizing: auto;
 }
 
 /* Links in prose: same color as text, hairline underline; accent only on hover */
@@ -652,14 +761,113 @@ kbd {
 
 /* Theme-adaptive logo tokens (consumed by components/logo.tsx). */
 :root {
-  --logo-cloud: #101613;
-  --logo-chevron: #f1efe7;
-  --logo-line: #a83a08;
+  --logo-cloud: #221d14; /* ink cloud on paper */
+  --logo-chevron: #f3efe3; /* paper chevron */
+  --logo-line: #b23c0c; /* ember deep */
 }
 .dark {
-  --logo-cloud: #f1efe7;
-  --logo-chevron: #101613;
-  --logo-line: #ff6b2c;
+  --logo-cloud: #efe9d8; /* bone cloud on dark paper */
+  --logo-chevron: #14140f;
+  --logo-line: #ff7a3c;
+}
+
+/* ------------------------------------------------------------------ */
+/* Field Manual furniture — shared primitives for landing + docs.      */
+/* ------------------------------------------------------------------ */
+
+/* Signature line — "§ 1  Overview" in the outer margin. */
+.u-sig {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-3);
+  letter-spacing: 0.04em;
+}
+.u-sig b {
+  display: block;
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 13px;
+  margin-bottom: 2px;
+}
+
+/* Margin note — a small mono footnote in the outer column. */
+.u-marginnote {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.7;
+  color: var(--text-3);
+}
+.u-marginnote .h {
+  display: block;
+  color: var(--text-2);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 10px;
+  margin-bottom: 4px;
+}
+
+/* Plate frame — a bordered figure/table region with registration crosses. */
+.u-plate {
+  position: relative;
+  border: 1px solid var(--border-2);
+  background: var(--bg-2);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+/* Figure caption — "FIG. 1  <caption>". */
+.u-figcaption {
+  margin-top: 14px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-3);
+  display: flex;
+  gap: 12px;
+}
+.u-figcaption b {
+  color: var(--accent);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* Drop cap — the ember opening initial of a title spread. */
+.u-drop::first-letter {
+  font-family: var(--font-serif);
+  font-optical-sizing: auto;
+  font-weight: 600;
+  font-size: 3.1em;
+  line-height: 0.72;
+  float: left;
+  margin: 0.06em 0.09em 0 0;
+  color: var(--accent);
+}
+
+/* Registration cross — corner tick on plates. */
+.u-cross {
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  pointer-events: none;
+}
+.u-cross::before,
+.u-cross::after {
+  content: '';
+  position: absolute;
+  background: var(--border-2);
+}
+.u-cross::before {
+  left: 4px;
+  top: 0;
+  width: 1px;
+  height: 9px;
+}
+.u-cross::after {
+  top: 4px;
+  left: 0;
+  height: 1px;
+  width: 9px;
 }
 
 /* Blog article typography (ember blog — self-contained). */
@@ -672,16 +880,21 @@ kbd {
   margin-top: 1.25rem;
 }
 .blog-prose h2 {
-  font-size: 1.6rem;
-  font-weight: 700;
-  letter-spacing: -0.01em;
+  font-family: var(--font-serif);
+  font-optical-sizing: auto;
+  font-size: 1.75rem;
+  font-weight: 600;
+  letter-spacing: -0.018em;
   margin-top: 2.75rem;
   margin-bottom: 0.25rem;
   color: var(--text-1);
 }
 .blog-prose h3 {
-  font-size: 1.25rem;
+  font-family: var(--font-serif);
+  font-optical-sizing: auto;
+  font-size: 1.3rem;
   font-weight: 600;
+  letter-spacing: -0.012em;
   margin-top: 2rem;
   margin-bottom: 0.25rem;
   color: var(--text-1);
