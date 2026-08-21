@@ -11,24 +11,22 @@ type CalloutType =
   | 'idea';
 
 /**
- * Rail color is semantic: plain notes stay neutral; only warnings/dangers
- * earn a colored rail. Labels are always muted mono — never colored text.
+ * Manual note: a boxed sidenote in the Field Manual. A faint raised paper
+ * ground, a semantic left rail, and a ruled header carrying a mono label —
+ * the way a printed reference sets an aside. Rail color is semantic; plain
+ * notes stay neutral, only warnings/dangers earn a colored rail.
  */
 const VARIANT: Record<string, { label: string; rail: string }> = {
-  info: { label: 'NOTE', rail: 'var(--border-2)' },
-  tip: { label: 'TIP', rail: 'var(--ok)' },
-  idea: { label: 'TIP', rail: 'var(--ok)' },
-  warn: { label: 'WARNING', rail: 'var(--warn)' },
-  warning: { label: 'WARNING', rail: 'var(--warn)' },
-  error: { label: 'DANGER', rail: 'var(--danger)' },
-  danger: { label: 'DANGER', rail: 'var(--danger)' },
+  info: { label: 'Note', rail: 'var(--border-2)' },
+  tip: { label: 'Tip', rail: 'var(--ok)' },
+  idea: { label: 'Tip', rail: 'var(--ok)' },
+  warn: { label: 'Warning', rail: 'var(--warn)' },
+  warning: { label: 'Warning', rail: 'var(--warn)' },
+  error: { label: 'Danger', rail: 'var(--danger)' },
+  danger: { label: 'Danger', rail: 'var(--danger)' },
   success: { label: 'OK', rail: 'var(--ok)' },
 };
 
-/**
- * De-boxed callout: no background, no border, no radius — a 3px semantic
- * left rail, a mono label, and the body. Structure, not chrome.
- */
 export function Callout({
   type = 'info',
   title,
@@ -40,21 +38,21 @@ export function Callout({
 }) {
   const v = VARIANT[type] ?? VARIANT.info;
   return (
-    <div
-      className="not-prose my-6 py-0.5 pl-4 text-sm leading-relaxed"
+    <aside
+      className="not-prose my-6 overflow-hidden rounded-[4px] border border-line bg-surface"
       style={{ borderLeft: `3px solid ${v.rail}` }}
     >
-      <p className="mb-1.5 flex items-center gap-2 font-mono text-[13px] font-medium tracking-[0.06em] text-ink-3">
-        {v.label}
+      <div className="flex items-center gap-2 border-b border-line px-4 py-2">
+        <span className="font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-ink-3">
+          {v.label}
+        </span>
         {title && (
-          <span className="font-sans text-[13px] font-semibold normal-case tracking-normal text-ink">
-            {title}
-          </span>
+          <span className="font-serif text-[15px] font-medium text-ink">{title}</span>
         )}
-      </p>
-      <div className="space-y-2 text-ink-2 [&_code]:u-chip-code [&_a]:font-medium [&_a]:text-ink [&_a]:underline [&_a]:decoration-line-2 [&_a]:underline-offset-2 hover:[&_a]:text-accent hover:[&_a]:decoration-accent">
+      </div>
+      <div className="space-y-2 px-4 py-3 text-sm leading-relaxed text-ink-2 [&_a]:font-medium [&_a]:text-ink [&_a]:underline [&_a]:decoration-line-2 [&_a]:underline-offset-2 [&_code]:u-chip-code hover:[&_a]:text-accent hover:[&_a]:decoration-accent">
         {children}
       </div>
-    </div>
+    </aside>
   );
 }
