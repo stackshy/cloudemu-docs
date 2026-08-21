@@ -31,6 +31,10 @@ export default function Layout({ children }: { children: ReactNode }) {
       }}
       links={[
         {
+          text: 'Changelog',
+          url: '/changelog',
+        },
+        {
           text: 'Blog',
           url: '/blog',
         },

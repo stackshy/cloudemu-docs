@@ -961,3 +961,220 @@ kbd {
   color: var(--text-2);
   font-style: italic;
 }
+
+/* ------------------------------------------------------------------ */
+/* Changelog — the Release Ledger                                      */
+/* ------------------------------------------------------------------ */
+
+/* ember node sitting on each entry's rail */
+.changelog-node {
+  position: absolute;
+  left: -5px;
+  top: 7px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 4px var(--bg);
+}
+
+/* Keep a Changelog category chip (rendered from `### Added` etc.) */
+.changelog-cat {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 24px 0 10px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--text-2);
+}
+.changelog-cat:first-child {
+  margin-top: 0;
+}
+.changelog-cat .dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex: none;
+}
+
+.changelog-prose ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.changelog-prose li {
+  position: relative;
+  margin: 7px 0;
+  padding-left: 18px;
+  font-size: 15px;
+  line-height: 1.62;
+  color: var(--text-2);
+}
+.changelog-prose li::before {
+  content: '';
+  position: absolute;
+  left: 2px;
+  top: 11px;
+  width: 6px;
+  height: 1px;
+  background: var(--border-2);
+}
+.changelog-prose li strong {
+  color: var(--text-1);
+  font-weight: 600;
+}
+.changelog-prose p {
+  margin: 10px 0;
+  font-size: 15px;
+  line-height: 1.62;
+  color: var(--text-2);
+}
+.changelog-prose p strong {
+  color: var(--text-1);
+  font-weight: 600;
+}
+.changelog-prose em {
+  font-style: italic;
+}
+.changelog-prose .changelog-sub {
+  font-family: var(--font-serif);
+  font-optical-sizing: auto;
+  font-weight: 600;
+  font-size: 16.5px;
+  letter-spacing: -0.01em;
+  color: var(--text-1);
+  margin: 20px 0 6px;
+}
+.changelog-prose :not(pre) > code {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  background: var(--bg-3);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.05em 0.3em;
+  color: var(--text-1);
+}
+.changelog-prose a {
+  color: var(--text-1);
+  text-decoration: underline;
+  text-decoration-color: var(--border-2);
+  text-underline-offset: 2px;
+}
+.changelog-prose a:hover {
+  color: var(--accent);
+  text-decoration-color: var(--accent);
+}
+
+/* collapsible "technical details" — closed by default */
+.changelog-details {
+  margin: 14px 0;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg-2);
+}
+.changelog-details > summary {
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 14px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  color: var(--text-2);
+}
+.changelog-details > summary::-webkit-details-marker {
+  display: none;
+}
+.changelog-details > summary::before {
+  content: '▸';
+  display: inline-block;
+  color: var(--accent);
+  transition: transform 150ms var(--ease-out);
+}
+.changelog-details[open] > summary::before {
+  transform: rotate(90deg);
+}
+.changelog-details > summary:hover {
+  color: var(--text-1);
+}
+.changelog-details-body {
+  padding: 6px 14px 12px;
+  border-top: 1px solid var(--border);
+}
+.changelog-details-body > :first-child {
+  margin-top: 8px;
+}
+
+/* per-release accordion — collapses to a summary, opens to full notes */
+.release {
+  position: relative;
+  border-left: 1px solid var(--border);
+  padding-left: 28px;
+}
+.release > summary {
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 2px 0;
+}
+.release > summary::-webkit-details-marker {
+  display: none;
+}
+.release-node {
+  position: absolute;
+  left: -5px;
+  top: 9px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 4px var(--bg);
+}
+.release-head {
+  flex: 1;
+  min-width: 0;
+}
+.release-title {
+  display: block;
+  font-family: var(--font-serif);
+  font-optical-sizing: auto;
+  font-weight: 600;
+  font-size: 20px;
+  letter-spacing: -0.015em;
+  line-height: 1.2;
+  color: var(--text-1);
+}
+.release-lead {
+  display: block;
+  margin-top: 4px;
+  font-size: 14.5px;
+  line-height: 1.5;
+  color: var(--text-3);
+}
+.release[open] .release-lead {
+  display: none;
+}
+.release-chevron {
+  flex: none;
+  margin-top: 5px;
+  color: var(--accent);
+  font-size: 13px;
+  transition: transform 150ms var(--ease-out);
+}
+.release[open] .release-chevron {
+  transform: rotate(90deg);
+}
+.release > summary:hover .release-title {
+  color: var(--accent);
+}
+.release-body {
+  margin-top: 12px;
+}
