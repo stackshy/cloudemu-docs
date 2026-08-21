@@ -10,9 +10,11 @@ export default function BlogPage() {
 
   return (
     <main className="mx-auto max-w-2xl px-6 py-20">
-      <header className="flex flex-col gap-4 border-b border-line pb-10">
-        <span className="u-eyebrow">The log</span>
-        <h1 className="text-4xl font-semibold tracking-[-0.02em] text-ink">Writing</h1>
+      <header className="flex flex-col gap-4 border-b-[3px] border-double border-line-2 pb-10">
+        <span className="u-eyebrow">Field Notes · Addenda</span>
+        <h1 className="font-serif text-[clamp(38px,7vw,64px)] font-semibold leading-[1.02] tracking-[-0.025em] text-ink">
+          Field Notes
+        </h1>
         <p className="max-w-xl text-lg leading-relaxed text-ink-2">
           Design notes, wire-protocol traps, and the reasoning behind cloudemu&apos;s
           internals. Sparse on purpose — we write when there&apos;s something worth writing
@@ -33,7 +35,7 @@ export default function BlogPage() {
                 {date}
               </time>
               <div className="flex flex-col gap-2">
-                <h2 className="text-xl font-semibold tracking-[-0.01em] text-ink transition-colors group-hover:text-accent">
+                <h2 className="font-serif text-2xl font-semibold tracking-[-0.015em] text-ink transition-colors group-hover:text-accent">
                   {post.data.title}
                 </h2>
                 <p className="text-sm leading-relaxed text-ink-2">{post.data.description}</p>
