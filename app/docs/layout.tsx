@@ -31,6 +31,10 @@ export default function Layout({ children }: { children: ReactNode }) {
           text: 'Blog',
           url: '/blog',
         },
+        {
+          text: 'Contributors',
+          url: '/contributors',
+        },
       ]}
     >
       {children}

@@ -10,6 +10,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${SITE_URL}/docs`, changeFrequency: 'weekly', priority: 0.9 },
     { url: `${SITE_URL}/changelog`, changeFrequency: 'weekly', priority: 0.7 },
     { url: `${SITE_URL}/blog`, changeFrequency: 'monthly', priority: 0.5 },
+    { url: `${SITE_URL}/contributors`, changeFrequency: 'weekly', priority: 0.5 },
   ];
 
   const docs: MetadataRoute.Sitemap = source.getPages().map((p) => ({

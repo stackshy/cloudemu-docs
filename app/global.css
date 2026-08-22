@@ -290,12 +290,15 @@ samp {
   width: 100%;
   overflow: hidden;
 }
-.cl-canvas {
+/* isometric memory block, floated on the right of the stage */
+.cl-viz {
   position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  display: block;
+  top: 50%;
+  right: clamp(10px, 4vw, 70px);
+  transform: translateY(-50%);
+  width: min(46vw, 560px);
+  z-index: 2;
+  pointer-events: none;
 }
 .cl-hero {
   position: relative;
@@ -312,15 +315,64 @@ samp {
   pointer-events: auto;
 }
 
+/* ---- isometric memory block ---- */
+.iso-wrap { width: 100%; }
+.iso-svg { width: 100%; height: auto; display: block; overflow: visible; }
+.iso-guides line {
+  stroke: var(--border-2);
+  stroke-width: 1;
+  stroke-dasharray: 4 7;
+  opacity: 0.5;
+}
+
+/* solid memory block — ember-tinted per the logo */
+.iso-block polygon, .iso-fcube polygon { stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.ip-top { fill: color-mix(in srgb, var(--ember) 12%, var(--bg)); }
+.ip-left { fill: color-mix(in srgb, var(--ember) 6%, var(--bg)); }
+.ip-right { fill: color-mix(in srgb, var(--ember) 3%, var(--bg)); }
+.iso-grid line { stroke: color-mix(in srgb, var(--ember) 34%, var(--border-2)); stroke-width: 1.1; vector-effect: non-scaling-stroke; }
+
+/* recessed socket where the top cube surfaced */
+.iso-sock polygon { stroke: none; }
+.iso-sock-floor { fill: color-mix(in srgb, var(--text-1) 10%, var(--bg)); }
+.iso-sock-wl { fill: color-mix(in srgb, var(--text-1) 6%, var(--bg)); }
+.iso-sock-wr { fill: color-mix(in srgb, var(--text-1) 3%, var(--bg)); }
+
+/* ember silhouette of the block */
+.iso-outline polygon {
+  fill: none;
+  stroke: color-mix(in srgb, var(--ember) 55%, transparent);
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+/* detached cubes: brighter ember, gentle float */
+.fc-top { fill: color-mix(in srgb, var(--ember) 22%, var(--bg)); stroke: var(--ember); stroke-width: 2.2; }
+.fc-left { fill: color-mix(in srgb, var(--ember) 13%, var(--bg)); stroke: color-mix(in srgb, var(--ember) 65%, transparent); stroke-width: 1.6; }
+.fc-right { fill: color-mix(in srgb, var(--ember) 8%, var(--bg)); stroke: color-mix(in srgb, var(--ember) 50%, transparent); stroke-width: 1.6; }
+.iso-fcube {
+  animation: iso-bob 4.6s ease-in-out infinite;
+  animation-delay: var(--d, 0s);
+  will-change: transform;
+}
+@keyframes iso-bob {
+  0%, 100% { transform: translateY(3px); }
+  50% { transform: translateY(-7px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .iso-fcube { animation: none; }
+}
+
 /* kinetic headline — each line rises out of a mask */
 .cl-h1 {
   font-family: var(--font-display);
   font-weight: 800;
-  font-size: clamp(44px, 8.4vw, 120px);
-  line-height: 0.9;
-  letter-spacing: -0.035em;
+  font-size: clamp(38px, 6.6vw, 92px);
+  line-height: 0.92;
+  letter-spacing: -0.03em;
   margin: 18px 0 0;
-  max-width: 15ch;
+  max-width: 16ch;
   color: var(--text-1);
 }
 .cl-line {
@@ -786,27 +838,39 @@ samp {
   color: #ff8a5c;
 }
 
-/* below 1024 — the hero flows naturally; the dock joins the flow (no overlap) */
+/* below 1024 — the hero stacks; iso block sits below the headline */
 @media (max-width: 1023px) {
   .cl-stage {
     min-height: auto;
+    display: flex;
+    flex-direction: column;
   }
   .cl-hero {
+    order: 0;
     min-height: auto;
     padding-top: 128px;
-    padding-bottom: 44px;
+    padding-bottom: 12px;
+  }
+  .cl-viz {
+    order: 1;
+    position: static;
+    transform: none;
+    width: min(78vw, 360px);
+    margin: 16px auto 0;
+    padding: 0 clamp(26px, 6vw, 90px);
   }
   .cl-readout {
-    top: 92px;
+    display: none;
   }
   .cl-dock,
   .cl-dock.on {
+    order: 2;
     position: static;
     left: auto;
     transform: none;
     opacity: 1;
     width: auto;
-    margin-top: 30px;
+    margin: 30px clamp(26px, 6vw, 90px) 44px;
     justify-content: flex-start;
   }
   .cl-chip {
@@ -837,6 +901,461 @@ samp {
   }
   .cl-track {
     animation: none !important;
+  }
+}
+
+
+/* ================================================================== */
+/* Contributors — tiered "credential" cards + a tier legend.           */
+/* ================================================================== */
+
+.cb-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  margin-top: 26px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-3);
+}
+.cb-legend-label {
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--text-3);
+}
+.cb-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-2);
+}
+.cb-glyph {
+  color: var(--tier);
+  font-style: normal;
+}
+
+.cw-wall {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 34px 16px;
+  margin-top: 6px;
+}
+.cw-person {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 9px;
+  padding: 10px 6px;
+  border-radius: 16px;
+  text-decoration: none;
+  transition: transform 0.2s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.cw-person:hover {
+  transform: translateY(-4px);
+}
+.cw-ava {
+  position: relative;
+  width: 92px;
+  height: 92px;
+  border-radius: 50%;
+  padding: 3px;
+  background: var(--bg);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--tier) 65%, transparent);
+  transition:
+    transform 0.22s cubic-bezier(0.2, 0.7, 0.2, 1),
+    box-shadow 0.22s;
+}
+.cw-person--podium .cw-ava {
+  width: 116px;
+  height: 116px;
+}
+.cw-person:hover .cw-ava {
+  transform: scale(1.06);
+  box-shadow:
+    0 0 0 2px var(--tier),
+    0 0 0 7px color-mix(in srgb, var(--tier) 16%, transparent),
+    0 18px 36px -14px rgba(18, 20, 15, 0.45);
+}
+.cw-ava img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.cw-medal {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  color: #17140f;
+  background: var(--medal);
+  box-shadow: 0 0 0 3px var(--bg);
+}
+.cw-name {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  line-height: 1.25;
+  color: var(--text-1);
+  word-break: break-word;
+  max-width: 15ch;
+}
+.cw-person:hover .cw-name {
+  color: var(--accent);
+}
+.cw-tier {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--tier);
+}
+.cw-glyph {
+  font-style: normal;
+  color: var(--tier);
+}
+.cw-commits {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+@media (max-width: 680px) {
+  .cw-wall {
+    grid-template-columns: repeat(auto-fill, minmax(108px, 1fr));
+    gap: 26px 10px;
+  }
+  .cw-ava {
+    width: 76px;
+    height: 76px;
+  }
+  .cw-person--podium .cw-ava {
+    width: 92px;
+    height: 92px;
+  }
+  .cw-name {
+    font-size: 12.5px;
+  }
+}
+
+/* ================================================================== */
+/* Horizontal reel — a pinned section that scrolls right-to-left.       */
+/* ================================================================== */
+.hr-outer {
+  position: relative;
+}
+.hr-sticky {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  border-top: 1px solid var(--border);
+}
+.hr-track {
+  display: flex;
+  gap: 24px;
+  align-items: stretch;
+  padding: 0 clamp(26px, 6vw, 90px);
+  will-change: transform;
+}
+.hr-panel {
+  flex: 0 0 auto;
+  width: clamp(320px, 42vw, 560px);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.hr-hint {
+  margin-top: 26px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+.hr-card {
+  height: min(58vh, 470px);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 32px;
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  background:
+    linear-gradient(160deg, color-mix(in srgb, var(--ember) 7%, transparent), transparent 46%),
+    var(--bg-2);
+  box-shadow: 0 30px 60px -40px rgba(18, 20, 15, 0.35);
+}
+.hr-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+.hr-n {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 40px;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--ember);
+}
+.hr-tag {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+.hr-foot {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.hr-name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(26px, 3vw, 40px);
+  letter-spacing: -0.02em;
+  line-height: 1;
+  color: var(--text-1);
+  margin: 0;
+}
+.hr-desc {
+  color: var(--text-2);
+  font-size: 16px;
+  line-height: 1.55;
+  margin: 0;
+  max-width: 42ch;
+}
+
+/* ---- per-card concept animations (decorative) ---- */
+.hr-viz-wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  margin: 6px 0;
+}
+.viz {
+  width: 100%;
+  max-width: 320px;
+}
+
+/* chaos — a latency baseline with a spike sweeping across (fault burst) */
+.viz-chaos {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 120px;
+}
+.viz-chaos i {
+  flex: 1;
+  height: 22%;
+  border-radius: 2px 2px 0 0;
+  background: var(--border-2);
+  transform-origin: bottom;
+  animation: viz-spike 3.4s ease-in-out infinite;
+  animation-delay: calc(var(--i) * -0.11s);
+}
+@keyframes viz-spike {
+  0%, 82%, 100% { height: 20%; background: var(--border-2); }
+  88% { height: 92%; background: var(--ember); }
+  94% { height: 34%; background: color-mix(in srgb, var(--ember) 50%, var(--border-2)); }
+}
+
+/* state machines — a token walks pending → running → stopping → stopped */
+.viz-state {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  width: 100%;
+  max-width: 340px;
+}
+.viz-rail {
+  position: absolute;
+  top: 8px;
+  left: 8%;
+  right: 8%;
+  height: 2px;
+  background: var(--border-2);
+}
+.viz-node {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+}
+.viz-node i {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--bg-2);
+  box-shadow: inset 0 0 0 2px var(--border-2);
+  animation: viz-walk 4s ease-in-out infinite;
+  animation-delay: calc(var(--i) * 0.6s);
+}
+.viz-node b {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--text-3);
+}
+@keyframes viz-walk {
+  0%, 12%, 60%, 100% { background: var(--bg-2); box-shadow: inset 0 0 0 2px var(--border-2); }
+  22%, 50% { background: var(--ember); box-shadow: inset 0 0 0 2px var(--ember), 0 0 0 5px color-mix(in srgb, var(--ember) 18%, transparent); }
+}
+
+/* error injection — a grid of calls, some flip to failed (ember) probabilistically */
+.viz-err {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+  width: 100%;
+  max-width: 210px;
+}
+.viz-err i {
+  aspect-ratio: 1;
+  border-radius: 4px;
+  background: var(--border-2);
+  animation: viz-fail 3.6s steps(1) infinite;
+  animation-delay: calc(var(--i) * 0.13s);
+}
+.viz-err i:nth-child(3n+1) { animation-duration: 3.6s; }
+.viz-err i:nth-child(4n) { animation-duration: 2.9s; }
+.viz-err i:nth-child(5n) { animation-duration: 4.3s; }
+@keyframes viz-fail {
+  0%, 78%, 100% { background: var(--border-2); }
+  80%, 96% { background: var(--ember); }
+}
+
+/* recording & replay — a live waveform */
+.viz-wave {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  height: 96px;
+}
+.viz-wave i {
+  flex: 1;
+  height: 30%;
+  border-radius: 999px;
+  background: var(--accent);
+  animation: viz-bounce 1.5s ease-in-out infinite;
+  animation-delay: calc(var(--i) * -0.09s);
+}
+@keyframes viz-bounce {
+  0%, 100% { height: 18%; opacity: 0.5; }
+  50% { height: 90%; opacity: 1; }
+}
+
+/* fake clock — the hand sweeps, then jumps forward (advanced by hand) */
+.viz-clock {
+  width: 116px;
+}
+.viz-clock svg { width: 100%; height: auto; display: block; }
+.viz-clock-face { fill: none; stroke: var(--border-2); stroke-width: 2.5; }
+.viz-clock-hand {
+  stroke: var(--ember);
+  stroke-width: 3;
+  stroke-linecap: round;
+  transform-origin: 50px 50px;
+  animation: viz-tick 4s cubic-bezier(0.7, 0, 0.3, 1) infinite;
+}
+.viz-clock-hand2 { stroke: var(--text-3); stroke-width: 2.5; stroke-linecap: round; }
+.viz-clock-pin { fill: var(--ember); }
+@keyframes viz-tick {
+  0% { transform: rotate(0deg); }
+  40% { transform: rotate(90deg); }
+  45% { transform: rotate(270deg); }   /* the deterministic "advance" jump */
+  85% { transform: rotate(340deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* zero dependencies — one self-contained node, no graph */
+.viz-deps {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 130px;
+  height: 130px;
+}
+.viz-deps-core {
+  position: relative;
+  z-index: 2;
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--ember);
+  color: #17140f;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 24px;
+}
+.viz-deps-ring {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: 1.5px solid var(--ember);
+  animation: viz-pulse 2.6s ease-out infinite;
+}
+.viz-deps-ring:nth-child(2) { animation-delay: 1.3s; }
+@keyframes viz-pulse {
+  0% { transform: scale(1); opacity: 0.6; }
+  100% { transform: scale(2.3); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .viz i,
+  .viz-clock-hand,
+  .viz-deps-ring,
+  .viz-node i { animation: none !important; }
+}
+
+@media (max-width: 899px) {
+  .hr-sticky {
+    position: static;
+    height: auto;
+    padding: 24px 0;
+  }
+  .hr-track {
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 12px;
+  }
+  .hr-panel {
+    width: min(80vw, 360px);
+    scroll-snap-align: center;
+  }
+  .hr-card {
+    height: auto;
+    min-height: 320px;
   }
 }
 
