@@ -608,14 +608,11 @@ samp {
   opacity: 0.75;
 }
 
-/* focus-dim: non-focused lines at 45% — never blur (fumadocs default) */
-.shiki.has-focused .line:not(.focused) {
-  opacity: 0.45;
-  filter: none !important;
-  transition: opacity 250ms var(--ease-out);
-}
-.shiki.has-focused:hover .line:not(.focused) {
-  opacity: 1;
+/* Focus: emphasise the focused lines (ember rail + wash) rather than dimming
+   the rest — keeps every line at full contrast (WCAG AA), no opacity fade. */
+.shiki.has-focused .line.focused {
+  background: var(--code-hl);
+  box-shadow: inset 2px 0 0 var(--accent);
 }
 
 /* Terminal panes: theme-adaptive (light in light mode, dark in dark mode).

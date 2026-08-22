@@ -9,26 +9,29 @@ import type { ThemeRegistration } from 'shiki';
  * italic. Nothing saturated; code should read, not shout.
  */
 
+// Colours meet WCAG AA (4.5:1) against the code surface (--bg-3): #eae5d6
+// (light) / #201f17 (dark). Shiki's own bg is transparent, so contrast is
+// measured against the warm paper, not the theme bg.
 const dark = {
   keyword: '#7eb6ff',
   string: '#c9a97c',
-  comment: '#6b7482',
+  comment: '#8c95a2', // lifted for AA on dark paper
   func: '#f2f4f6',
   type: '#a9b1bc',
   number: '#c9a97c',
-  punct: '#8b93a0',
+  punct: '#9aa2b0',
   plain: '#d5dae0',
   bg: '#171b21',
 };
 
 const light = {
-  keyword: '#1f5fb8',
-  string: '#8a6a2f',
-  comment: '#6c7178',
+  keyword: '#1c56a8', // darkened for AA
+  string: '#705625',
+  comment: '#565a61',
   func: '#17191c',
   type: '#494f57',
-  number: '#8a6a2f',
-  punct: '#5b6169',
+  number: '#705625',
+  punct: '#4f545c',
   plain: '#24272c',
   bg: '#f1f1ef',
 };

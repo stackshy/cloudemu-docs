@@ -9,10 +9,13 @@ import { Check, Copy } from 'lucide-react';
  */
 export function CopyButton({
   target,
+  text,
   className = '',
 }: {
-  /** returns the text to copy at click time */
-  target: () => string;
+  /** returns the text to copy at click time (client callers) */
+  target?: () => string;
+  /** static text to copy (serializable — usable from server components) */
+  text?: string;
   className?: string;
 }) {
   const [copied, setCopied] = useState(false);
@@ -21,7 +24,7 @@ export function CopyButton({
       type="button"
       aria-label="Copy code"
       onClick={async () => {
-        await navigator.clipboard.writeText(target());
+        await navigator.clipboard.writeText(text ?? target?.() ?? '');
         setCopied(true);
         setTimeout(() => setCopied(false), 1600);
       }}

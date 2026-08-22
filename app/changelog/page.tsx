@@ -4,6 +4,7 @@ import { Ledger } from '@/components/changelog/ledger';
 export const metadata: Metadata = {
   title: 'Changelog',
   description: 'Every cloudemu release, newest first — the official release notes for the emulator.',
+  alternates: { canonical: '/changelog' },
 };
 
 export default function ChangelogPage() {

@@ -7,6 +7,8 @@ import { blogSource } from '@/lib/source';
 import { CodePre } from '@/components/code/pre';
 import { Callout } from '@/components/docs/callout';
 import { mdxHeadings } from '@/components/docs/heading';
+import { JsonLd } from '@/components/seo/json-ld';
+import { blogPostingLd } from '@/lib/seo';
 
 export function generateStaticParams() {
   return blogSource
@@ -28,6 +30,14 @@ export default async function BlogPostPage(props: {
 
   return (
     <main className="mx-auto max-w-2xl px-6 py-16">
+      <JsonLd
+        data={blogPostingLd({
+          title: data.title,
+          description: data.description,
+          path: page.url,
+          date: data.date,
+        })}
+      />
       <Link
         href="/blog"
         className="mb-10 inline-flex items-center gap-2 font-mono text-xs text-ink-3 transition-colors hover:text-ink"
@@ -72,5 +82,9 @@ export async function generateMetadata(props: {
   const params = await props.params;
   const page = blogSource.getPage([params.slug]);
   if (!page) return {};
-  return { title: page.data.title, description: page.data.description };
+  return {
+    title: page.data.title,
+    description: page.data.description,
+    alternates: { canonical: `/blog/${params.slug}` },
+  };
 }
