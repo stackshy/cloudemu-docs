@@ -1,6 +1,6 @@
 import './global.css';
 import { RootProvider } from 'fumadocs-ui/provider/next';
-import { Instrument_Sans, JetBrains_Mono, Fraunces } from 'next/font/google';
+import { Instrument_Sans, JetBrains_Mono, Bricolage_Grotesque } from 'next/font/google';
 import type { ReactNode } from 'react';
 import type { Metadata } from 'next';
 import CustomSearchDialog from '@/components/search-dialog';
@@ -19,15 +19,14 @@ const mono = JetBrains_Mono({
   display: 'swap',
 });
 
-// Fraunces — the Field Manual's editorial display voice. Variable optical
-// sizing (opsz) so titles read like a printed reference face, plus an italic
-// used for the ember accent words and pull quotes.
-const serif = Fraunces({
+// Bricolage Grotesque — the display voice for "Collapse": an expressive,
+// slightly wide grotesque set heavy and tight. Carries the kinetic headlines
+// and section titles across the whole site.
+const display = Bricolage_Grotesque({
   subsets: ['latin'],
-  variable: '--font-fraunces',
+  variable: '--font-bricolage',
   display: 'swap',
-  style: ['normal', 'italic'],
-  axes: ['opsz'],
+  weight: ['500', '700', '800'],
 });
 
 const description =
@@ -70,7 +69,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${sans.variable} ${mono.variable} ${serif.variable}`}
+      className={`${sans.variable} ${mono.variable} ${display.variable}`}
     >
       <body>
         <JsonLd data={[organizationLd, websiteLd]} />

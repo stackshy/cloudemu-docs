@@ -2,30 +2,37 @@
  * tokens.css — single source of truth for every color/surface/type token.
  * No raw hex in components; everything references these variables.
  *
- * IDENTITY: "The Field Manual" — a warm, printed technical-reference feel.
- * LIGHT is primary (warm "Bone" paper, ink type, ember as the one spot color).
- * DARK is the "night edition" (warm dark paper). Ember is spent like it's rare
- * (<~10% of any viewport): links on hover/active, the 2px active rail, focus
- * rings, the primary button, FIG. accents, one italic accent word.
+ * IDENTITY: "Collapse" — the whole cloud condensed into an in-memory core.
+ * A single warm "Bone" stage (the logo's paper), ink type, and ember as the
+ * heat of the collapse. One theme only. Ember comes in two grades:
+ *   --accent  = Ember Deep, holds 4.5:1 on paper (links, small text, rails)
+ *   --ember   = Ember Bright, large display words + decorative motion only
+ * The --viz-* colors are for the decorative canvas / memory grid (never text).
  */
 
 :root {
-  /* ---- surfaces (light) — warm Bone paper ---- */
-  --bg: #f3efe3; /* main ground — warm paper */
-  --bg-2: #faf7ee; /* sidebar, plates, cards */
-  --bg-3: #eae5d6; /* code blocks, insets, popovers */
-  --border: #ddd6c4;
-  --border-2: #c7bea9; /* hover/strong rule */
+  /* ---- surfaces — warm Bone stage (logo #F1EFE7) ---- */
+  --bg: #f1efe7; /* the stage */
+  --bg-2: #f7f5ef; /* cards, plates, sidebar (paper) */
+  --bg-3: #e9e6db; /* code blocks, insets, popovers */
+  --border: #d8d4c6;
+  --border-2: #c3bba7; /* hover/strong rule */
 
-  /* ---- text (light) — warm ink ---- */
-  --text-1: #221d14; /* ink — headings, primary */
-  --text-2: #4c473a; /* body */
-  --text-3: #6e6857; /* marginalia, captions, labels (AA on paper) */
+  /* ---- text — warm ink ---- */
+  --text-1: #12140f; /* ink — headings, primary */
+  --text-2: #4a4d43; /* body */
+  --text-3: #6b6a5e; /* marginalia, captions, labels (AA on Bone) */
 
-  /* ---- the one accent: ember (deep in light to hold 4.5:1 on paper) ---- */
-  --accent: #b23c0c; /* Ember Deep — never #FF6B2C on paper */
-  --accent-bg: rgba(178, 60, 12, 0.07);
-  --accent-ink: #faf7ee; /* paper — text on solid accent */
+  /* ---- ember: two grades ---- */
+  --accent: #c2440d; /* Ember Deep — AA on Bone for links/small text */
+  --accent-bg: rgba(194, 68, 13, 0.07);
+  --accent-ink: #f7f5ef; /* paper — text on solid accent */
+  --ember: #ff5a1f; /* Ember Bright — large display + decorative heat */
+
+  /* ---- decorative viz (canvas / memory grid — never text) ---- */
+  --viz-aws: #ff5a1f;
+  --viz-azure: #3a7bd5;
+  --viz-gcp: #e8a33d;
 
   /* ---- provider colors (semantic only: coverage cells, tabs, dots) ---- */
   --aws: #97620b;
@@ -62,62 +69,12 @@
   --code-hl: var(--accent-bg);
 }
 
-.dark {
-  /* ---- surfaces (dark) — night edition, warm dark paper ---- */
-  --bg: #14140f;
-  --bg-2: #191a13;
-  --bg-3: #201f17;
-  --border: #2b2a20;
-  --border-2: #3b392c;
-
-  /* ---- terminal / inset pane (dark instrument screen) ---- */
-  --terminal-bg: #100f0a;
-  --terminal-ink: #e7e1d0;
-  --terminal-muted: #837c6a;
-
-  /* ---- text (dark) — warm Bone ---- */
-  --text-1: #efe9d8;
-  --text-2: #bdb6a2;
-  --text-3: #837c6a;
-
-  /* ---- accent: ember (bright on dark paper) ---- */
-  --accent: #ff7a3c;
-  --accent-bg: rgba(255, 122, 60, 0.12);
-  --accent-ink: #14140f;
-
-  /* ---- provider colors ---- */
-  --aws: #e8912d;
-  --azure: #6f93f5;
-  --gcp: #4cbb72;
-
-  /* ---- status semantics ---- */
-  --ok: #4cbb72;
-  --warn: #d9a03f;
-  --danger: #e5645c;
-
-  --shadow-popover: 0 18px 44px -14px rgba(0, 0, 0, 0.62);
-
-  /* ---- code syntax (dark) ---- */
-  --code-plain: #d9d3c3;
-  --code-keyword: #8fb6ff; /* cool blue */
-  --code-string: #d3b483; /* warm sand */
-  --code-comment: #8c95a2; /* muted (AA on dark paper) */
-  --code-function: #f2ede0; /* text-1 */
-  --code-type: #b3ab97;
-  --code-punct: #9aa2b0;
-  --code-number: #d3b483;
-  --code-diff-add: rgba(76, 187, 114, 0.1);
-  --code-diff-del: rgba(229, 100, 92, 0.1);
-  --code-hl: var(--accent-bg);
-}
-
 /* ------------------------------------------------------------------ */
-/* Compatibility aliases — legacy names consumed by components not yet */
-/* rebuilt on the new token set. Kept so nothing goes uncolored.       */
+/* Compatibility aliases — legacy names still consumed by some docs    */
+/* components. Kept so nothing goes uncolored.                         */
 /* ------------------------------------------------------------------ */
 
-:root,
-.dark {
+:root {
   --bg-base: var(--bg);
   --bg-surface: var(--bg-2);
   --bg-raised: var(--bg-3);
