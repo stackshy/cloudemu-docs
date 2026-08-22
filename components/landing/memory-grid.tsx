@@ -3,11 +3,13 @@
 import { useEffect, useRef, useState } from 'react';
 
 /**
- * MemoryGrid — a region of memory cells that light up in waves (in provider
- * colors) when scrolled into view, with a live cell counter. The "resources
- * live in RAM" idea, made literal. Reduced-motion fills instantly.
+ * MemoryGrid — a region of memory cells. On first view it fills in waves; then
+ * it stays alive: cells continuously allocate, free and change provider color,
+ * with the cell count ticking — the churn of an in-memory store under load. The
+ * churn pauses when off-screen (perf) and is disabled under reduced motion.
  */
 const CELLS = 96;
+const CLASSES = ['aws', 'az', 'gc'];
 
 export function MemoryGrid() {
   const ref = useRef<HTMLDivElement>(null);
@@ -18,31 +20,57 @@ export function MemoryGrid() {
     const el = ref.current;
     if (!el) return;
     const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-    const classes = ['aws', 'az', 'gc'];
+    let filled = false;
+    let visible = false;
+    let churn = 0;
+
+    const rand = (n: number) => Math.floor(Math.random() * n);
+
+    function startChurn() {
+      if (reduce || churn) return;
+      churn = window.setInterval(() => {
+        if (!visible) return;
+        setLit((prev) => {
+          const next = { ...prev };
+          // a handful of allocations / frees / recolors per tick
+          for (let k = 0; k < 3; k++) {
+            const i = rand(CELLS);
+            if (next[i]) {
+              if (Math.random() < 0.45) delete next[i];
+              else next[i] = CLASSES[rand(3)];
+            } else {
+              next[i] = CLASSES[rand(3)];
+            }
+          }
+          setCount(Object.keys(next).length);
+          return next;
+        });
+      }, 620);
+    }
+
     const io = new IntersectionObserver((entries) => {
       entries.forEach((e) => {
-        if (!e.isIntersecting) return;
-        io.disconnect();
+        visible = e.isIntersecting;
+        if (!visible || filled) return;
+        filled = true;
         const next: Record<number, string> = {};
         let n = 0;
         for (let i = 0; i < CELLS; i++) {
-          // deterministic-ish scatter (~62% lit)
-          if ((i * 7 + (i % 5) * 13) % 8 < 5) { next[i] = classes[i % 3]; n++; }
+          if ((i * 7 + (i % 5) * 13) % 8 < 5) { next[i] = CLASSES[i % 3]; n++; }
         }
         if (reduce) { setLit(next); setCount(n); return; }
-        // reveal in waves
         const order = Object.keys(next).map(Number);
-        let done = 0;
         order.forEach((idx, k) => {
           window.setTimeout(() => {
             setLit((prev) => ({ ...prev, [idx]: next[idx] }));
-            done++; setCount(done);
+            setCount((c) => c + 1);
           }, k * 16);
         });
+        window.setTimeout(startChurn, order.length * 16 + 500);
       });
-    }, { threshold: 0.3 });
+    }, { threshold: 0.25 });
     io.observe(el);
-    return () => io.disconnect();
+    return () => { io.disconnect(); if (churn) clearInterval(churn); };
   }, []);
 
   return (

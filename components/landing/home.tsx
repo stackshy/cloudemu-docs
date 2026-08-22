@@ -3,6 +3,7 @@ import { CopyButton } from '@/components/code/copy-button';
 import { Reveal } from './reveal';
 import { CollapseHero } from './collapse-hero';
 import { MemoryGrid } from './memory-grid';
+import { HorizontalReel } from './horizontal-reel';
 import { ScrollProgress, CountUp } from './motion';
 
 /**
@@ -54,7 +55,7 @@ function Coverage() {
   return (
     <section className="cl-sec">
       <div className="mx-auto max-w-[1180px]">
-        <Reveal><div className="cl-k">§ 02 — coverage</div></Reveal>
+        <Reveal><div className="cl-k">§ 03 — coverage</div></Reveal>
         <Reveal delay={0.05}><h2 className="cl-h2 mt-3.5">One binary. <span className="em">Three clouds.</span></h2></Reveal>
         <div className="cl-stats">
           <Reveal><div className="cl-stat"><div className="v"><CountUp to={STATS.sdkCompatServices} className="em" /></div><div className="l">services emulated</div></div></Reveal>
@@ -80,7 +81,7 @@ function Ways() {
   return (
     <section className="cl-sec">
       <div className="mx-auto max-w-[1180px]">
-        <Reveal><div className="cl-k">§ 03 — three ways to run it</div></Reveal>
+        <Reveal><div className="cl-k">§ 04 — three ways to run it</div></Reveal>
         <Reveal delay={0.05}><h2 className="cl-h2 mt-3.5">Point <span className="em">real code</span> at it.</h2></Reveal>
         <div className="cl-ways">
           {PRODUCT_WAYS.map((w, i) => {
@@ -113,7 +114,7 @@ function Colophon() {
   return (
     <section className="cl-sec">
       <div className="mx-auto max-w-[1180px] text-center">
-        <Reveal><div className="cl-k">§ 04 — power on</div></Reveal>
+        <Reveal><div className="cl-k">§ 05 — power on</div></Reveal>
         <Reveal delay={0.05}>
           <h2 className="cl-h2 mx-auto mt-3.5 max-w-[18ch] text-center">Bring a cloud up in <span className="em">one line</span>.</h2>
         </Reveal>
@@ -160,6 +161,7 @@ export function Home() {
       <ScrollProgress />
       <CollapseHero />
       <Machine />
+      <HorizontalReel />
       <Coverage />
       <Ways />
       <Colophon />
