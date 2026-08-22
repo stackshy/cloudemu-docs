@@ -15,6 +15,7 @@ export default function Layout({ children }: { children: ReactNode }) {
         { text: 'Docs', url: '/docs' },
         { text: 'Changelog', url: '/changelog' },
         { text: 'Blog', url: '/blog' },
+        { text: 'Contributors', url: '/contributors' },
         { type: 'custom', children: <GitHubStars />, secondary: true },
       ]}
     >

@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import { LogoMark } from '@/components/logo';
 import { GitHubStars } from '@/components/github-stars';
 
-export default function ChangelogLayout({ children }: { children: ReactNode }) {
+export default function ContributorsLayout({ children }: { children: ReactNode }) {
   return (
     <HomeLayout
       nav={{ title: <LogoMark />, url: '/' }}
