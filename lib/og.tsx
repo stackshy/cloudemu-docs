@@ -4,17 +4,17 @@ export const OG_SIZE = { width: 1200, height: 630 };
 export const OG_CONTENT_TYPE = 'image/png';
 
 /**
- * Shared Open Graph card in the Field Manual palette (generated at build time —
- * static-export safe). `eyebrow` names the section; every node is display:flex
- * per Satori's multi-child rule.
+ * Shared Open Graph card in the "Collapse" palette (generated at build time —
+ * static-export safe). Warm Bone stage, ink type, ember heat. `eyebrow` names
+ * the section; every node is display:flex per Satori's multi-child rule.
  */
 export function ogCard(eyebrow: string) {
-  const paper = '#f3efe3';
-  const ink = '#221d15';
-  const ink2 = '#4c473a';
-  const ink3 = '#857e6d';
-  const ember = '#b23c0c';
-  const rule = '#c7bea9';
+  const paper = '#f1efe7';
+  const ink = '#12140f';
+  const ink2 = '#4a4d43';
+  const ink3 = '#6b6a5e';
+  const ember = '#ff5a1f';
+  const rule = '#d8d4c6';
 
   const row = {
     display: 'flex',
@@ -35,7 +35,7 @@ export function ogCard(eyebrow: string) {
           justifyContent: 'space-between',
           background: paper,
           padding: '72px 80px',
-          fontFamily: 'Georgia, serif',
+          fontFamily: 'sans-serif',
         }}
       >
         <div style={{ ...row, fontSize: 22, letterSpacing: 4, textTransform: 'uppercase', borderBottom: `2px solid ${rule}`, paddingBottom: 22 }}>
@@ -44,14 +44,14 @@ export function ogCard(eyebrow: string) {
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <div style={{ display: 'flex', fontSize: 118, color: ink, letterSpacing: -4, lineHeight: 1.02 }}>The cloud,</div>
-          <div style={{ display: 'flex', fontSize: 118, letterSpacing: -4, lineHeight: 1.02, fontStyle: 'italic' }}>
-            <span style={{ color: ink }}>in&nbsp;</span>
+          <div style={{ display: 'flex', fontSize: 100, fontWeight: 800, color: ink, letterSpacing: -4, lineHeight: 1.0 }}>The whole cloud,</div>
+          <div style={{ display: 'flex', fontSize: 100, fontWeight: 800, letterSpacing: -4, lineHeight: 1.0 }}>
+            <span style={{ color: ink }}>collapsed into&nbsp;</span>
             <span style={{ color: ember }}>memory</span>
             <span style={{ color: ink }}>.</span>
           </div>
-          <div style={{ display: 'flex', fontSize: 33, color: ink2, marginTop: 30, maxWidth: 940, lineHeight: 1.3 }}>
-            A real emulator of AWS, Azure &amp; GCP you point real code at — and it answers from RAM.
+          <div style={{ display: 'flex', fontSize: 32, color: ink2, marginTop: 30, maxWidth: 960, lineHeight: 1.3 }}>
+            A real emulator of AWS, Azure &amp; GCP you point real code at — answers straight from RAM.
           </div>
         </div>
 

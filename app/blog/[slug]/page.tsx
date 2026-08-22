@@ -47,13 +47,13 @@ export default async function BlogPostPage(props: {
       </Link>
 
       <article>
-        <header className="mb-10 border-b-[3px] border-double border-line-2 pb-8">
+        <header className="mb-10 border-b border-line pb-8">
           {data.date && (
             <time className="font-mono text-xs uppercase tracking-widest text-ink-3">
               {data.date}
             </time>
           )}
-          <h1 className="font-serif mt-3 text-[clamp(34px,6vw,54px)] font-semibold leading-[1.05] tracking-[-0.025em] text-ink">
+          <h1 className="font-serif mt-3 text-[clamp(34px,6vw,54px)] font-extrabold leading-[1.0] tracking-[-0.03em] text-ink">
             {data.title}
           </h1>
           {data.description && (

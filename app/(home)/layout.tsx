@@ -10,6 +10,7 @@ export default function Layout({ children }: { children: ReactNode }) {
         title: <LogoMark />,
         url: '/',
       }}
+      themeSwitch={{ enabled: false }}
       links={[
         { text: 'Docs', url: '/docs' },
         { text: 'Changelog', url: '/changelog' },

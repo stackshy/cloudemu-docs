@@ -1,5 +1,4 @@
 import { DocsLayout } from 'fumadocs-ui/layouts/docs';
-import { ThemeSwitch } from 'fumadocs-ui/layouts/shared/slots/theme-switch';
 import type { ReactNode } from 'react';
 import { source } from '@/lib/source';
 import { LogoMark } from '@/components/logo';
@@ -22,12 +21,6 @@ export default function Layout({ children }: { children: ReactNode }) {
         // makes navigation fetch on demand (one request per click) so the site
         // stays responsive regardless of the edge transport.
         prefetch: false,
-        banner: (
-          <div className="flex items-center justify-between gap-2">
-            <span className="u-eyebrow">theme</span>
-            <ThemeSwitch mode="light-dark" />
-          </div>
-        ),
       }}
       links={[
         {
