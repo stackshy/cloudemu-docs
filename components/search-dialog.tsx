@@ -15,9 +15,12 @@ import {
 import type { SharedProps } from 'fumadocs-ui/contexts/search';
 
 export default function CustomSearchDialog(props: SharedProps) {
+  // Static export: download the prebuilt index from /api/search and run the
+  // search engine in the browser. (`type: 'fetch'` expects a live query server,
+  // which a static export doesn't have — so it returned no results.)
   const { search, setSearch, query } = useDocsSearch({
-    type: 'fetch',
-    api: '/api/search',
+    type: 'static',
+    from: '/api/search',
   });
 
   const items =
