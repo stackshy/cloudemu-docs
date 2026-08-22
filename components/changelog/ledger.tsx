@@ -1,7 +1,11 @@
 'use client';
 
-import { useState, type ReactNode } from 'react';
-import { RELEASES, type ChangelogBlock } from '@/lib/changelog.generated';
+import { useEffect, useState, type ReactNode } from 'react';
+import { RELEASES } from '@/lib/changelog.generated';
+import { parseReleases, type ChangelogBlock, type ChangelogRelease } from '@/lib/changelog-parse';
+
+// Public, CORS-enabled, unauthenticated (rate limited per visitor IP).
+const RELEASES_API = 'https://api.github.com/repos/stackshy/cloudemu/releases?per_page=100';
 
 const PAGE = 10;
 
@@ -113,9 +117,28 @@ function Blocks({ blocks }: { blocks: ChangelogBlock[] }) {
 }
 
 export function Ledger() {
+  // Start from the committed snapshot (instant first paint + SEO), then refresh
+  // with the latest releases fetched live from GitHub — no rebuild needed.
+  const [releases, setReleases] = useState<ChangelogRelease[]>(RELEASES);
   const [visible, setVisible] = useState(PAGE);
-  const shown = RELEASES.slice(0, visible);
-  const remaining = RELEASES.length - shown.length;
+
+  useEffect(() => {
+    let alive = true;
+    fetch(RELEASES_API, { headers: { Accept: 'application/vnd.github+json' } })
+      .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
+      .then((data) => {
+        if (!alive || !Array.isArray(data)) return;
+        const parsed = parseReleases(data);
+        if (parsed.length) setReleases(parsed);
+      })
+      .catch(() => {
+        /* offline or rate-limited — keep the committed snapshot */
+      });
+    return () => { alive = false; };
+  }, []);
+
+  const shown = releases.slice(0, visible);
+  const remaining = releases.length - shown.length;
   let lastYear = '';
 
   return (
@@ -188,7 +211,7 @@ export function Ledger() {
             Show earlier releases ↓
           </button>
           <span className="font-mono text-[11px] text-ink-3">
-            {shown.length} of {RELEASES.length}
+            {shown.length} of {releases.length}
           </span>
         </div>
       )}
