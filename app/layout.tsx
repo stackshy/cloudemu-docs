@@ -4,6 +4,8 @@ import { Instrument_Sans, JetBrains_Mono, Fraunces } from 'next/font/google';
 import type { ReactNode } from 'react';
 import type { Metadata } from 'next';
 import CustomSearchDialog from '@/components/search-dialog';
+import { JsonLd } from '@/components/seo/json-ld';
+import { organizationLd, websiteLd } from '@/lib/seo';
 
 const sans = Instrument_Sans({
   subsets: ['latin'],
@@ -71,6 +73,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       className={`${sans.variable} ${mono.variable} ${serif.variable}`}
     >
       <body>
+        <JsonLd data={[organizationLd, websiteLd]} />
         <a
           href="#nd-page"
           className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded focus:bg-surface focus:px-3 focus:py-2 focus:font-mono focus:text-xs"
