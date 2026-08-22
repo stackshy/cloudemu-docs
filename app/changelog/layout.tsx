@@ -7,6 +7,7 @@ export default function ChangelogLayout({ children }: { children: ReactNode }) {
   return (
     <HomeLayout
       nav={{ title: <LogoMark />, url: '/' }}
+      themeSwitch={{ enabled: false }}
       links={[
         { text: 'Docs', url: '/docs' },
         { text: 'Changelog', url: '/changelog' },

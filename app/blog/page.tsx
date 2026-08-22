@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { blogSource } from '@/lib/source';
 
 export const metadata: Metadata = {
-  title: 'Field Notes',
+  title: 'Blog',
   description: 'Design notes, wire-protocol traps, and the reasoning behind cloudemu’s internals.',
   alternates: { canonical: '/blog' },
 };
@@ -17,10 +17,10 @@ export default function BlogPage() {
 
   return (
     <main className="mx-auto max-w-2xl px-6 py-20">
-      <header className="flex flex-col gap-4 border-b-[3px] border-double border-line-2 pb-10">
-        <span className="u-eyebrow">Field Notes · Addenda</span>
-        <h1 className="font-serif text-[clamp(38px,7vw,64px)] font-semibold leading-[1.02] tracking-[-0.025em] text-ink">
-          Field Notes
+      <header className="flex flex-col gap-4 border-b border-line pb-10">
+        <span className="u-eyebrow">§ Blog</span>
+        <h1 className="font-serif text-[clamp(38px,7vw,64px)] font-extrabold leading-[0.95] tracking-[-0.03em] text-ink">
+          Notes from the build
         </h1>
         <p className="max-w-xl text-lg leading-relaxed text-ink-2">
           Design notes, wire-protocol traps, and the reasoning behind cloudemu&apos;s

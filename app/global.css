@@ -10,7 +10,10 @@
 @theme inline {
   --font-sans: var(--font-instrument-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-jetbrains-mono), ui-monospace, 'SF Mono', monospace;
-  --font-serif: var(--font-fraunces), Georgia, 'Times New Roman', serif;
+  /* Bricolage Grotesque is the display face everywhere. `--font-serif` is kept
+     as a legacy alias pointing at it so existing `.font-serif` usages reskin. */
+  --font-display: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
 
   /* canonical */
   --color-canvas: var(--bg);
@@ -23,6 +26,10 @@
   --color-ink-3: var(--text-3);
   --color-accent: var(--accent);
   --color-accent-ink: var(--accent-ink);
+  --color-ember: var(--ember);
+  --color-viz-aws: var(--viz-aws);
+  --color-viz-azure: var(--viz-azure);
+  --color-viz-gcp: var(--viz-gcp);
   --color-aws: var(--aws);
   --color-azure: var(--azure);
   --color-gcp: var(--gcp);
@@ -86,20 +93,13 @@ body {
   background-image: radial-gradient(rgba(33, 29, 21, 0.02) 1px, transparent 1px);
   background-size: 4px 4px;
 }
-.dark body {
-  background-image: radial-gradient(rgba(239, 233, 216, 0.014) 1px, transparent 1px);
-}
 
-/* Fraunces optical sizing — titles read like a printed reference face. */
-.font-serif {
-  font-optical-sizing: auto;
-}
-
-/* Masthead — the fumadocs top nav re-set as a manual masthead: paper ground,
-   a double rule at the foot (the print-manual signature). */
+/* Masthead — the fumadocs top nav on the Bone ground with a blurred, hairline
+   foot rule. */
 #nd-nav {
-  background: color-mix(in srgb, var(--bg) 88%, transparent);
-  border-bottom: 3px double var(--border-2);
+  background: color-mix(in srgb, var(--bg) 82%, transparent);
+  backdrop-filter: saturate(1.1) blur(8px);
+  border-bottom: 1px solid var(--border);
 }
 
 code,
@@ -266,9 +266,604 @@ samp {
   }
 }
 
+/* ================================================================== */
+/* "Collapse" landing — the cloud condensed into an in-memory core.    */
+/* Ported from the approved prototype; every color via tokens.         */
+/* ================================================================== */
+
+/* scroll progress bar */
+.cl-prog {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 3px;
+  width: 0;
+  background: var(--ember);
+  z-index: 60;
+  box-shadow: 0 0 12px color-mix(in srgb, var(--ember) 50%, transparent);
+}
+
+/* the hero stage */
+.cl-stage {
+  position: relative;
+  min-height: 100svh;
+  width: 100%;
+  overflow: hidden;
+}
+.cl-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.cl-hero {
+  position: relative;
+  z-index: 10;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 0 clamp(26px, 6vw, 90px);
+  pointer-events: none;
+}
+.cl-hero .cl-cta,
+.cl-hero .cl-dock {
+  pointer-events: auto;
+}
+
+/* kinetic headline — each line rises out of a mask */
+.cl-h1 {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(44px, 8.4vw, 120px);
+  line-height: 0.9;
+  letter-spacing: -0.035em;
+  margin: 18px 0 0;
+  max-width: 15ch;
+  color: var(--text-1);
+}
+.cl-line {
+  display: block;
+  overflow: hidden;
+}
+.cl-line > span {
+  display: block;
+  transform: translateY(105%);
+  animation: cl-rise 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) forwards;
+}
+.cl-line:nth-child(1) > span {
+  animation-delay: 0.35s;
+}
+.cl-line:nth-child(2) > span {
+  animation-delay: 0.47s;
+}
+@keyframes cl-rise {
+  to {
+    transform: translateY(0);
+  }
+}
+.cl-h1 .em {
+  color: var(--ember);
+}
+
+.cl-fade {
+  opacity: 0;
+  animation: cl-fadein 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) forwards;
+}
+.cl-fade-1 {
+  animation-delay: 0.15s;
+}
+.cl-fade-2 {
+  animation-delay: 0.66s;
+}
+.cl-fade-3 {
+  animation-delay: 0.8s;
+}
+@keyframes cl-fadein {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* latency readout */
+.cl-readout {
+  position: absolute;
+  top: clamp(84px, 12vh, 120px);
+  right: clamp(26px, 6vw, 90px);
+  z-index: 11;
+  text-align: right;
+  font-family: var(--font-mono);
+  pointer-events: none;
+}
+.cl-readout .lbl {
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+.cl-readout .num {
+  font-size: clamp(30px, 4.6vw, 58px);
+  font-weight: 700;
+  line-height: 1;
+  margin-top: 6px;
+  font-variant-numeric: tabular-nums;
+  transition: color 0.4s;
+  color: var(--text-1);
+}
+.cl-readout .num .u {
+  font-size: 0.42em;
+  color: var(--text-3);
+  margin-left: 4px;
+}
+.cl-readout.hot .num {
+  color: var(--ember);
+}
+.cl-readout.cool .num {
+  color: var(--ok);
+}
+
+/* command dock */
+.cl-dock {
+  position: absolute;
+  left: 50%;
+  bottom: clamp(26px, 5vh, 54px);
+  transform: translateX(-50%) translateY(14px);
+  z-index: 12;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+  opacity: 0;
+  width: min(94vw, 780px);
+  transition:
+    opacity 0.7s ease,
+    transform 0.7s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.cl-dock.on {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+.cl-chip {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--text-1);
+  background: var(--bg-2);
+  border: 1.5px solid var(--border);
+  border-radius: 9px;
+  padding: 9px 13px;
+  cursor: pointer;
+  transition:
+    border-color 0.16s,
+    color 0.16s,
+    transform 0.16s;
+  white-space: nowrap;
+}
+.cl-chip:hover {
+  border-color: var(--ember);
+  color: var(--accent);
+  transform: translateY(-2px);
+}
+.cl-chip .p {
+  color: var(--text-3);
+}
+
+/* command toast */
+.cl-toast {
+  position: absolute;
+  left: 50%;
+  bottom: calc(clamp(26px, 5vh, 54px) + 60px);
+  transform: translateX(-50%) translateY(8px);
+  z-index: 13;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  background: var(--text-1);
+  color: var(--bg);
+  padding: 9px 15px;
+  border-radius: 9px;
+  opacity: 0;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  box-shadow: 0 16px 40px -16px rgba(18, 20, 15, 0.6);
+  transition:
+    opacity 0.3s ease,
+    transform 0.35s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.cl-toast.on {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+.cl-toast .ok {
+  color: var(--gcp);
+  font-weight: 700;
+}
+.cl-toast .ms {
+  color: var(--ember);
+  font-weight: 700;
+}
+
+.cl-hint {
+  position: absolute;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
+  z-index: 12;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  opacity: 0;
+  transition: opacity 0.5s;
+}
+.cl-hint.on {
+  opacity: 1;
+}
+.cl-hint b {
+  display: inline-block;
+  animation: cl-bob 1.8s ease-in-out infinite;
+}
+@keyframes cl-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(3px);
+  }
+}
+
+/* magnetic primary button */
+.cl-btn-p {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-weight: 600;
+  font-size: 15px;
+  border-radius: 11px;
+  padding: 14px 22px;
+  background: var(--text-1);
+  color: var(--bg);
+  will-change: transform;
+  transition:
+    transform 0.18s cubic-bezier(0.2, 0.7, 0.2, 1),
+    box-shadow 0.18s;
+}
+.cl-btn-p:hover {
+  box-shadow: 0 12px 30px -12px rgba(18, 20, 15, 0.5);
+}
+.cl-btn-s {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-weight: 600;
+  font-size: 15px;
+  border-radius: 11px;
+  padding: 14px 22px;
+  background: transparent;
+  color: var(--text-1);
+  border: 1.5px solid var(--border-2);
+  transition:
+    transform 0.18s cubic-bezier(0.2, 0.7, 0.2, 1),
+    border-color 0.18s;
+}
+.cl-btn-s:hover {
+  transform: translateY(-2px);
+  border-color: var(--text-1);
+}
+
+/* ---- section blocks ---- */
+.cl-sec {
+  position: relative;
+  z-index: 10;
+  padding: clamp(74px, 13vh, 160px) clamp(26px, 6vw, 90px);
+  border-top: 1px solid var(--border);
+}
+.cl-k {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+.cl-h2 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(30px, 4.6vw, 62px);
+  letter-spacing: -0.03em;
+  line-height: 1;
+  margin: 14px 0 0;
+  max-width: 20ch;
+  color: var(--text-1);
+}
+.cl-h2 .em {
+  color: var(--ember);
+}
+.cl-lead {
+  color: var(--text-2);
+  max-width: 54ch;
+  margin: 22px 0 0;
+  font-size: 17px;
+  line-height: 1.6;
+}
+
+/* §01 memory grid */
+.cl-machine {
+  display: grid;
+  grid-template-columns: 1.05fr 0.95fr;
+  gap: clamp(30px, 5vw, 70px);
+  align-items: center;
+}
+@media (max-width: 860px) {
+  .cl-machine {
+    grid-template-columns: 1fr;
+  }
+}
+.cl-gridwrap {
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 30px 60px -40px rgba(18, 20, 15, 0.35);
+}
+.cl-gridhead {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--text-3);
+  margin-bottom: 14px;
+  letter-spacing: 0.06em;
+}
+.cl-gridhead b {
+  color: var(--accent);
+}
+.cl-mgrid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 5px;
+}
+.cl-cell {
+  aspect-ratio: 1;
+  border-radius: 4px;
+  background: var(--bg-3);
+  transform: scale(0.7);
+  opacity: 0.5;
+  transition: all 0.5s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.cl-cell.on {
+  transform: scale(1);
+  opacity: 1;
+}
+.cl-cell.aws {
+  background: var(--viz-aws);
+}
+.cl-cell.az {
+  background: var(--viz-azure);
+}
+.cl-cell.gc {
+  background: var(--viz-gcp);
+}
+
+/* §02 stats + ticker */
+.cl-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
+  margin-top: 44px;
+}
+@media (max-width: 760px) {
+  .cl-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+.cl-stat {
+  border-top: 2px solid var(--text-1);
+  padding-top: 16px;
+}
+.cl-stat .v {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(38px, 5vw, 68px);
+  line-height: 0.9;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-1);
+}
+.cl-stat .v .em {
+  color: var(--ember);
+}
+.cl-stat .l {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-3);
+  margin-top: 8px;
+  letter-spacing: 0.04em;
+}
+.cl-ticker {
+  margin-top: 60px;
+  overflow: hidden;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  padding: 16px 0;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+}
+.cl-track {
+  display: flex;
+  gap: 34px;
+  white-space: nowrap;
+  width: max-content;
+  animation: cl-scrollx 38s linear infinite;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  color: var(--text-2);
+}
+.cl-track span {
+  display: inline-flex;
+  align-items: center;
+  gap: 34px;
+}
+.cl-track b {
+  color: var(--accent);
+  font-weight: 600;
+}
+@keyframes cl-scrollx {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+/* §03 run-mode cards */
+.cl-ways {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+  margin-top: 44px;
+}
+@media (max-width: 860px) {
+  .cl-ways {
+    grid-template-columns: 1fr;
+  }
+}
+.cl-way {
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 26px;
+  transition:
+    transform 0.22s cubic-bezier(0.2, 0.7, 0.2, 1),
+    box-shadow 0.22s,
+    border-color 0.22s;
+}
+.cl-way:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 26px 50px -30px rgba(18, 20, 15, 0.4);
+  border-color: var(--text-1);
+}
+.cl-way .n {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--accent);
+  letter-spacing: 0.1em;
+}
+.cl-way h3 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 22px;
+  letter-spacing: -0.02em;
+  margin: 12px 0 0;
+  color: var(--text-1);
+}
+.cl-way p {
+  color: var(--text-2);
+  font-size: 15px;
+  line-height: 1.55;
+  margin: 10px 0 16px;
+}
+.cl-way pre {
+  margin: 0;
+  background: var(--text-1);
+  color: #e9e6db;
+  border-radius: 10px;
+  padding: 13px 14px;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 1.7;
+  overflow-x: auto;
+}
+.cl-way pre .p {
+  color: #8b8d81;
+}
+.cl-way pre .em {
+  color: #ff8a5c;
+}
+
+/* below 1024 — the hero flows naturally; the dock joins the flow (no overlap) */
+@media (max-width: 1023px) {
+  .cl-stage {
+    min-height: auto;
+  }
+  .cl-hero {
+    min-height: auto;
+    padding-top: 128px;
+    padding-bottom: 44px;
+  }
+  .cl-readout {
+    top: 92px;
+  }
+  .cl-dock,
+  .cl-dock.on {
+    position: static;
+    left: auto;
+    transform: none;
+    opacity: 1;
+    width: auto;
+    margin-top: 30px;
+    justify-content: flex-start;
+  }
+  .cl-chip {
+    font-size: 12px;
+    padding: 8px 11px;
+  }
+  .cl-toast {
+    bottom: auto;
+    top: 84px;
+  }
+  .cl-hint {
+    display: none;
+  }
+}
+
+/* reduced motion — skip choreography, land on the settled state */
+@media (prefers-reduced-motion: reduce) {
+  .cl-line > span,
+  .cl-fade {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  .cl-dock,
+  .cl-hint {
+    opacity: 1 !important;
+    transform: translateX(-50%) !important;
+  }
+  .cl-track {
+    animation: none !important;
+  }
+}
+
 /* ------------------------------------------------------------------ */
 /* Docs shell                                                          */
 /* ------------------------------------------------------------------ */
+
+/* Subtle docs entrance — a gentle fade-up of the content on load / navigation.
+   Kept deliberately quiet; disabled entirely under reduced-motion. */
+@media (prefers-reduced-motion: no-preference) {
+  .u-chapter-opener {
+    animation: cl-doc-in 0.5s var(--ease-out) both;
+  }
+  #nd-page .prose {
+    animation: cl-doc-in 0.55s var(--ease-out) 0.06s both;
+  }
+}
+@keyframes cl-doc-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
 
 /* Three-column shell: sidebar 260px / content / TOC 220px */
 @media (min-width: 48rem) {
@@ -492,7 +1087,7 @@ samp {
   letter-spacing: -0.025em !important;
 }
 
-/* Pull quote / blockquote — set in Fraunces italic, a printed-manual aside. */
+/* Pull quote / blockquote — set in the display face, an editorial aside. */
 .prose blockquote p {
   font-family: var(--font-serif);
   font-optical-sizing: auto;
@@ -717,26 +1312,6 @@ kbd {
   text-decoration-color: var(--border-2);
 }
 
-/* Provider tabs: mono labels; active = provider-color 2px underline + tint.
-   The ONLY place provider colors touch text. */
-.u-provider-tabs [role='tab'] {
-  font-family: var(--font-mono);
-  font-size: 12px;
-  letter-spacing: 0.04em;
-}
-.u-provider-tabs [role='tab'][data-state='active'][data-provider='aws'] {
-  color: var(--aws);
-  box-shadow: inset 0 -2px 0 var(--aws);
-}
-.u-provider-tabs [role='tab'][data-state='active'][data-provider='azure'] {
-  color: var(--azure);
-  box-shadow: inset 0 -2px 0 var(--azure);
-}
-.u-provider-tabs [role='tab'][data-state='active'][data-provider='gcp'] {
-  color: var(--gcp);
-  box-shadow: inset 0 -2px 0 var(--gcp);
-}
-
 /* ------------------------------------------------------------------ */
 /* Ember landing compatibility — the home/blog surfaces still consume  */
 /* the ember tint scale, logo tokens, and blog prose. Kept until the   */
@@ -756,53 +1331,16 @@ kbd {
   --color-ember-900: hsl(19, 85%, 28%);
 }
 
-/* Theme-adaptive logo tokens (consumed by components/logo.tsx). */
+/* Logo tokens (consumed by components/logo.tsx) — single Bone theme. */
 :root {
-  --logo-cloud: #221d14; /* ink cloud on paper */
-  --logo-chevron: #f3efe3; /* paper chevron */
-  --logo-line: #b23c0c; /* ember deep */
-}
-.dark {
-  --logo-cloud: #efe9d8; /* bone cloud on dark paper */
-  --logo-chevron: #14140f;
-  --logo-line: #ff7a3c;
+  --logo-cloud: #12140f; /* ink cloud */
+  --logo-chevron: #f1efe7; /* Bone chevron */
+  --logo-line: #c2440d; /* ember deep */
 }
 
 /* ------------------------------------------------------------------ */
-/* Field Manual furniture — shared primitives for landing + docs.      */
+/* Shared furniture — plates, captions, crosses used by docs figures.  */
 /* ------------------------------------------------------------------ */
-
-/* Signature line — "§ 1  Overview" in the outer margin. */
-.u-sig {
-  font-family: var(--font-mono);
-  font-size: 12px;
-  color: var(--text-3);
-  letter-spacing: 0.04em;
-}
-.u-sig b {
-  display: block;
-  color: var(--accent);
-  font-weight: 700;
-  font-size: 13px;
-  margin-bottom: 2px;
-}
-
-/* Margin note — a small mono footnote in the outer column. */
-.u-marginnote {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  line-height: 1.7;
-  color: var(--text-3);
-}
-.u-marginnote .h {
-  display: block;
-  color: var(--text-2);
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  font-size: 10px;
-  margin-bottom: 4px;
-}
 
 /* Plate frame — a bordered figure/table region with registration crosses. */
 .u-plate {
@@ -827,18 +1365,6 @@ kbd {
   color: var(--accent);
   font-weight: 700;
   white-space: nowrap;
-}
-
-/* Drop cap — the ember opening initial of a title spread. */
-.u-drop::first-letter {
-  font-family: var(--font-serif);
-  font-optical-sizing: auto;
-  font-weight: 600;
-  font-size: 3.1em;
-  line-height: 0.72;
-  float: left;
-  margin: 0.06em 0.09em 0 0;
-  color: var(--accent);
 }
 
 /* Registration cross — corner tick on plates. */

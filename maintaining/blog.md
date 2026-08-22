@@ -1,4 +1,4 @@
-# Writing a blog / Field Notes post
+# Writing a blog post
 
 ## When
 You want to publish a post under `/blog`.
@@ -23,9 +23,9 @@ You want to publish a post under `/blog`.
 2. `npm run build`, check `/blog` and the post page.
 
 ## Good to know
-- The blog is branded **"Field Notes."** A stale blog reads worse than a small
-  one — either keep a light cadence or leave it thin on purpose.
-- Headings render in the serif; code + callouts match the docs.
+- The blog is titled **"Notes from the build."** A stale blog reads worse than a
+  small one — either keep a light cadence or leave it thin on purpose.
+- Headings render in the display face; code + callouts match the docs.
 
 ## Verify
 - Post shows on `/blog` with its date, and opens at `/blog/<slug>`.

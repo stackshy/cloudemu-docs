@@ -92,12 +92,12 @@ export default async function Page(props: {
         breadcrumb={{ className: 'u-breadcrumb' }}
         footer={{ enabled: false }}
         tableOfContent={{
-          header: <p className="u-toc-title mb-2">Contents of this leaf</p>,
+          header: <p className="u-toc-title mb-2">On this page</p>,
         }}
       >
       <div className="u-chapter-opener not-prose mb-8 border-b border-line pb-7">
         <p className="mb-3 font-mono text-[11px] uppercase tracking-[0.18em] text-ink-3">
-          <span className="text-accent">§</span> The Field Manual
+          <span className="text-accent">§</span> Documentation
         </p>
         <DocsTitle className="font-serif text-[40px] leading-[1.08] tracking-[-0.025em] text-ink">
           {data.title}

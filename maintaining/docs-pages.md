@@ -36,8 +36,8 @@ You want a new page under `/docs/**`, or to edit an existing one.
      `// [!code focus]` to a line to highlight it.
 
 ## What you get for free
-- Chapter opener (`§ The Field Manual` + serif title), `§` breadcrumb,
-  manual "previous/next leaf" pagination, TechArticle + BreadcrumbList JSON-LD,
+- Chapter opener (`§ Documentation` + display title), `§` breadcrumb,
+  previous/next pagination, TechArticle + BreadcrumbList JSON-LD,
   a canonical URL, and a sitemap entry — all automatic.
 
 ## Verify

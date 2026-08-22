@@ -14,10 +14,10 @@ linked file. Each file says *when* to use it, *which files* to touch, *how*, and
 |---|---|
 | Add or edit a **documentation page** | [docs-pages.md](./docs-pages.md) |
 | Update the **changelog** after a product release | [changelog.md](./changelog.md) |
-| Write a **blog / Field Notes** post | [blog.md](./blog.md) |
+| Write a **blog** post | [blog.md](./blog.md) |
 | Add or reorder a **nav link** | [navigation.md](./navigation.md) |
 | Change **colors, fonts, or the look** | [design-system.md](./design-system.md) |
-| Edit the **landing page** (hero, console, coverage, run-modes) | [landing.md](./landing.md) |
+| Edit the **landing page** (hero, memory grid, coverage, run-modes) | [landing.md](./landing.md) |
 | Update **SEO** (sitemap, robots, schema, OG images, llms.txt) | [seo.md](./seo.md) |
 | Change **product numbers** (services, ports, latency) | [design-system.md](./design-system.md#product-facts) |
 | **Release / branch / PR** flow | [releasing.md](./releasing.md) |
@@ -32,7 +32,7 @@ app/                     Next.js routes (App Router, static export)
   changelog/             the Release Ledger (/changelog)
   layout.tsx             <html>, fonts, site metadata, site-wide JSON-LD
   tokens.css             ALL colors/surfaces (one source of truth)
-  global.css             typography + component styling (Field Manual furniture)
+  global.css             typography + component styling (Collapse landing, docs)
   sitemap.ts robots.ts   SEO route files
   opengraph-image.tsx    social card (per-section ones live under each route)
   llms.txt/route.ts      curated docs map for AI assistants
