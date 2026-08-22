@@ -2,40 +2,30 @@ import Link from 'next/link';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Errata — page not found',
+  title: '404 — page not found',
 };
 
 /**
- * 404 — styled as an "Errata" slip in the Field Manual: the page you asked for
- * is not bound into this edition.
+ * 404 — on-theme with "Collapse": the page you asked for was never written to
+ * memory.
  */
 export default function NotFound() {
   return (
     <main className="mx-auto flex min-h-[70vh] w-full max-w-[1180px] flex-col justify-center px-5 py-24 sm:px-10">
       <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-accent">
-        Errata · 404
+        404 · not found
       </span>
-      <h1 className="font-serif mt-4 text-[clamp(40px,8vw,88px)] font-semibold leading-[0.95] tracking-[-0.025em] text-ink text-balance">
-        This page isn&rsquo;t bound<br />
-        into <span className="italic text-accent">this edition</span>.
+      <h1 className="font-serif mt-4 text-[clamp(40px,8vw,88px)] font-extrabold leading-[0.9] tracking-[-0.03em] text-ink text-balance">
+        This page was never<br />
+        written to <span className="text-ember">memory</span>.
       </h1>
       <p className="mt-6 max-w-[52ch] text-[17px] leading-[1.6] text-ink-2">
-        The reference you followed points to a leaf that doesn&rsquo;t exist here — a typo, a moved
-        section, or an old link. The table of contents will get you back on the right page.
+        The link you followed points to a resource that doesn&rsquo;t exist here — a typo, a moved
+        page, or an old link. Head back and try again.
       </p>
-      <div className="mt-9 flex flex-wrap items-center gap-5">
-        <Link
-          href="/"
-          className="inline-flex items-center gap-2 rounded-[3px] bg-accent px-5 py-3 font-mono text-[13px] font-semibold uppercase tracking-[0.03em] text-accent-ink transition-transform hover:-translate-y-px"
-        >
-          Front cover →
-        </Link>
-        <Link
-          href="/docs"
-          className="border-b border-line-2 pb-[3px] font-mono text-[13px] uppercase tracking-[0.03em] text-ink transition-colors hover:border-accent hover:text-accent"
-        >
-          Table of contents
-        </Link>
+      <div className="mt-9 flex flex-wrap items-center gap-3">
+        <Link href="/" className="cl-btn-p">Home →</Link>
+        <Link href="/docs" className="cl-btn-s">Read the docs</Link>
       </div>
     </main>
   );
