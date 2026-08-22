@@ -1,0 +1,5 @@
+# Content ownership — the #1 reason docs rot is "nobody owns it."
+# Docs, blog, and changelog content:
+/content/          @NitinKumar004
+/lib/changelog.generated.ts   @NitinKumar004
+/scripts/import-changelog.mjs @NitinKumar004
