@@ -1,5 +1,12 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { blogSource } from '@/lib/source';
+
+export const metadata: Metadata = {
+  title: 'Field Notes',
+  description: 'Design notes, wire-protocol traps, and the reasoning behind cloudemu’s internals.',
+  alternates: { canonical: '/blog' },
+};
 
 export default function BlogPage() {
   const posts = [...blogSource.getPages()].sort((a, b) => {

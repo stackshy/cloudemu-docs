@@ -22,6 +22,8 @@ import { TopologyGraph } from '@/components/diagrams/topology-graph';
 import { FeatureGlyph } from '@/components/diagrams/feature-glyph';
 import { ServePorts } from '@/components/diagrams/serve-ports';
 import { DiagramFrame } from '@/components/docs/figure';
+import { JsonLd } from '@/components/seo/json-ld';
+import { techArticleLd, breadcrumbLd } from '@/lib/seo';
 
 /** Diagrams framed as FIG. plates at the mapping layer — no MDX edits. */
 const framed = {
@@ -73,15 +75,26 @@ export default async function Page(props: {
   const MDX = data.body;
 
   return (
-    <DocsPage
-      toc={data.toc}
-      full={data.full}
-      breadcrumb={{ className: 'u-breadcrumb' }}
-      footer={{ enabled: false }}
-      tableOfContent={{
-        header: <p className="u-toc-title mb-2">Contents of this leaf</p>,
-      }}
-    >
+    <>
+      <JsonLd
+        data={[
+          techArticleLd({ title: data.title, description: data.description, path: page.url }),
+          breadcrumbLd([
+            { name: 'Home', path: '/' },
+            { name: 'Docs', path: '/docs' },
+            { name: data.title, path: page.url },
+          ]),
+        ]}
+      />
+      <DocsPage
+        toc={data.toc}
+        full={data.full}
+        breadcrumb={{ className: 'u-breadcrumb' }}
+        footer={{ enabled: false }}
+        tableOfContent={{
+          header: <p className="u-toc-title mb-2">Contents of this leaf</p>,
+        }}
+      >
       <div className="u-chapter-opener not-prose mb-8 border-b border-line pb-7">
         <p className="mb-3 font-mono text-[11px] uppercase tracking-[0.18em] text-ink-3">
           <span className="text-accent">§</span> The Field Manual
@@ -129,7 +142,8 @@ export default async function Page(props: {
         />
         <PrevNext url={page.url} />
       </DocsBody>
-    </DocsPage>
+      </DocsPage>
+    </>
   );
 }
 
@@ -147,5 +161,6 @@ export async function generateMetadata(props: {
   return {
     title: page.data.title,
     description: page.data.description,
+    alternates: { canonical: page.url },
   };
 }

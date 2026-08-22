@@ -50,13 +50,13 @@
 
   /* ---- code syntax (light) — calm, low saturation, warm ---- */
   --code-plain: #2a251b;
-  --code-keyword: #24499f; /* cool blue */
-  --code-string: #8a5a12; /* warm sand */
-  --code-comment: #9b9482; /* muted italic */
+  --code-keyword: #1c56a8; /* cool blue (AA) */
+  --code-string: #705625; /* warm sand (AA) */
+  --code-comment: #565a61; /* muted (AA) */
   --code-function: #221d14; /* ink */
-  --code-type: #5a5446;
-  --code-number: #8a5a12;
-  --code-punct: #6b6656;
+  --code-type: #494f57;
+  --code-number: #705625;
+  --code-punct: #4f545c;
   --code-diff-add: rgba(31, 122, 69, 0.09);
   --code-diff-del: rgba(178, 52, 49, 0.09);
   --code-hl: var(--accent-bg);
@@ -101,10 +101,10 @@
   --code-plain: #d9d3c3;
   --code-keyword: #8fb6ff; /* cool blue */
   --code-string: #d3b483; /* warm sand */
-  --code-comment: #7c7566; /* muted italic */
+  --code-comment: #8c95a2; /* muted (AA on dark paper) */
   --code-function: #f2ede0; /* text-1 */
   --code-type: #b3ab97;
-  --code-punct: #8f887a;
+  --code-punct: #9aa2b0;
   --code-number: #d3b483;
   --code-diff-add: rgba(76, 187, 114, 0.1);
   --code-diff-del: rgba(229, 100, 92, 0.1);

@@ -1,107 +1,19 @@
-'use client';
-
-import Link from 'next/link';
-import { useState, type ReactNode } from 'react';
-import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-
-import { PRODUCT, STATS, RUN_MODES } from '@/lib/product';
+import { PRODUCT } from '@/lib/product';
+import { CopyButton } from '@/components/code/copy-button';
+import { Leaf, Label, BtnPrimary, LinkArrow } from './primitives';
+import { Reveal } from './reveal';
 import { HeroEmblem } from './hero-emblem';
 import { LiveConsole } from './live-console';
-import { CopyButton } from '@/components/code/copy-button';
+import { CoveragePlate } from './coverage-plate';
+import { RunModes } from './run-modes';
 
-/* ================================================================== */
-/* Primitives — the Field Manual's shared furniture                    */
-/* ================================================================== */
+/**
+ * The landing. A server component: the static shell + sections render on the
+ * server, and only the interactive islands (Reveal, HeroEmblem, LiveConsole,
+ * CoveragePlate, RunModes) ship as client components.
+ */
 
-function Reveal({
-  children,
-  delay = 0,
-  className,
-}: {
-  children: ReactNode;
-  delay?: number;
-  className?: string;
-}) {
-  const reduce = useReducedMotion();
-  // Same element in every case (no hydration mismatch). Reduced motion starts
-  // fully visible so content is never left faded.
-  return (
-    <motion.div
-      className={className}
-      initial={reduce ? { opacity: 1, y: 0 } : { opacity: 0, y: 18 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, amount: 0.2 }}
-      transition={reduce ? { duration: 0 } : { duration: 0.6, ease: [0.22, 1, 0.36, 1], delay }}
-    >
-      {children}
-    </motion.div>
-  );
-}
-
-/** A manual page: outer marginalia column (§ signature + note) beside the body. */
-function Leaf({
-  section,
-  title,
-  note,
-  children,
-  last,
-}: {
-  section: string;
-  title: string;
-  note?: ReactNode;
-  children: ReactNode;
-  last?: boolean;
-}) {
-  return (
-    <section className={last ? '' : 'border-b border-line'}>
-      <div className="mx-auto grid max-w-[1180px] gap-5 px-5 py-16 sm:gap-11 sm:px-10 sm:py-24 md:grid-cols-[120px_minmax(0,1fr)]">
-        <aside className="flex gap-6 md:block">
-          <div className="u-sig">
-            <b>§ {section}</b>
-            {title}
-          </div>
-          {note && <div className="u-marginnote mt-0 max-w-[24ch] md:mt-5 md:border-t md:border-line md:pt-3.5">{note}</div>}
-        </aside>
-        <div className="min-w-0">{children}</div>
-      </div>
-    </section>
-  );
-}
-
-function Label({ children, className }: { children: ReactNode; className?: string }) {
-  return (
-    <span className={`font-mono text-[11px] font-medium uppercase tracking-[0.18em] text-ink-3 ${className ?? ''}`}>
-      {children}
-    </span>
-  );
-}
-
-function BtnPrimary({ href, children }: { href: string; children: ReactNode }) {
-  return (
-    <Link
-      href={href}
-      className="group inline-flex items-center gap-2 rounded-[3px] bg-accent px-5 py-3 font-mono text-[13px] font-semibold uppercase tracking-[0.03em] text-accent-ink transition-transform hover:-translate-y-px"
-    >
-      {children}
-    </Link>
-  );
-}
-
-function LinkArrow({ href, children }: { href: string; children: ReactNode }) {
-  return (
-    <Link
-      href={href}
-      className="border-b border-line-2 pb-[3px] font-mono text-[13px] uppercase tracking-[0.03em] text-ink transition-colors hover:border-accent hover:text-accent"
-    >
-      {children}
-    </Link>
-  );
-}
-
-/* ================================================================== */
-/* Sub-rail — the manual's running header line                         */
-/* ================================================================== */
-
+/* Sub-rail — the manual's running header line */
 function SubRail() {
   return (
     <div className="border-b border-line bg-surface/40">
@@ -114,10 +26,7 @@ function SubRail() {
   );
 }
 
-/* ================================================================== */
-/* §1 — Title spread                                                   */
-/* ================================================================== */
-
+/* §1 — Title spread */
 function Hero() {
   return (
     <Leaf
@@ -171,10 +80,7 @@ function Hero() {
   );
 }
 
-/* ================================================================== */
-/* §2 — Try a call (live console)                                      */
-/* ================================================================== */
-
+/* §2 — Try a call (live console) */
 function ConsoleSection() {
   return (
     <Leaf
@@ -205,141 +111,7 @@ function ConsoleSection() {
   );
 }
 
-/* ================================================================== */
-/* §3 — Coverage plate                                                 */
-/* ================================================================== */
-
-type Glyph = 'full' | 'ring' | 'none';
-const COVERAGE: [string, string, Glyph, Glyph, Glyph][] = [
-  ['Storage', 'object · blob · buckets', 'full', 'full', 'full'],
-  ['Compute', 'vms · instances', 'full', 'full', 'full'],
-  ['Database', 'key-value · document', 'full', 'full', 'full'],
-  ['Relational DB', 'rds · sql · cloudsql', 'full', 'full', 'ring'],
-  ['Serverless', 'functions', 'full', 'full', 'full'],
-  ['Kubernetes', 'eks · aks · gke + data plane', 'full', 'full', 'full'],
-  ['Networking', 'vpc · vnet', 'full', 'full', 'full'],
-  ['Message Queue', 'sqs · service bus · pubsub', 'full', 'full', 'full'],
-  ['Secrets', 'secrets manager · key vault', 'full', 'full', 'full'],
-  ['IAM', 'policies · roles', 'full', 'full', 'full'],
-  ['AI / ML', 'bedrock · azure ai · vertex', 'full', 'full', 'ring'],
-  ['Event Bus', 'eventbridge · grid · arc', 'full', 'full', 'full'],
-  ['Container Registry', 'ecr · acr · artifact', 'full', 'full', 'full'],
-  ['Resource Discovery', 'explorer · graph · asset', 'full', 'ring', 'ring'],
-];
-
-function G({ kind }: { kind: Glyph }) {
-  if (kind === 'full')
-    return <span className="inline-block h-[11px] w-[11px] rounded-full bg-accent align-middle" />;
-  if (kind === 'ring')
-    return <span className="inline-block h-[11px] w-[11px] rounded-full border-[1.5px] border-ink-3 align-middle" />;
-  return <span className="inline-block h-[1.5px] w-[9px] bg-line-2 align-middle" />;
-}
-
-const PROVIDERS = ['AWS', 'Azure', 'GCP'] as const;
-
-function CoveragePlate() {
-  // focus a cloud's column on hover/focus — others dim.
-  const [focus, setFocus] = useState<number | null>(null);
-  const fullCounts = [0, 1, 2].map((ci) => COVERAGE.filter((r) => r[2 + ci] === 'full').length);
-  const colDim = (ci: number) => (focus === null || focus === ci ? 'opacity-100' : 'opacity-25');
-
-  return (
-    <Leaf
-      section="3"
-      title="Coverage"
-      note={
-        <>
-          <span className="h">Legend</span>
-          Filled = SDK-compatible over the wire. Ring = in-process Go API. Rule = not yet. Hover a cloud to focus it.
-        </>
-      }
-    >
-      <Reveal>
-        <h2 className="font-serif text-[clamp(28px,4vw,46px)] font-semibold leading-[1.02] tracking-[-0.02em] text-ink text-balance">
-          What is <span className="italic font-medium text-accent">resident</span> in memory.
-        </h2>
-        <p className="mt-4 max-w-[56ch] text-base leading-[1.65] text-ink-2">
-          Coverage stated as a parts list, not a marketing number. Every cell traces to a shipped
-          handler — nothing is hand-waved.
-        </p>
-      </Reveal>
-      <Reveal delay={0.1}>
-        <div className="mt-8 overflow-hidden rounded-[4px] border border-line-2 bg-surface">
-          <div className="flex items-baseline justify-between gap-3 border-b border-line px-[18px] py-3">
-            <span className="font-serif text-[17px] italic text-ink">Plate II — Service map</span>
-            <span className="font-mono text-xs text-ink-3">
-              {focus === null ? (
-                <>
-                  <b className="text-accent">{STATS.sdkCompatServices}</b> services ·{' '}
-                  <b className="text-accent">{STATS.clouds}</b> clouds · <b className="text-accent">0</b> accounts
-                </>
-              ) : (
-                <>
-                  <b className="text-accent">{fullCounts[focus]}</b> SDK-compatible domains in{' '}
-                  <b className="text-ink">{PROVIDERS[focus]}</b>
-                </>
-              )}
-            </span>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr>
-                  <th className="border-b border-line-2 px-[18px] py-3 text-left font-mono text-[10px] font-medium uppercase tracking-[0.12em] text-ink-3">
-                    Domain
-                  </th>
-                  {PROVIDERS.map((p, ci) => (
-                    <th
-                      key={p}
-                      onMouseEnter={() => setFocus(ci)}
-                      onMouseLeave={() => setFocus(null)}
-                      onFocus={() => setFocus(ci)}
-                      onBlur={() => setFocus(null)}
-                      tabIndex={0}
-                      className={`w-[88px] cursor-default border-b border-line-2 px-2 py-3 text-center font-mono text-[10px] font-medium uppercase tracking-[0.12em] outline-none transition-colors ${
-                        focus === ci ? 'text-accent' : 'text-ink-3'
-                      }`}
-                      style={focus === ci ? { boxShadow: 'inset 0 -2px 0 var(--accent)' } : undefined}
-                    >
-                      {p}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {COVERAGE.map(([dom, sub, a, b, c], i) => (
-                  <tr key={dom} className={`group ${i % 2 ? '' : 'bg-raised/40'} transition-colors hover:bg-accent/[0.06]`}>
-                    <td className="border-b border-line px-[18px] py-[11px]">
-                      <div className="font-serif text-[15px] font-medium text-ink transition-colors group-hover:text-accent">
-                        {dom}
-                      </div>
-                      <div className="font-mono text-[11px] tracking-[0.02em] text-ink-3">{sub}</div>
-                    </td>
-                    {[a, b, c].map((k, ci) => (
-                      <td key={ci} className={`border-b border-line text-center transition-opacity duration-200 ${colDim(ci)}`}>
-                        <G kind={k} />
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <div className="flex flex-wrap gap-[22px] border-t border-line px-[18px] py-3">
-            <span className="inline-flex items-center gap-2 font-mono text-[11px] text-ink-3"><G kind="full" /> SDK-compatible</span>
-            <span className="inline-flex items-center gap-2 font-mono text-[11px] text-ink-3"><G kind="ring" /> in-process Go API</span>
-            <span className="inline-flex items-center gap-2 font-mono text-[11px] text-ink-3"><G kind="none" /> not yet</span>
-          </div>
-        </div>
-      </Reveal>
-    </Leaf>
-  );
-}
-
-/* ================================================================== */
-/* §4 — Behaviors                                                      */
-/* ================================================================== */
-
+/* §4 — Behaviors */
 type Viz = 'chaos' | 'state' | 'err' | 'wave' | 'clock' | 'check';
 const BEHAVIORS: [string, string, string, string, Viz][] = [
   ['3.1', 'Chaos engineering', 'chaos', 'Schedule outages, latency spikes, and throttling inside real time windows. Backoff code runs for real, every test.', 'chaos'],
@@ -453,125 +225,7 @@ function Behaviors() {
   );
 }
 
-/* ================================================================== */
-/* §5 — Running it                                                     */
-/* ================================================================== */
-
-/** Light comment-aware line coloring for the command panel. */
-function CommandLines({ code }: { code: string }) {
-  return (
-    <>
-      {code.split('\n').map((line, i) => {
-        const isComment = /^\s*(#|\/\/)/.test(line);
-        return (
-          <span key={i} className={isComment ? 'text-ink-3' : 'text-ink-2'}>
-            {line || ' '}
-            {'\n'}
-          </span>
-        );
-      })}
-    </>
-  );
-}
-
-function RunModes() {
-  const reduce = useReducedMotion();
-  const [active, setActive] = useState(0);
-  const mode = RUN_MODES[active];
-
-  return (
-    <Leaf
-      section="5"
-      title="Running it"
-      note={
-        <>
-          <span className="h">Three surfaces</span>
-          One in-memory backend. Start in-process, graduate to a server, or run the image in CI.
-        </>
-      }
-    >
-      <Reveal>
-        <h2 className="font-serif text-[clamp(28px,4vw,46px)] font-semibold leading-[1.02] tracking-[-0.02em] text-ink text-balance">
-          Wherever your tests live, <span className="italic font-medium text-accent">point them at it</span>.
-        </h2>
-        <p className="mt-4 max-w-[56ch] text-base leading-[1.65] text-ink-2">
-          The same backend behind three surfaces. Pick the one that fits where your code already runs.
-        </p>
-      </Reveal>
-
-      <Reveal delay={0.08}>
-        {/* segmented control — sliding ember indicator */}
-        <div role="tablist" aria-label="Run modes" className="mt-9 flex flex-wrap gap-6 border-b border-line">
-          {RUN_MODES.map((m, i) => {
-            const on = i === active;
-            return (
-              <button
-                key={m.id}
-                type="button"
-                role="tab"
-                aria-selected={on}
-                onClick={() => setActive(i)}
-                className="relative -mb-px pb-3 pt-1 font-mono text-[13px] tracking-[0.02em] outline-none transition-colors"
-              >
-                <span className={on ? 'text-ink' : 'text-ink-3 hover:text-ink-2'}>
-                  <span className="text-accent">{String(i + 1).padStart(2, '0')}</span>{' '}
-                  {m.label}
-                </span>
-                {on && (
-                  <motion.span
-                    layoutId="runmode-rail"
-                    className="absolute inset-x-0 bottom-[-1px] h-[2px] bg-accent"
-                    transition={reduce ? { duration: 0 } : { type: 'spring', stiffness: 420, damping: 34 }}
-                  />
-                )}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* one full-width panel — code has room, no clipping */}
-        <div className="overflow-hidden rounded-b-[4px] border border-t-0 border-line bg-surface">
-          <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-line px-5 py-3.5">
-            <span className="font-serif text-[18px] font-medium text-ink">{mode.label}</span>
-            <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-accent">
-              {mode.languages} · surface {active + 1} / {RUN_MODES.length}
-            </span>
-          </div>
-          <AnimatePresence mode="wait" initial={false}>
-            <motion.div
-              key={mode.id}
-              initial={reduce ? false : { opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={reduce ? undefined : { opacity: 0, y: -6 }}
-              transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-            >
-              <p className="max-w-[64ch] px-5 pb-1 pt-4 text-[15px] leading-[1.6] text-ink-2">
-                {mode.blurb}
-              </p>
-              <div className="mt-3 flex items-center gap-2 border-t border-line bg-raised px-5 py-1.5 font-mono text-[10px] uppercase tracking-[0.12em] text-ink-3">
-                <span className="rounded-[3px] border border-line-2 px-1.5 py-px">
-                  {mode.lang === 'go' ? 'GO' : 'BASH'}
-                </span>
-                <span>{mode.lang === 'go' ? 'in-process test' : 'terminal'}</span>
-                <CopyButton target={() => mode.command} className="ms-auto" />
-              </div>
-              <pre className="overflow-x-auto bg-raised px-5 py-4 font-mono text-[13px] leading-[1.75]">
-                <code>
-                  <CommandLines code={mode.command} />
-                </code>
-              </pre>
-            </motion.div>
-          </AnimatePresence>
-        </div>
-      </Reveal>
-    </Leaf>
-  );
-}
-
-/* ================================================================== */
-/* Colophon (CTA)                                                      */
-/* ================================================================== */
-
+/* Colophon (CTA) */
 function Colophon() {
   return (
     <section>
@@ -591,7 +245,7 @@ function Colophon() {
             <div className="mx-auto mb-6 inline-flex items-center gap-3 rounded-[3px] border border-line-2 bg-raised py-2 pl-4 pr-2 font-mono text-[13.5px]">
               <span className="text-accent">$</span>
               <span>{PRODUCT.install}</span>
-              <CopyButton target={() => PRODUCT.install} />
+              <CopyButton text={PRODUCT.install} />
             </div>
             <div className="flex flex-wrap items-center justify-center gap-5">
               <BtnPrimary href="/docs/quick-start">Quick start →</BtnPrimary>
@@ -605,10 +259,7 @@ function Colophon() {
   );
 }
 
-/* ================================================================== */
-/* Footer                                                              */
-/* ================================================================== */
-
+/* Footer */
 function Foot() {
   const { aws, azure, gcp, kubernetes } = PRODUCT.ports;
   return (
@@ -623,10 +274,6 @@ function Foot() {
     </footer>
   );
 }
-
-/* ================================================================== */
-/* Compose                                                             */
-/* ================================================================== */
 
 export function Home() {
   return (
