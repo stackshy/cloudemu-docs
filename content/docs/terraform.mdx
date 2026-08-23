@@ -1,0 +1,65 @@
+---
+title: Terraform & OpenTofu
+description: Run real Terraform and OpenTofu against cloudemu — apply, plan, and destroy unmodified resources with no plugins or shims
+---
+
+cloudemu speaks the real cloud wire protocols, so **real Terraform and OpenTofu run against it** — `init`, `apply`, `plan`, `destroy` — with no Terraform plugins or shims. You point the provider's endpoints at a running cloudemu and apply unmodified resources. The HCL is identical on both tools.
+
+This is continuously proven: cloudemu's test suite drives a real `tofu` binary through `apply → plan → destroy` in CI and asserts the **post-apply plan is empty** — a genuine round-trip, not a partial mock.
+
+## Fastest path: the `cloudemu-tf` wrapper
+
+`cloudemu-tf` is a drop-in wrapper that writes a provider override pointing at cloudemu and supplies dummy credentials, then execs the real `tofu`/`terraform`:
+
+```bash
+cloudemu serve &                # cloudemu on :4566
+cloudemu-tf init
+cloudemu-tf apply               # applies against the in-memory cloud
+```
+
+Your config needs only an empty provider block — no endpoints, credentials, or skip flags:
+
+```hcl
+provider "aws" {}
+```
+
+Configure it with env vars: `CLOUDEMU_ENDPOINT` (default `http://localhost:4566`), `AWS_REGION`, and `CLOUDEMU_TF_BIN`.
+
+## Manual provider config
+
+If you'd rather not use the wrapper, add the endpoints yourself:
+
+```hcl
+provider "aws" {
+  access_key = "test"
+  secret_key = "test"
+  region     = "us-east-1"
+
+  # cloudemu is path-style and needs no real-AWS preflight.
+  s3_use_path_style           = true
+  skip_credentials_validation = true
+  skip_metadata_api_check     = true
+  skip_requesting_account_id  = true
+
+  endpoints {
+    s3       = "http://localhost:4566"
+    dynamodb = "http://localhost:4566"
+    ec2      = "http://localhost:4566"
+    iam      = "http://localhost:4566"
+    sts      = "http://localhost:4566"
+    # ...one line per additional service you use
+  }
+}
+```
+
+## What's verified
+
+A green suite proves only what its fixtures exercise. Today the suite asserts `apply → plan(no-diff) → destroy` for:
+
+- **S3** — `aws_s3_bucket`
+- **DynamoDB** — `aws_dynamodb_table` (`PAY_PER_REQUEST` and `PROVISIONED`)
+- **IAM** — `aws_iam_role`
+- **Networking** — `aws_vpc`, `aws_subnet`, `aws_security_group`, `aws_route_table`, `aws_route_table_association`
+- **The wrapper** — the same flow through `cloudemu-tf` with only an empty provider block
+
+AWS is the most exercised surface today. GCP accepts a per-service `*_custom_endpoint` and works, though it isn't yet suite-covered; Azure's `azurerm` endpoint wiring varies by provider version, so there's no drop-in recipe yet. Contributions of fixtures for either are welcome.
