@@ -1074,7 +1074,7 @@ samp {
 }
 .hr-panel {
   flex: 0 0 auto;
-  width: clamp(320px, 42vw, 560px);
+  width: clamp(320px, 40vw, 520px);
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -1088,7 +1088,7 @@ samp {
   color: var(--text-3);
 }
 .hr-card {
-  height: min(58vh, 470px);
+  height: min(50vh, 400px);
   display: flex;
   flex-direction: column;
   justify-content: space-between;

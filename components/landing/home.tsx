@@ -77,11 +77,46 @@ function Coverage() {
   );
 }
 
+function RealWork() {
+  return (
+    <section className="cl-sec">
+      <div className="mx-auto max-w-[1180px]">
+        <Reveal><div className="cl-k">§ 04 — real work</div></Reveal>
+        <Reveal delay={0.05}><h2 className="cl-h2 mt-3.5">Not just mocks. <span className="em">Real backends.</span></h2></Reveal>
+        <Reveal delay={0.1}>
+          <p className="cl-lead">
+            The in-memory default stays instant and dependency-free. When a test needs the real thing,
+            opt in — and point real Infrastructure-as-Code straight at it.
+          </p>
+        </Reveal>
+        <div className="mt-11 grid gap-[18px] md:grid-cols-2">
+          <Reveal>
+            <div className="cl-way">
+              <div className="n">OPT-IN / REAL DATA PLANE</div>
+              <h3>Real engines</h3>
+              <p>A database, cache, function, VM, container, or bucket you create does the real thing — real SQL, real Redis, your code, real bytes. Wire one line; the rest stays in memory.</p>
+              <pre><span className="p">cloud := cloudemu.NewAWS(</span>config.<span className="em">WithDatabaseEngine</span>(pg))</pre>
+            </div>
+          </Reveal>
+          <Reveal delay={0.06}>
+            <div className="cl-way">
+              <div className="n">IaC / VERIFIED IN CI</div>
+              <h3>Terraform &amp; OpenTofu</h3>
+              <p>Real <code>apply</code> / <code>plan</code> / <code>destroy</code> against cloudemu, proven idempotent in CI. The <code>cloudemu-tf</code> wrapper needs only an empty provider block.</p>
+              <pre><span className="p">$ </span>cloudemu-tf <span className="em">apply</span></pre>
+            </div>
+          </Reveal>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function Ways() {
   return (
     <section className="cl-sec">
       <div className="mx-auto max-w-[1180px]">
-        <Reveal><div className="cl-k">§ 04 — three ways to run it</div></Reveal>
+        <Reveal><div className="cl-k">§ 05 — three ways to run it</div></Reveal>
         <Reveal delay={0.05}><h2 className="cl-h2 mt-3.5">Point <span className="em">real code</span> at it.</h2></Reveal>
         <div className="cl-ways">
           {PRODUCT_WAYS.map((w, i) => {
@@ -114,7 +149,7 @@ function Colophon() {
   return (
     <section className="cl-sec">
       <div className="mx-auto max-w-[1180px] text-center">
-        <Reveal><div className="cl-k">§ 05 — power on</div></Reveal>
+        <Reveal><div className="cl-k">§ 06 — power on</div></Reveal>
         <Reveal delay={0.05}>
           <h2 className="cl-h2 mx-auto mt-3.5 max-w-[18ch] text-center">Bring a cloud up in <span className="em">one line</span>.</h2>
         </Reveal>
@@ -163,6 +198,7 @@ export function Home() {
       <Machine />
       <HorizontalReel />
       <Coverage />
+      <RealWork />
       <Ways />
       <Colophon />
       <Foot />

@@ -74,6 +74,15 @@ Override any of them with `--aws-port`, `--azure-port`, `--gcp-port`, `--k8s-por
 
 ## Point your SDK at it
 
+### One line: `cloudemu env`
+
+`eval "$(cloudemu env)"` exports `AWS_ENDPOINT_URL` plus dummy credentials and a region, so the AWS CLI and SDKs target a running cloudemu with **zero code change**:
+
+```bash
+eval "$(cloudemu env)"
+aws s3 mb s3://demo          # no --endpoint-url needed
+```
+
 ### AWS
 
 ```go
@@ -157,6 +166,18 @@ The server mounts a small `/_cloudemu` control plane (on by default; disable wit
 <Callout type="warn">
 `POST /_cloudemu/reset` wipes everything. When binding a non-loopback `--host` (e.g. `0.0.0.0`), cloudemu warns that the reset endpoint is reachable off-box — pass `--admin=false` to disable it in shared environments.
 </Callout>
+
+## Real engines from the server
+
+The batteries-included **`cloudemu-server`** binary wires the opt-in [real engines](/docs/real-engines) into the standalone servers — so a database, cache, function, or container you create does real work, no Go required:
+
+```bash
+cloudemu-server --db=postgres --cache=redis    # or --all-real
+eval "$(cloudemu env)"
+aws rds create-db-instance …                    # → a real Postgres you can connect to
+```
+
+Every engine defaults **off**, so with no flags it's the same in-memory server. See [Real Engines](/docs/real-engines) for the full list and the no-Docker vs Docker split.
 
 ## State is in-memory
 

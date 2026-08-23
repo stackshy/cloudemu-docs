@@ -20,6 +20,9 @@
     "sdk-compat",
     "standalone-server",
     "chaos",
-    "topology"
+    "topology",
+    "---Integrations---",
+    "real-engines",
+    "terraform"
   ]
 }

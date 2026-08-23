@@ -83,6 +83,14 @@ item, _ := aws.DynamoDB.GetItem(ctx, "Users", map[string]any{"id": "u1"})
 | Streams / change feed | With streams enabled, writes emit INSERT / MODIFY / REMOVE records you can read back — useful for change-driven pipelines. |
 | Global secondary indexes | GSIs can be created, described, listed, and deleted, and a `Query` can target one via its `IndexName`. |
 
+## Query & expression fidelity
+
+The expression and query grammars are evaluated for real in memory, not approximated — so a query with a real filter returns exactly the items the cloud would.
+
+- **DynamoDB** — `FilterExpression` and `ConditionExpression` (a conditional write fails when its condition is false), `KeyCondition` with `begins_with` / `BETWEEN`, `ProjectionExpression`, and the full `UpdateExpression` grammar (`ADD` / `DELETE`, arithmetic, `if_not_exists`, `list_append`) with real set types.
+- **Firestore** — structured-query `WHERE` with `OR` / `IN` / `array-contains` / unary operators, plus `orderBy`, cursors, and `select` projection.
+- **Cosmos DB** — SQL query support over the document store.
+
 ## SDK-compat — Live
 
 Real `dynamodb`, `azcosmos`, and Firestore clients drive it end-to-end — see [SDK-Compat](/docs/sdk-compat) for the full operation list.

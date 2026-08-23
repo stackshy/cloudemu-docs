@@ -1,0 +1,59 @@
+---
+title: Real Engines
+description: Opt in and a database, cache, function, VM, or container you create through the normal SDK does real work — real SQL, real Redis, real code — instead of a control-plane mock
+---
+
+By default cloudemu keeps everything in memory — no real database, cache, or code ever runs, which is what makes it instant and dependency-free. When you want a resource to do the **real thing**, wire in an opt-in **real engine**: create the resource with the normal SDK or CLI, connect a real client, and you get real behavior back.
+
+Nothing changes until you ask for it. Wire nothing and it's the same in-memory emulator; wire an engine and only that resource does real work.
+
+```go
+import (
+    "github.com/stackshy/cloudemu/v2"
+    "github.com/stackshy/cloudemu/v2/config"
+    "github.com/stackshy/cloudemu/v2/contrib/realengine/dbengine/postgres"
+)
+
+// Opt in — RDS is now backed by a real Postgres.
+cloud := cloudemu.NewAWS(config.WithDatabaseEngine(postgres.New(0)))
+
+// `aws rds create-db-instance …` returns an endpoint that speaks real Postgres:
+db, _ := sql.Open("postgres", dsnFromSdkResponse)
+db.Exec("CREATE TABLE items (id int primary key)") // real SQL, really executed
+```
+
+## What can do real work
+
+| Resource | What it really does | AWS | Azure | GCP |
+|---|---|---|---|---|
+| **Database** | runs real Postgres / MySQL | RDS · Aurora · Redshift | PostgreSQL / MySQL Flexible · Cosmos for PostgreSQL | Cloud SQL · AlloyDB |
+| **Cache** | runs real Redis | ElastiCache · MemoryDB | Cache for Redis | Memorystore |
+| **Functions** | runs your uploaded code | Lambda | Azure Functions | Cloud Functions |
+| **VMs** | boots a real guest + console output | EC2 | Virtual Machines | Compute Engine |
+| **Containers** | runs real containers (logs + exit codes) | ECS | Container Instances | Cloud Run Jobs |
+| **Object storage** | stores and serves real bytes | S3 | Blob Storage | GCS |
+
+## Two engine sets
+
+The engine backings live **outside the core module**, so cloudemu's default install stays dependency-free and needs no Docker daemon. Each is strictly opt-in via `config.With<X>Engine(...)`, and `Provider.Close()` cascades teardown to whatever you wired.
+
+- **`contrib/realengine` — no Docker.** Embedded Postgres, [miniredis](https://github.com/alicebob/miniredis), and the host's `python3` / `node` for function code. Runs anywhere your test suite already runs.
+- **`contrib/dockerengine` — real containers.** MySQL, VM boot scripts, ECS / ACI / Cloud Run containers, and the official Azure Functions host image. Uses the Docker CLI.
+
+Wire one in, create the resource with the normal SDK/CLI, connect a real client (or invoke the function/container) to get the real result; deleting the resource tears the backing down.
+
+## From the standalone server — no Go required
+
+You don't have to write Go to use the real engines. The batteries-included **`cloudemu-server`** (in `contrib/server`) wires them into the standalone AWS / GCP / Azure servers — flip on what you want and point any SDK or CLI at it:
+
+```bash
+cloudemu-server --db=postgres --cache=redis     # or --all-real
+eval "$(cloudemu env)"                           # points the AWS CLI/SDK at it
+aws rds create-db-instance …                     # → a real Postgres you can connect to
+```
+
+Engine selection is by flag or env (`--db`, `--cache`, `--functions`, `--compute`, `--containers`, `--all-real`, with `CLOUDEMU_*` fallbacks); all default **off**, so with no flags it's the same in-memory server. Docker-backed selections fail fast when Docker is absent, and graceful shutdown tears the engines down cleanly.
+
+## When to use it
+
+Reach for a real engine when the thing under test is the resource's *own* behavior — a SQL migration, a Redis Lua script, your function's actual code, a container's exit code. For everything else, the in-memory default is faster and needs nothing installed. You can mix freely: a real database alongside in-memory queues, secrets, and networking.
