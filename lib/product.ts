@@ -30,7 +30,7 @@ export const PRODUCT = {
 export const STATS = {
   clouds: 3, // AWS, Azure, GCP
   serviceDomains: 36, // services/ portable domains
-  sdkCompatServices: 90, // server/{aws:30, azure:36, gcp:24} handlers
+  sdkCompatServices: 107, // server/{aws:45, azure:37, gcp:25} handlers
   runModes: 3,
   latency: '~10 ms', // in-process, per call
 } as const;
