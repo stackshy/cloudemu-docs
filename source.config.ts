@@ -5,7 +5,7 @@ import {
 } from 'fumadocs-mdx/config';
 import { z } from 'zod';
 import { rehypeCodeDefaultOptions } from 'fumadocs-core/mdx-plugins';
-import { cloudemuDark, cloudemuLight } from './lib/shiki-themes';
+import { cloudemuLight } from './lib/shiki-themes';
 
 export const { docs, meta } = defineDocs({
   dir: 'content/docs',
@@ -37,9 +37,13 @@ export default defineConfig({
   mdxOptions: {
     rehypeCodeOptions: {
       ...defaults,
+      // The site is light-only. Keep Shiki's dual-theme shape (fumadocs expects
+      // it) but map BOTH modes to the light palette — otherwise dark-OS visitors
+      // get the dark (light-coloured) palette on our light code surface, which
+      // is unreadable.
       themes: {
         light: cloudemuLight,
-        dark: cloudemuDark,
+        dark: cloudemuLight,
       },
       transformers: [
         ...(defaults.transformers ?? []),
