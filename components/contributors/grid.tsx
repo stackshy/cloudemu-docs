@@ -1,41 +1,16 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import type { Contributor } from '@/lib/contributors.generated';
 import { tierFor, MEDALS } from '@/lib/contributor-tiers';
 
-// Public, CORS-enabled, unauthenticated (rate limited per visitor IP).
-const CONTRIB_API = 'https://api.github.com/repos/stackshy/cloudemu/contributors?per_page=100';
-
-interface RawContributor { login: string; avatar_url: string; contributions: number; html_url: string; type: string }
-
 /**
  * ContributorGrid — an avatar wall: each person is a big tier-ringed avatar with
- * a podium medal (top three), full name, tier, and commit count beneath. Starts
- * from the committed snapshot, then refreshes live from GitHub (no deploy).
+ * a podium medal (top three), full name, tier, and commit count beneath.
+ * Presentational — the live data comes from the parent board.
  */
-export function ContributorGrid({ people: initial }: { people: Contributor[] }) {
+export function ContributorGrid({ people }: { people: Contributor[] }) {
   const reduce = useReducedMotion();
-  const [people, setPeople] = useState<Contributor[]>(initial);
-
-  useEffect(() => {
-    let alive = true;
-    fetch(CONTRIB_API, { headers: { Accept: 'application/vnd.github+json' } })
-      .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
-      .then((data: RawContributor[]) => {
-        if (!alive || !Array.isArray(data)) return;
-        const next = data
-          .filter((c) => c.type === 'User' && !/\[bot\]$/.test(c.login))
-          .map((c) => ({ login: c.login, avatar: c.avatar_url, contributions: c.contributions, url: c.html_url }))
-          .sort((a, b) => b.contributions - a.contributions);
-        if (next.length) setPeople(next);
-      })
-      .catch(() => {
-        /* offline or rate-limited — keep the committed snapshot */
-      });
-    return () => { alive = false; };
-  }, []);
 
   const container = { hidden: {}, show: { transition: { staggerChildren: reduce ? 0 : 0.05 } } };
   const item = {
