@@ -30,7 +30,7 @@ export function ContributorGrid({ people }: { people: Contributor[] }) {
             target="_blank"
             rel="noreferrer"
             variants={item}
-            className={`cw-person${medal ? ' cw-person--podium' : ''}`}
+            className="cw-person"
             style={{ ['--tier' as string]: tier.color }}
           >
             <span className="cw-ava">

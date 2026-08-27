@@ -107,6 +107,20 @@ function RealWork() {
             </div>
           </Reveal>
         </div>
+        <Reveal delay={0.1}>
+          <div className="cl-persist">
+            <div>
+              <div className="n">SNAPSHOT / RESTORE · OPT-IN</div>
+              <h3>Freeze the whole cloud. Bring it back.</h3>
+              <p>
+                Snapshot cloudemu&apos;s entire state — across AWS, Azure, GCP and OCI — to one file, then restore it
+                identity-preserving: every ARN, resource ID and cross-reference survives. Seed a baseline, branch from it,
+                reset in an instant. The in-memory default stays ephemeral; persistence is opt-in.
+              </p>
+            </div>
+            <pre><span className="p">$ </span>cloudemu snapshot <span className="em">save</span> state.json</pre>
+          </div>
+        </Reveal>
       </div>
     </section>
   );

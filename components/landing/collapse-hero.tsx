@@ -59,7 +59,7 @@ export function CollapseHero() {
 
       <div className="cl-hero">
         <div className="cl-fade cl-fade-1 font-mono text-[12.5px] uppercase tracking-[0.16em] text-ink-2 flex items-center gap-2.5">
-          <span className="inline-block h-[7px] w-[7px] rounded-[2px] bg-ember" /> A real emulator · AWS · Azure · GCP
+          <span className="inline-block h-[7px] w-[7px] rounded-[2px] bg-ember" /> A real emulator · AWS · Azure · GCP · OCI
         </div>
         <h1 className="cl-h1">
           <span className="cl-line"><span>The whole cloud,</span></span>
