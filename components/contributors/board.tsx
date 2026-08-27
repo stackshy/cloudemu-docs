@@ -31,11 +31,16 @@ export function ContributorsBoard({ initial }: { initial: Contributor[] }) {
         </p>
       </header>
 
-      <div className="cb-legend" aria-hidden="true">
+      <div className="cb-legend">
         <span className="cb-legend-label">Tiers</span>
         {TIER_ORDER.map((t) => (
-          <span key={t.key} className="cb-legend-item" style={{ ['--tier' as string]: t.color }}>
-            <i className="cb-glyph">{t.glyph}</i>
+          <span
+            key={t.key}
+            className="cb-legend-item"
+            style={{ ['--tier' as string]: t.color }}
+            title={`${t.label} — ${t.earnedBy}`}
+          >
+            <i className="cb-glyph" aria-hidden="true">{t.glyph}</i>
             {t.label}
           </span>
         ))}
