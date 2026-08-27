@@ -1,8 +1,8 @@
 /**
  * Contributor tiers & badges — derived purely from real commit counts + rank
- * (no invented data). Tiers are named for the "Collapse" world: the person the
- * whole thing orbits is the Core, down to first-time Contributors. Colors are
- * token references so they stay on-theme.
+ * (no invented data). Tiers are named for the "Collapse" world — a cloud
+ * collapsing into ever-denser objects: the Singularity everything orbits, down
+ * to first-arriving Stardust. Colors are token references so they stay on-theme.
  */
 
 export interface Tier {
@@ -10,14 +10,15 @@ export interface Tier {
   label: string;
   glyph: string;
   color: string; // CSS var reference
+  earnedBy: string; // how the tier is reached (commit count / rank)
 }
 
 export const TIERS: Record<string, Tier> = {
-  core: { key: 'core', label: 'Core', glyph: '◆', color: 'var(--ember)' },
-  architect: { key: 'architect', label: 'Architect', glyph: '▲', color: 'var(--viz-gcp)' },
-  maintainer: { key: 'maintainer', label: 'Maintainer', glyph: '●', color: 'var(--viz-azure)' },
-  builder: { key: 'builder', label: 'Builder', glyph: '◇', color: 'var(--gcp)' },
-  contributor: { key: 'contributor', label: 'Contributor', glyph: '·', color: 'var(--text-3)' },
+  core: { key: 'core', label: 'Singularity', glyph: '◆', color: 'var(--ember)', earnedBy: 'the #1 committer' },
+  architect: { key: 'architect', label: 'Quasar', glyph: '▲', color: 'var(--viz-gcp)', earnedBy: '100+ commits' },
+  maintainer: { key: 'maintainer', label: 'Pulsar', glyph: '●', color: 'var(--viz-azure)', earnedBy: '20+ commits' },
+  builder: { key: 'builder', label: 'Nebula', glyph: '◇', color: 'var(--gcp)', earnedBy: '5+ commits' },
+  contributor: { key: 'contributor', label: 'Stardust', glyph: '·', color: 'var(--text-3)', earnedBy: 'first commits' },
 };
 
 /** The five tiers in order, for the legend. */
