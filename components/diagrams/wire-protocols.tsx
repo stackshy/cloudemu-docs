@@ -61,7 +61,7 @@ export function WireProtocols() {
           cloudemu
         </text>
         <text x={561} y={110} textAnchor="middle" fontSize="9" fontFamily="var(--font-mono)" fill="var(--text-3)">
-          httptest.NewServer
+          serve · :4566
         </text>
       </svg>
     </div>
