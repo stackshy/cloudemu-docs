@@ -18,20 +18,36 @@ Reach for it when your code creates a function, invokes it synchronously, and re
 
 ## Drive it with the real SDK
 
-The recommended path is to point the real SDK at the SDK-compat server. Because there's no real runtime, you register a Go handler so `Invoke` has something to execute — then the stock Lambda client creates and calls the function unchanged:
+Run cloudemu as a server and point the real SDK at it. The stock binary serves the in-memory default with `cloudemu serve` (or `docker run --rm -p 4566:4566 ghcr.io/stackshy/cloudemu`) on `http://localhost:4566`:
+
+```bash
+cloudemu serve   # AWS API on http://localhost:4566
+```
+
+Because there's no real runtime, you give `Invoke` a Go handler to execute by embedding the provider in your own server and registering the handler on its Lambda driver. Then the stock Lambda client creates and calls the function against the endpoint, unchanged:
 
 ```go
 import (
+    "net/http"
+
     "github.com/aws/aws-sdk-go-v2/service/lambda"
     lambdatypes "github.com/aws/aws-sdk-go-v2/service/lambda/types"
+    "github.com/stackshy/cloudemu/v2"
     awsserver "github.com/stackshy/cloudemu/v2/server/aws"
 )
 
 cloud := cloudemu.NewAWS()
-ts := httptest.NewServer(awsserver.New(awsserver.Drivers{Lambda: cloud.Lambda}))
+
+// Register a Go handler so Invoke has something to run.
+cloud.Lambda.RegisterHandler("my-handler", func(ctx context.Context, payload []byte) ([]byte, error) {
+    return []byte(`{"status":"ok"}`), nil
+})
+
+// Serve that provider on :4566.
+go http.ListenAndServe(":4566", awsserver.NewFromProvider(cloud))
 
 client := lambda.NewFromConfig(cfg, func(o *lambda.Options) {
-    o.BaseEndpoint = aws.String(ts.URL)
+    o.BaseEndpoint = aws.String("http://localhost:4566")
 })
 
 client.CreateFunction(ctx, &lambda.CreateFunctionInput{
@@ -42,11 +58,6 @@ client.CreateFunction(ctx, &lambda.CreateFunctionInput{
     Code:         &lambdatypes.FunctionCode{ZipFile: []byte("z")},
 })
 
-// Register a Go handler so Invoke has something to run.
-cloud.Lambda.RegisterHandler("my-handler", func(ctx context.Context, payload []byte) ([]byte, error) {
-    return []byte(`{"status":"ok"}`), nil
-})
-
 resp, _ := client.Invoke(ctx, &lambda.InvokeInput{
     FunctionName: aws.String("my-handler"),
     Payload:      []byte(`{"key":"value"}`),
@@ -55,6 +66,23 @@ fmt.Println(string(resp.Payload)) // {"status":"ok"}
 ```
 
 Same shape with `armappservice` (Azure) and `google.golang.org/api/cloudfunctions/v1` (GCP) — see [SDK-Compat Server](/docs/sdk-compat#azure-handlers).
+
+### In-process (Go unit tests)
+
+For Go unit tests written inside cloudemu-aware code, stand the same wire server up in-process with `httptest.NewServer` and point the client at `ts.URL`. The `Drivers` you pass name exactly the drivers this service needs, and the same provider handle registers the Go handler:
+
+```go
+import (
+    "github.com/stackshy/cloudemu/v2"
+    awsserver "github.com/stackshy/cloudemu/v2/server/aws"
+)
+
+cloud := cloudemu.NewAWS()
+cloud.Lambda.RegisterHandler("my-handler", handler)
+ts := httptest.NewServer(awsserver.New(awsserver.Drivers{Lambda: cloud.Lambda}))
+defer ts.Close()
+// point the same lambda client at ts.URL instead of the running endpoint
+```
 
 ## Call the driver directly
 
