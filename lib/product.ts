@@ -49,9 +49,9 @@ export const RUN_MODES: RunMode[] = [
   {
     id: 'in-process',
     label: 'In-process',
-    tagline: 'Go tests, zero network',
+    tagline: 'Go unit tests, zero network',
     blurb:
-      'Spin the emulator up inside your test with httptest and point the SDK’s endpoint at it. Calls return in ~10 ms.',
+      'For Go unit tests: host the server in-process with httptest and point the SDK’s endpoint at it. To integrate a running app, use server mode instead. Calls return in ~10 ms.',
     languages: 'Go',
     lang: 'go',
     command: `cloud := cloudemu.NewAWS()
