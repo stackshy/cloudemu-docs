@@ -14,7 +14,26 @@ Reach for it when your code stores or queries entities in Table Storage — a se
 
 ## Drive it with the real SDK
 
-Register the mock as the `TableStorage` data-plane driver, then point the stock `aztables` client at the server — only the endpoint changes. Azure clients expect TLS, so use `httptest.NewTLSServer`:
+Run cloudemu as a server, then point the stock `aztables` client at it — only the endpoint changes. Start it with `cloudemu serve` (or `docker run --rm -p 4568:4568 ghcr.io/stackshy/cloudemu`), which serves the Azure API on `https://localhost:4568` (self-signed TLS):
+
+```bash
+cloudemu serve   # Azure API on https://localhost:4568 (self-signed TLS)
+```
+
+Point the `aztables` client at `https://localhost:4568`. cloudemu accepts any credentials, so a no-credential client is enough:
+
+```go
+// aztables client, pointed at https://localhost:4568
+//   svc := aztables.NewServiceClientWithNoCredential("https://localhost:4568", opts)
+//   table := svc.NewClient("events")
+//   table.AddEntity(ctx, marshalledEntity, nil)
+```
+
+See the [SDK-Compat Server page](/docs/sdk-compat) for the Azure TLS setup.
+
+### In-process (Go unit tests)
+
+For Go unit tests written inside cloudemu-aware code, stand the same wire server up in-process with `httptest.NewTLSServer` and point the client at `ts.URL`. The `Drivers` you pass name exactly the drivers this service needs:
 
 ```go
 import (
@@ -27,15 +46,8 @@ ts := httptest.NewTLSServer(azureserver.New(azureserver.Drivers{
     TableStorage: cloud.TableStorage,
 }))
 defer ts.Close()
-
-// aztables client, pointed at ts.URL — cloudemu doesn't validate signatures,
-// so a no-credential client is enough. Use ts.Client() for the test cert.
-//   svc := aztables.NewServiceClientWithNoCredential(ts.URL, opts)
-//   table := svc.NewClient("events")
-//   table.AddEntity(ctx, marshalledEntity, nil)
+// point the same aztables client at ts.URL instead of the running endpoint (use ts.Client() for the test cert)
 ```
-
-See the [SDK-Compat Server page](/docs/sdk-compat) for the Azure TLS setup.
 
 ## Call the driver directly
 
