@@ -14,23 +14,23 @@ Reach for it whenever your code loads config from `/app/prod/...`, resolves a `S
 
 ## Drive it with the real SDK
 
-The recommended path is to drop the SDK-compat server in front of cloudemu and point your existing production code at it — no code changes, just a rewritten endpoint. The handler matches the `AmazonSSM.` `X-Amz-Target` prefix (AWS JSON 1.1), so a real `aws-sdk-go-v2/service/ssm` client with a custom endpoint works unchanged:
+Run cloudemu as a server and point your existing production code at it — the same client, with only the endpoint redirected. The handler matches the `AmazonSSM.` `X-Amz-Target` prefix (AWS JSON 1.1), so a real `aws-sdk-go-v2/service/ssm` client with a custom endpoint works unchanged. Start it with `cloudemu serve` (or `docker run --rm -p 4566:4566 ghcr.io/stackshy/cloudemu`), which serves the AWS API on `http://localhost:4566`:
+
+```bash
+cloudemu serve   # AWS API on http://localhost:4566
+```
+
+Then point the SSM client at that endpoint and write and read a parameter:
 
 ```go
 import (
     "github.com/aws/aws-sdk-go-v2/aws"
     "github.com/aws/aws-sdk-go-v2/service/ssm"
     "github.com/aws/aws-sdk-go-v2/service/ssm/types"
-    "github.com/stackshy/cloudemu/v2"
-    awsserver "github.com/stackshy/cloudemu/v2/server/aws"
 )
 
-cloud := cloudemu.NewAWS()
-ts := httptest.NewServer(awsserver.New(awsserver.Drivers{SSM: cloud.SSM}))
-defer ts.Close()
-
 client := ssm.NewFromConfig(cfg, func(o *ssm.Options) {
-    o.BaseEndpoint = aws.String(ts.URL)
+    o.BaseEndpoint = aws.String("http://localhost:4566")
 })
 
 client.PutParameter(ctx, &ssm.PutParameterInput{
@@ -43,6 +43,22 @@ out, _ := client.GetParameter(ctx, &ssm.GetParameterInput{
     Name: aws.String("/app/prod/db-url"),
 })
 // out.Parameter.Value == "postgres://db:5432/app"
+```
+
+### In-process (Go unit tests)
+
+For Go unit tests written inside cloudemu-aware code, stand the same wire server up in-process with `httptest.NewServer` and point the client at `ts.URL`. The `Drivers` you pass name exactly the drivers this service needs:
+
+```go
+import (
+    "github.com/stackshy/cloudemu/v2"
+    awsserver "github.com/stackshy/cloudemu/v2/server/aws"
+)
+
+cloud := cloudemu.NewAWS()
+ts := httptest.NewServer(awsserver.New(awsserver.Drivers{SSM: cloud.SSM}))
+defer ts.Close()
+// point the same ssm client at ts.URL instead of the running endpoint
 ```
 
 ## Call the driver directly
