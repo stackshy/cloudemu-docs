@@ -6,7 +6,7 @@ Point a real `aws-sdk-go-v2`, `azure-sdk-for-go`, or `cloud.google.com/go` clien
 
 <WireProtocols />
 
-Nothing to mock. No cloud accounts. No bills. The same SDK calls you'd run against real cloud APIs hit a local `httptest.NewServer` and get back SDK-decodable responses.
+Nothing to mock. No cloud accounts. No bills. The same SDK calls you'd run against real cloud APIs hit a cloudemu server and get back SDK-decodable responses. This page shows the in-process form (`httptest.NewServer`) for Go tests; to integrate an existing app, run the [Standalone Server](/docs/standalone-server) and override your SDK endpoint.
 
 <Callout type="info">
 Want a long-lived, out-of-process server that any language's SDK can point at? See [Standalone Server](/docs/standalone-server).
