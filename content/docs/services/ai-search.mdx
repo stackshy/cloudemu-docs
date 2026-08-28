@@ -14,7 +14,25 @@ Reach for it when your code provisions a search service and then indexes and que
 
 ## Drive it with the real SDK
 
-Register the same mock as both the ARM control plane and the data plane, then let the real Azure SDKs walk the flow — provision over ARM, then index and query against the data plane. The data-plane host is routed from the `{service}.search.windows.net` subdomain:
+Run cloudemu as a server and let the real Azure SDKs walk the flow — provision over ARM, then index and query against the data plane. Start it with `cloudemu serve` (or `docker run --rm -p 4568:4568 ghcr.io/stackshy/cloudemu`), which serves the Azure API on `https://localhost:4568` (self-signed TLS):
+
+```bash
+cloudemu serve   # Azure API on https://localhost:4568 (self-signed TLS)
+```
+
+Point the ARM client's `cloud.ResourceManager` endpoint at `https://localhost:4568`; the data-plane host is routed from the `{service}.search.windows.net` subdomain:
+
+```go
+// armsearch provisions the service with its Cloud.ResourceManager endpoint set to
+// https://localhost:4568; the data-plane REST client (azsearch / go-autorest)
+// then creates an index, uploads documents, and searches.
+```
+
+See the [SDK-Compat Server page](/docs/sdk-compat#quick-start-azure) for the Azure TLS setup.
+
+### In-process (Go unit tests)
+
+For Go unit tests written inside cloudemu-aware code, stand the same wire server up in-process with `httptest.NewTLSServer` and point the client at `ts.URL`. The `Drivers` you pass name exactly the drivers this service needs:
 
 ```go
 import (
@@ -28,12 +46,8 @@ ts := httptest.NewTLSServer(azureserver.New(azureserver.Drivers{
     SearchDataPlane: cloud.Search, // {service}.search.windows.net (data plane)
 }))
 defer ts.Close()
-
-// armsearch provisions the service; the data-plane REST client
-// (azsearch / go-autorest) creates an index, uploads documents, and searches.
+// point the same armsearch + data-plane clients at ts.URL instead of the running endpoint
 ```
-
-See the [SDK-Compat Server page](/docs/sdk-compat#quick-start-azure) for the Azure TLS setup.
 
 ## Call the driver directly
 
