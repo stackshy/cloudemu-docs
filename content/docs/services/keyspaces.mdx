@@ -14,23 +14,23 @@ Reach for it when your provisioning code creates a keyspace and tables, adjusts 
 
 ## Drive it with the real SDK
 
-Point the stock AWS SDK at the SDK-compat server — only the endpoint changes. This creates a keyspace and a table keyed on `id`:
+Run cloudemu as a server and point the stock AWS SDK at it — only the endpoint changes. Start it with `cloudemu serve` (or `docker run --rm -p 4566:4566 ghcr.io/stackshy/cloudemu`), which serves the AWS API on `http://localhost:4566`:
+
+```bash
+cloudemu serve   # AWS API on http://localhost:4566
+```
+
+Then point the Keyspaces client at that endpoint and create a keyspace and a table keyed on `id`:
 
 ```go
 import (
     "github.com/aws/aws-sdk-go-v2/aws"
     "github.com/aws/aws-sdk-go-v2/service/keyspaces"
     "github.com/aws/aws-sdk-go-v2/service/keyspaces/types"
-    "github.com/stackshy/cloudemu/v2"
-    awsserver "github.com/stackshy/cloudemu/v2/server/aws"
 )
 
-cloud := cloudemu.NewAWS()
-ts := httptest.NewServer(awsserver.New(awsserver.Drivers{Keyspaces: cloud.Keyspaces}))
-defer ts.Close()
-
 client := keyspaces.NewFromConfig(cfg, func(o *keyspaces.Options) {
-    o.BaseEndpoint = aws.String(ts.URL)
+    o.BaseEndpoint = aws.String("http://localhost:4566")
 })
 
 client.CreateKeyspace(ctx, &keyspaces.CreateKeyspaceInput{KeyspaceName: aws.String("app")})
@@ -48,6 +48,22 @@ client.CreateTable(ctx, &keyspaces.CreateTableInput{
 ```
 
 See the [SDK-Compat Server page](/docs/sdk-compat) for the full quick start.
+
+### In-process (Go unit tests)
+
+For Go unit tests written inside cloudemu-aware code, stand the same wire server up in-process with `httptest.NewServer` and point the client at `ts.URL`. The `Drivers` you pass name exactly the drivers this service needs:
+
+```go
+import (
+    "github.com/stackshy/cloudemu/v2"
+    awsserver "github.com/stackshy/cloudemu/v2/server/aws"
+)
+
+cloud := cloudemu.NewAWS()
+ts := httptest.NewServer(awsserver.New(awsserver.Drivers{Keyspaces: cloud.Keyspaces}))
+defer ts.Close()
+// point the same keyspaces client at ts.URL instead of the running endpoint
+```
 
 ## Call the driver directly
 

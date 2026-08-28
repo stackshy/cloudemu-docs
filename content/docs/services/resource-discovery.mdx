@@ -18,11 +18,36 @@ Reach for it when your code enumerates resources, reconciles inventory, or drive
 
 ## Query with the real SDK
 
-Wire the engine into the server alongside your other drivers, then point the real Resource Explorer client at it — this is the path that exercises the actual discovery API and its query-string filters:
+Run cloudemu as a server and point the real Resource Explorer client at it — this is the path that exercises the actual discovery API and its query-string filters. Start it with `cloudemu serve` (or `docker run --rm -p 4566:4566 ghcr.io/stackshy/cloudemu`), which serves the AWS API on `http://localhost:4566`:
+
+```bash
+cloudemu serve   # AWS API on http://localhost:4566
+```
+
+Then point the Resource Explorer client at that endpoint and search across the resources you have created:
 
 ```go
 import (
     "github.com/aws/aws-sdk-go-v2/service/resourceexplorer2"
+)
+
+client := resourceexplorer2.NewFromConfig(cfg, func(o *resourceexplorer2.Options) {
+    o.BaseEndpoint = aws.String("http://localhost:4566")
+})
+
+client.Search(ctx, &resourceexplorer2.SearchInput{
+    QueryString: aws.String("service:s3 tag.env:prod"),
+})
+```
+
+The Azure and GCP equivalents are `armresourcegraph` and `cloudasset/v1`, pointed at their endpoints the same way.
+
+### In-process (Go unit tests)
+
+For Go unit tests written inside cloudemu-aware code, stand the same wire server up in-process with `httptest.NewServer` and point the client at `ts.URL`. The `Drivers` you pass name exactly the drivers this engine reads from, alongside the account identity it reports:
+
+```go
+import (
     "github.com/stackshy/cloudemu/v2"
     awsserver "github.com/stackshy/cloudemu/v2/server/aws"
 )
@@ -34,14 +59,8 @@ ts := httptest.NewServer(awsserver.New(awsserver.Drivers{
     AccountID:         "123456789012",
     Region:            "us-east-1",
 }))
-
-client := resourceexplorer2.NewFromConfig(cfg, func(o *resourceexplorer2.Options) {
-    o.BaseEndpoint = aws.String(ts.URL)
-})
-
-client.Search(ctx, &resourceexplorer2.SearchInput{
-    QueryString: aws.String("service:s3 tag.env:prod"),
-})
+defer ts.Close()
+// point the same resourceexplorer2 client at ts.URL instead of the running endpoint
 ```
 
 Wire the engine into `azureserver.Drivers{ResourceDiscovery: …, SubscriptionID: …}` or `gcpserver.Drivers{ResourceDiscovery: …, ProjectID: …}` for the Azure and GCP equivalents.

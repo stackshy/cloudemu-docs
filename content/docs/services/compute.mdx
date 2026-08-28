@@ -18,23 +18,22 @@ Reach for it when your code provisions capacity, waits on instance state, or rea
 
 ## Run and manage instances
 
-The recommended path points the real SDK at the SDK-compat server, so the same client code you ship in production talks to the emulator. `RunInstances` launches capacity from an AMI; `StopInstances` moves them out of `running` without terminating, mirroring how EC2 lets you pause billing while keeping the instance:
+Run cloudemu as a server and point the same client code you ship in production at it — only the endpoint changes. Start it with `cloudemu serve` (or `docker run --rm -p 4566:4566 ghcr.io/stackshy/cloudemu`), which serves the AWS API on `http://localhost:4566`:
+
+```bash
+cloudemu serve   # AWS API on http://localhost:4566
+```
+
+Then point the stock EC2 client at that endpoint. `RunInstances` launches capacity from an AMI; `StopInstances` moves them out of `running` without terminating, mirroring how EC2 lets you pause billing while keeping the instance:
 
 ```go
 import (
     "github.com/aws/aws-sdk-go-v2/service/ec2"
     "github.com/aws/aws-sdk-go-v2/service/ec2/types"
-    "github.com/stackshy/cloudemu/v2"
-    awsserver "github.com/stackshy/cloudemu/v2/server/aws"
 )
 
-cloud := cloudemu.NewAWS()
-ts := httptest.NewServer(awsserver.New(awsserver.Drivers{
-    EC2: cloud.EC2, VPC: cloud.VPC,
-}))
-
 client := ec2.NewFromConfig(cfg, func(o *ec2.Options) {
-    o.BaseEndpoint = aws.String(ts.URL)
+    o.BaseEndpoint = aws.String("http://localhost:4566")
 })
 
 out, _ := client.RunInstances(ctx, &ec2.RunInstancesInput{
@@ -50,6 +49,24 @@ client.StopInstances(ctx, &ec2.StopInstancesInput{
 ```
 
 The same pattern works with `armcompute` for Azure and `cloud.google.com/go/compute/apiv1` for GCP — only the endpoint changes. See the [SDK-Compat Server](/docs/sdk-compat).
+
+### In-process (Go unit tests)
+
+For Go unit tests written inside cloudemu-aware code, stand the same wire server up in-process with `httptest.NewServer` and point the client at `ts.URL`. The `Drivers` you pass name exactly the drivers this service needs:
+
+```go
+import (
+    "github.com/stackshy/cloudemu/v2"
+    awsserver "github.com/stackshy/cloudemu/v2/server/aws"
+)
+
+cloud := cloudemu.NewAWS()
+ts := httptest.NewServer(awsserver.New(awsserver.Drivers{
+    EC2: cloud.EC2, VPC: cloud.VPC,
+}))
+defer ts.Close()
+// point the same ec2 client at ts.URL instead of the running endpoint
+```
 
 ## Portable Go API
 

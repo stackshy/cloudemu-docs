@@ -17,11 +17,37 @@ Reach for it when your code invokes a model, deploys a model version, or orchest
 
 ## Drive it with the real SDK
 
-Drop the SDK-compat server in front of cloudemu and point the real runtime client at it — this exercises the actual invoke path, request signing, and response parsing your production code uses:
+Run cloudemu as a server and point the real runtime client at it — this exercises the actual invoke path, request signing, and response parsing your production code uses. Start it with `cloudemu serve` (or `docker run --rm -p 4566:4566 ghcr.io/stackshy/cloudemu`), which serves the AWS API on `http://localhost:4566`:
+
+```bash
+cloudemu serve   # AWS API on http://localhost:4566
+```
+
+Then point the stock `bedrock-runtime` client at that endpoint and invoke a model:
 
 ```go
 import (
     "github.com/aws/aws-sdk-go-v2/service/bedrockruntime"
+)
+
+rt := bedrockruntime.NewFromConfig(cfg, func(o *bedrockruntime.Options) {
+    o.BaseEndpoint = aws.String("http://localhost:4566")
+})
+
+rt.InvokeModel(ctx, &bedrockruntime.InvokeModelInput{
+    ModelId: aws.String("anthropic.claude-3-sonnet-20240229-v1:0"),
+    Body:    []byte(`{"messages":[{"role":"user","content":"hello"}]}`),
+})
+```
+
+Azure OpenAI works the same way: register the mock as `CognitiveServices` (ARM) and `AzureAIDataPlane` (inference) on `azureserver.Drivers`, then point `armcognitiveservices` at the ARM endpoint and `azopenai` at the `*.openai.azure.com` data plane. See the [SDK-Compat Server page](/docs/sdk-compat) for the Azure TLS setup.
+
+### In-process (Go unit tests)
+
+For Go unit tests written inside cloudemu-aware code, stand the same wire server up in-process with `httptest.NewServer` and point the client at `ts.URL`. The `Drivers` you pass name exactly the drivers this service needs:
+
+```go
+import (
     "github.com/stackshy/cloudemu/v2"
     awsserver "github.com/stackshy/cloudemu/v2/server/aws"
 )
@@ -33,18 +59,8 @@ ts := httptest.NewServer(awsserver.New(awsserver.Drivers{
     BedrockAgentRuntime: cloud.BedrockAgentRuntime,
 }))
 defer ts.Close()
-
-rt := bedrockruntime.NewFromConfig(cfg, func(o *bedrockruntime.Options) {
-    o.BaseEndpoint = aws.String(ts.URL)
-})
-
-rt.InvokeModel(ctx, &bedrockruntime.InvokeModelInput{
-    ModelId: aws.String("anthropic.claude-3-sonnet-20240229-v1:0"),
-    Body:    []byte(`{"messages":[{"role":"user","content":"hello"}]}`),
-})
+// point the same bedrock-runtime client at ts.URL instead of the running endpoint
 ```
-
-Azure OpenAI works the same way: register the mock as `CognitiveServices` (ARM) and `AzureAIDataPlane` (inference) on `azureserver.Drivers`, then point `armcognitiveservices` at the ARM endpoint and `azopenai` at the `*.openai.azure.com` data plane. See the [SDK-Compat Server page](/docs/sdk-compat) for the Azure TLS setup.
 
 ## Call the driver directly
 

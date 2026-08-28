@@ -18,12 +18,37 @@ Reach for it when your code registers a model, stands up an endpoint, kicks off 
 
 ## Drive it with the real SDK
 
-Drop the SDK-compat server in front of cloudemu and point the real client at it — this stands up a model, an endpoint config, and an endpoint exactly as the real client would, then invokes it:
+Run cloudemu as a server and point the real client at it — the same client, with only the endpoint redirected. Start it with `cloudemu serve` (or `docker run --rm -p 4566:4566 ghcr.io/stackshy/cloudemu`), which serves the AWS API on `http://localhost:4566`:
+
+```bash
+cloudemu serve   # AWS API on http://localhost:4566
+```
+
+Then point the stock `sagemaker` and `sagemakerruntime` clients at that endpoint — this stands up a model, an endpoint config, and an endpoint exactly as the real client would, then invokes it:
 
 ```go
 import (
     "github.com/aws/aws-sdk-go-v2/service/sagemaker"
     "github.com/aws/aws-sdk-go-v2/service/sagemakerruntime"
+)
+
+cp := sagemaker.NewFromConfig(cfg, func(o *sagemaker.Options) { o.BaseEndpoint = aws.String("http://localhost:4566") })
+cp.CreateModel(ctx, &sagemaker.CreateModelInput{ModelName: aws.String("m")})
+cp.CreateEndpointConfig(ctx, &sagemaker.CreateEndpointConfigInput{EndpointConfigName: aws.String("cfg")})
+cp.CreateEndpoint(ctx, &sagemaker.CreateEndpointInput{EndpointName: aws.String("ep"), EndpointConfigName: aws.String("cfg")})
+
+rt := sagemakerruntime.NewFromConfig(cfg, func(o *sagemakerruntime.Options) { o.BaseEndpoint = aws.String("http://localhost:4566") })
+rt.InvokeEndpoint(ctx, &sagemakerruntime.InvokeEndpointInput{EndpointName: aws.String("ep"), Body: []byte("{}")})
+```
+
+Vertex AI speaks the `aiplatform` REST API (`generateContent`, `predict`, the job families) rooted at `/v1/projects/{p}/locations/{l}/...`; register `VertexAI: cloud.VertexAI` on `gcpserver.Drivers`. Azure ML speaks `armmachinelearning` (ARM) plus an `*.inference.ml.azure.com/score` data plane; register the mock as `MachineLearning` (and `AzureAIDataPlane` for scoring). See the [SDK-Compat Server page](/docs/sdk-compat).
+
+### In-process (Go unit tests)
+
+For Go unit tests written inside cloudemu-aware code, stand the same wire server up in-process with `httptest.NewServer` and point the client at `ts.URL`. The `Drivers` you pass name exactly the drivers this service needs:
+
+```go
+import (
     "github.com/stackshy/cloudemu/v2"
     awsserver "github.com/stackshy/cloudemu/v2/server/aws"
 )
@@ -31,17 +56,8 @@ import (
 cloud := cloudemu.NewAWS()
 ts := httptest.NewServer(awsserver.New(awsserver.Drivers{SageMaker: cloud.SageMaker}))
 defer ts.Close()
-
-cp := sagemaker.NewFromConfig(cfg, func(o *sagemaker.Options) { o.BaseEndpoint = aws.String(ts.URL) })
-cp.CreateModel(ctx, &sagemaker.CreateModelInput{ModelName: aws.String("m")})
-cp.CreateEndpointConfig(ctx, &sagemaker.CreateEndpointConfigInput{EndpointConfigName: aws.String("cfg")})
-cp.CreateEndpoint(ctx, &sagemaker.CreateEndpointInput{EndpointName: aws.String("ep"), EndpointConfigName: aws.String("cfg")})
-
-rt := sagemakerruntime.NewFromConfig(cfg, func(o *sagemakerruntime.Options) { o.BaseEndpoint = aws.String(ts.URL) })
-rt.InvokeEndpoint(ctx, &sagemakerruntime.InvokeEndpointInput{EndpointName: aws.String("ep"), Body: []byte("{}")})
+// point the same sagemaker + sagemakerruntime clients at ts.URL instead of the running endpoint
 ```
-
-Vertex AI speaks the `aiplatform` REST API (`generateContent`, `predict`, the job families) rooted at `/v1/projects/{p}/locations/{l}/...`; register `VertexAI: cloud.VertexAI` on `gcpserver.Drivers`. Azure ML speaks `armmachinelearning` (ARM) plus an `*.inference.ml.azure.com/score` data plane; register the mock as `MachineLearning` (and `AzureAIDataPlane` for scoring). See the [SDK-Compat Server page](/docs/sdk-compat).
 
 ## Call the driver directly
 

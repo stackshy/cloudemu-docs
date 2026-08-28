@@ -18,21 +18,22 @@ Reach for it when your code puts an item and reads it back by key, runs a query 
 
 ## Drive it with the real SDK
 
-The recommended path is to point the real SDK at the SDK-compat server, so your production data-access code runs unchanged. This creates a table keyed on `id` and writes one item — the client is the stock AWS SDK, only the endpoint is redirected:
+Run cloudemu as a server and point the real SDK at it, so your production data-access code runs unchanged. Start it with `cloudemu serve` (or `docker run --rm -p 4566:4566 ghcr.io/stackshy/cloudemu`), which serves the AWS API on `http://localhost:4566`:
+
+```bash
+cloudemu serve   # AWS API on http://localhost:4566
+```
+
+Then point the stock DynamoDB client at that endpoint — only the endpoint is redirected — and create a table keyed on `id` and write one item:
 
 ```go
 import (
     "github.com/aws/aws-sdk-go-v2/service/dynamodb"
     "github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
-    "github.com/stackshy/cloudemu/v2"
-    awsserver "github.com/stackshy/cloudemu/v2/server/aws"
 )
 
-cloud := cloudemu.NewAWS()
-ts := httptest.NewServer(awsserver.New(awsserver.Drivers{DynamoDB: cloud.DynamoDB}))
-
 client := dynamodb.NewFromConfig(cfg, func(o *dynamodb.Options) {
-    o.BaseEndpoint = aws.String(ts.URL)
+    o.BaseEndpoint = aws.String("http://localhost:4566")
 })
 
 client.CreateTable(ctx, &dynamodb.CreateTableInput{
@@ -56,6 +57,22 @@ client.PutItem(ctx, &dynamodb.PutItemInput{
 ```
 
 Same shape with `azcosmos` (Azure) and `cloud.google.com/go/firestore` (GCP). See the [SDK-Compat Server page](/docs/sdk-compat) for the full quick starts.
+
+### In-process (Go unit tests)
+
+For Go unit tests written inside cloudemu-aware code, stand the same wire server up in-process with `httptest.NewServer` and point the client at `ts.URL`. The `Drivers` you pass name exactly the drivers this service needs:
+
+```go
+import (
+    "github.com/stackshy/cloudemu/v2"
+    awsserver "github.com/stackshy/cloudemu/v2/server/aws"
+)
+
+cloud := cloudemu.NewAWS()
+ts := httptest.NewServer(awsserver.New(awsserver.Drivers{DynamoDB: cloud.DynamoDB}))
+defer ts.Close()
+// point the same dynamodb client at ts.URL instead of the running endpoint
+```
 
 ## Call the driver directly
 

@@ -14,23 +14,23 @@ Reach for it when your code provisions firewalls, policies, or rule groups, or t
 
 ## Drive it with the real SDK
 
-Drop the SDK-compat server in front of cloudemu and point the real `networkfirewall` client at it — the emulator speaks AWS JSON 1.0 on the `NetworkFirewall_20201112.` target prefix, so a real `aws-sdk-go-v2/service/networkfirewall` client works with only its endpoint rewritten. Build bottom-up: a rule group, then a policy, then the firewall:
+Run cloudemu as a server and point the real `networkfirewall` client at it — the emulator speaks AWS JSON 1.0 on the `NetworkFirewall_20201112.` target prefix, so a real `aws-sdk-go-v2/service/networkfirewall` client works with only its endpoint rewritten. Start it with `cloudemu serve` (or `docker run --rm -p 4566:4566 ghcr.io/stackshy/cloudemu`), which serves the AWS API on `http://localhost:4566`:
+
+```bash
+cloudemu serve   # AWS API on http://localhost:4566
+```
+
+Then point the client at that endpoint and build bottom-up: a rule group, then a policy, then the firewall:
 
 ```go
 import (
     "github.com/aws/aws-sdk-go-v2/aws"
     "github.com/aws/aws-sdk-go-v2/service/networkfirewall"
     nftypes "github.com/aws/aws-sdk-go-v2/service/networkfirewall/types"
-    "github.com/stackshy/cloudemu/v2"
-    awsserver "github.com/stackshy/cloudemu/v2/server/aws"
 )
 
-cloud := cloudemu.NewAWS()
-ts := httptest.NewServer(awsserver.New(awsserver.Drivers{NetworkFirewall: cloud.NetworkFirewall}))
-defer ts.Close()
-
 client := networkfirewall.NewFromConfig(cfg, func(o *networkfirewall.Options) {
-    o.BaseEndpoint = aws.String(ts.URL)
+    o.BaseEndpoint = aws.String("http://localhost:4566")
 })
 
 rg, _ := client.CreateRuleGroup(ctx, &networkfirewall.CreateRuleGroupInput{
@@ -52,6 +52,22 @@ client.CreateFirewall(ctx, &networkfirewall.CreateFirewallInput{
     VpcId:             aws.String("vpc-123"),
     SubnetMappings:    []nftypes.SubnetMapping{{SubnetId: aws.String("subnet-a")}},
 })
+```
+
+### In-process (Go unit tests)
+
+For Go unit tests written inside cloudemu-aware code, stand the same wire server up in-process with `httptest.NewServer` and point the client at `ts.URL`. The `Drivers` you pass name exactly the drivers this service needs:
+
+```go
+import (
+    "github.com/stackshy/cloudemu/v2"
+    awsserver "github.com/stackshy/cloudemu/v2/server/aws"
+)
+
+cloud := cloudemu.NewAWS()
+ts := httptest.NewServer(awsserver.New(awsserver.Drivers{NetworkFirewall: cloud.NetworkFirewall}))
+defer ts.Close()
+// point the same networkfirewall client at ts.URL instead of the running endpoint
 ```
 
 ## Call the driver directly

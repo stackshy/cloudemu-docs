@@ -22,24 +22,22 @@ Reach for it when your provisioning or IaC code creates a DB instance, waits for
 
 ## Drive it with the real SDK
 
-The recommended path is to point the real SDK at the SDK-compat server. This provisions a standalone Postgres instance, an Aurora cluster, then stops the instance — the same lifecycle calls your infra code makes, against an in-memory control plane:
+Run cloudemu as a server and point the real SDK at it. Start it with `cloudemu serve` (or `docker run --rm -p 4566:4566 ghcr.io/stackshy/cloudemu`), which serves the AWS API on `http://localhost:4566`:
+
+```bash
+cloudemu serve   # AWS API on http://localhost:4566
+```
+
+Then point the stock RDS client at that endpoint and provision a standalone Postgres instance, an Aurora cluster, then stop the instance — the same lifecycle calls your infra code makes, against the control plane:
 
 ```go
 import (
     "github.com/aws/aws-sdk-go-v2/service/rds"
     "github.com/aws/aws-sdk-go-v2/service/rds/types"
-    "github.com/stackshy/cloudemu/v2"
-    awsserver "github.com/stackshy/cloudemu/v2/server/aws"
 )
 
-cloud := cloudemu.NewAWS()
-ts := httptest.NewServer(awsserver.New(awsserver.Drivers{
-    RDS:      cloud.RDS,
-    Redshift: cloud.Redshift,
-}))
-
 client := rds.NewFromConfig(cfg, func(o *rds.Options) {
-    o.BaseEndpoint = aws.String(ts.URL)
+    o.BaseEndpoint = aws.String("http://localhost:4566")
 })
 
 // Standalone instance
@@ -62,6 +60,25 @@ client.StopDBInstance(ctx, &rds.StopDBInstanceInput{
 ```
 
 Azure servers speak ARM (`armsql`, `armpostgresqlflexibleservers`, `armmysqlflexibleservers`); Cloud SQL speaks the Cloud SQL Admin REST API (`sqladmin/v1`). See the [SDK-Compat Server page](/docs/sdk-compat) for the full quick starts.
+
+### In-process (Go unit tests)
+
+For Go unit tests written inside cloudemu-aware code, stand the same wire server up in-process with `httptest.NewServer` and point the client at `ts.URL`. The `Drivers` you pass name exactly the drivers this service needs:
+
+```go
+import (
+    "github.com/stackshy/cloudemu/v2"
+    awsserver "github.com/stackshy/cloudemu/v2/server/aws"
+)
+
+cloud := cloudemu.NewAWS()
+ts := httptest.NewServer(awsserver.New(awsserver.Drivers{
+    RDS:      cloud.RDS,
+    Redshift: cloud.Redshift,
+}))
+defer ts.Close()
+// point the same rds client at ts.URL instead of the running endpoint
+```
 
 ## Call the driver directly
 

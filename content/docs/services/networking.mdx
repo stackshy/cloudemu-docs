@@ -18,22 +18,21 @@ Reach for it when your code provisions network scaffolding, or when you want to 
 
 ## Drive it with the real SDK
 
-The recommended path points the real SDK at the SDK-compat server. A VPC gives you an address space; subnets carve it up; a security group is the rule set you attach to instances — build them in that order because each references the last. AWS VPC is served by the EC2 handler, so one server serves both instances and their networks:
+Run cloudemu as a server and point the real SDK at it. Start it with `cloudemu serve` (or `docker run --rm -p 4566:4566 ghcr.io/stackshy/cloudemu`), which serves the AWS API on `http://localhost:4566`:
+
+```bash
+cloudemu serve   # AWS API on http://localhost:4566
+```
+
+Then point the stock EC2 client at that endpoint. A VPC gives you an address space; subnets carve it up; a security group is the rule set you attach to instances — build them in that order because each references the last. AWS VPC is served by the EC2 handler, so one server serves both instances and their networks:
 
 ```go
 import (
     "github.com/aws/aws-sdk-go-v2/service/ec2"
-    "github.com/stackshy/cloudemu/v2"
-    awsserver "github.com/stackshy/cloudemu/v2/server/aws"
 )
 
-cloud := cloudemu.NewAWS()
-ts := httptest.NewServer(awsserver.New(awsserver.Drivers{
-    EC2: cloud.EC2, VPC: cloud.VPC,
-}))
-
 client := ec2.NewFromConfig(cfg, func(o *ec2.Options) {
-    o.BaseEndpoint = aws.String(ts.URL)
+    o.BaseEndpoint = aws.String("http://localhost:4566")
 })
 
 vpc, _ := client.CreateVpc(ctx, &ec2.CreateVpcInput{CidrBlock: aws.String("10.0.0.0/16")})
@@ -47,6 +46,24 @@ client.CreateSecurityGroup(ctx, &ec2.CreateSecurityGroupInput{
 ```
 
 Azure (`armnetwork.NewVirtualNetworksClient`) and GCP (`gcpcompute.NewNetworksRESTClient`) follow the same endpoint-only-changes pattern — see the [SDK-Compat Server](/docs/sdk-compat).
+
+### In-process (Go unit tests)
+
+For Go unit tests written inside cloudemu-aware code, stand the same wire server up in-process with `httptest.NewServer` and point the client at `ts.URL`. The `Drivers` you pass name exactly the drivers this service needs:
+
+```go
+import (
+    "github.com/stackshy/cloudemu/v2"
+    awsserver "github.com/stackshy/cloudemu/v2/server/aws"
+)
+
+cloud := cloudemu.NewAWS()
+ts := httptest.NewServer(awsserver.New(awsserver.Drivers{
+    EC2: cloud.EC2, VPC: cloud.VPC,
+}))
+defer ts.Close()
+// point the same ec2 client at ts.URL instead of the running endpoint
+```
 
 ## Call the driver directly
 
