@@ -18,19 +18,21 @@ Reach for it when your code enqueues jobs, drains a queue, relies on FIFO orderi
 
 ## Drive it with the real SDK
 
-This is the recommended path: point the AWS SDK at a cloudemu test server and the same `sqs` client you use in production talks to the emulator. The create/send/receive/delete cycle below is the full lifecycle of a message — receiving it hides it from other consumers, and deleting it (via the receipt handle) is the acknowledgement that removes it for good.
+Run cloudemu as a server and the same `sqs` client you use in production talks to the emulator. Start it with `cloudemu serve` (or `docker run --rm -p 4566:4566 ghcr.io/stackshy/cloudemu`), which serves the AWS API on `http://localhost:4566`:
+
+```bash
+cloudemu serve   # AWS API on http://localhost:4566
+```
+
+Then point the SQS client at that endpoint. The create/send/receive/delete cycle below is the full lifecycle of a message — receiving it hides it from other consumers, and deleting it (via the receipt handle) is the acknowledgement that removes it for good:
 
 ```go
 import (
     "github.com/aws/aws-sdk-go-v2/service/sqs"
-    awsserver "github.com/stackshy/cloudemu/v2/server/aws"
 )
 
-cloud := cloudemu.NewAWS()
-ts := httptest.NewServer(awsserver.New(awsserver.Drivers{SQS: cloud.SQS}))
-
 client := sqs.NewFromConfig(cfg, func(o *sqs.Options) {
-    o.BaseEndpoint = aws.String(ts.URL)
+    o.BaseEndpoint = aws.String("http://localhost:4566")
 })
 
 q, _ := client.CreateQueue(ctx, &sqs.CreateQueueInput{
@@ -51,6 +53,22 @@ client.DeleteMessage(ctx, &sqs.DeleteMessageInput{
 ```
 
 The same pattern works for the other providers: `armservicebus` (Azure ARM control plane) plus raw HTTP for the Service Bus data plane — the modern `azservicebus` SDK is AMQP-only and out of scope — and `google.golang.org/api/pubsub/v1` for GCP Pub/Sub. See [SDK-Compat Server](/docs/sdk-compat).
+
+### In-process (Go unit tests)
+
+For Go unit tests written inside cloudemu-aware code, stand the same wire server up in-process with `httptest.NewServer` and point the client at `ts.URL`. The `Drivers` you pass name exactly the drivers this service needs:
+
+```go
+import (
+    "github.com/stackshy/cloudemu/v2"
+    awsserver "github.com/stackshy/cloudemu/v2/server/aws"
+)
+
+cloud := cloudemu.NewAWS()
+ts := httptest.NewServer(awsserver.New(awsserver.Drivers{SQS: cloud.SQS}))
+defer ts.Close()
+// point the same sqs client at ts.URL instead of the running endpoint
+```
 
 ## Use the Portable Go API
 
