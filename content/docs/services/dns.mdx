@@ -18,23 +18,23 @@ Reach for it when your code provisions zones, writes records, or depends on weig
 
 ## Drive it with the real SDK
 
-The recommended path is to drop the SDK-compat server in front of cloudemu and point your existing production code at it — no code changes, just a rewritten endpoint. This example stands up an in-memory Route53, creates a hosted zone, and adds a record exactly as the real client would:
+Run cloudemu as a server and point your existing production code at it — the same client, with only the endpoint redirected. Start it with `cloudemu serve` (or `docker run --rm -p 4566:4566 ghcr.io/stackshy/cloudemu`), which serves the AWS API on `http://localhost:4566`:
+
+```bash
+cloudemu serve   # AWS API on http://localhost:4566
+```
+
+Then point the stock Route53 client at that endpoint and create a hosted zone and add a record exactly as the real client would:
 
 ```go
 import (
     "github.com/aws/aws-sdk-go-v2/aws"
     awsr53 "github.com/aws/aws-sdk-go-v2/service/route53"
     r53types "github.com/aws/aws-sdk-go-v2/service/route53/types"
-    "github.com/stackshy/cloudemu/v2"
-    awsserver "github.com/stackshy/cloudemu/v2/server/aws"
 )
 
-cloud := cloudemu.NewAWS()
-ts := httptest.NewServer(awsserver.New(awsserver.Drivers{Route53: cloud.Route53}))
-defer ts.Close()
-
 client := awsr53.NewFromConfig(cfg, func(o *awsr53.Options) {
-    o.BaseEndpoint = aws.String(ts.URL)
+    o.BaseEndpoint = aws.String("http://localhost:4566")
 })
 
 zone, _ := client.CreateHostedZone(ctx, &awsr53.CreateHostedZoneInput{
@@ -55,6 +55,22 @@ client.ChangeResourceRecordSets(ctx, &awsr53.ChangeResourceRecordSetsInput{
 ```
 
 The same pattern works with `armdns` (Azure) and `cloud.google.com/go/dns` (GCP) — only the endpoint changes. See the [SDK-Compat Server page](/docs/sdk-compat).
+
+### In-process (Go unit tests)
+
+For Go unit tests written inside cloudemu-aware code, stand the same wire server up in-process with `httptest.NewServer` and point the client at `ts.URL`. The `Drivers` you pass name exactly the drivers this service needs:
+
+```go
+import (
+    "github.com/stackshy/cloudemu/v2"
+    awsserver "github.com/stackshy/cloudemu/v2/server/aws"
+)
+
+cloud := cloudemu.NewAWS()
+ts := httptest.NewServer(awsserver.New(awsserver.Drivers{Route53: cloud.Route53}))
+defer ts.Close()
+// point the same route53 client at ts.URL instead of the running endpoint
+```
 
 ## Call the driver directly
 
