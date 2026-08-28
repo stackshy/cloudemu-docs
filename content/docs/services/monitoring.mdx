@@ -18,20 +18,22 @@ Reach for it when your code emits custom metrics or reacts to alarm state, so yo
 
 ## Drive it with the real SDK
 
-This is the recommended path: point the AWS SDK at a cloudemu test server and the production `cloudwatch` client talks to the emulator. `PutMetricData` ingests datapoints under a namespace; `PutMetricAlarm` defines a threshold over one of them, and the alarm evaluates as soon as matching data arrives.
+Run cloudemu as a server and the production `cloudwatch` client talks to the emulator. Start it with `cloudemu serve` (or `docker run --rm -p 4566:4566 ghcr.io/stackshy/cloudemu`), which serves the AWS API on `http://localhost:4566`:
+
+```bash
+cloudemu serve   # AWS API on http://localhost:4566
+```
+
+Then point the CloudWatch client at that endpoint. `PutMetricData` ingests datapoints under a namespace; `PutMetricAlarm` defines a threshold over one of them, and the alarm evaluates as soon as matching data arrives:
 
 ```go
 import (
     "github.com/aws/aws-sdk-go-v2/service/cloudwatch"
     "github.com/aws/aws-sdk-go-v2/service/cloudwatch/types"
-    awsserver "github.com/stackshy/cloudemu/v2/server/aws"
 )
 
-cloud := cloudemu.NewAWS()
-ts := httptest.NewServer(awsserver.New(awsserver.Drivers{CloudWatch: cloud.CloudWatch}))
-
 client := cloudwatch.NewFromConfig(cfg, func(o *cloudwatch.Options) {
-    o.BaseEndpoint = aws.String(ts.URL)
+    o.BaseEndpoint = aws.String("http://localhost:4566")
 })
 
 client.PutMetricData(ctx, &cloudwatch.PutMetricDataInput{
@@ -51,6 +53,22 @@ client.PutMetricAlarm(ctx, &cloudwatch.PutMetricAlarmInput{
     Period:             aws.Int32(60),
     Statistic:          types.StatisticAverage,
 })
+```
+
+### In-process (Go unit tests)
+
+For Go unit tests written inside cloudemu-aware code, stand the same wire server up in-process with `httptest.NewServer` and point the client at `ts.URL`. The `Drivers` you pass name exactly the drivers this service needs:
+
+```go
+import (
+    "github.com/stackshy/cloudemu/v2"
+    awsserver "github.com/stackshy/cloudemu/v2/server/aws"
+)
+
+cloud := cloudemu.NewAWS()
+ts := httptest.NewServer(awsserver.New(awsserver.Drivers{CloudWatch: cloud.CloudWatch}))
+defer ts.Close()
+// point the same cloudwatch client at ts.URL instead of the running endpoint
 ```
 
 ## Use the Portable Go API

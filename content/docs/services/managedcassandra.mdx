@@ -14,23 +14,21 @@ Reach for it when your provisioning or IaC code creates a cluster, adds data cen
 
 ## Drive it with the real SDK
 
-Stand up the Azure SDK-compat server and point an `armcosmos` client factory at it. Mutating operations complete synchronously, so the SDK's LRO pollers terminate on the first response:
+Run cloudemu as a server and point an `armcosmos` client factory at it. Start it with `cloudemu serve` (or `docker run --rm -p 4568:4568 ghcr.io/stackshy/cloudemu`), which serves the Azure API on `https://localhost:4568` (self-signed TLS):
+
+```bash
+cloudemu serve   # Azure API on https://localhost:4568 (self-signed TLS)
+```
+
+Point the factory's `Cloud.ResourceManager` endpoint at `https://localhost:4568`. Mutating operations complete synchronously, so the SDK's LRO pollers terminate on the first response:
 
 ```go
 import (
     "github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/cosmos/armcosmos/v3"
-    "github.com/stackshy/cloudemu/v2"
-    azureserver "github.com/stackshy/cloudemu/v2/server/azure"
 )
 
-cp := cloudemu.NewAzure()
-ts := httptest.NewTLSServer(azureserver.New(azureserver.Drivers{
-    ManagedCassandra: cp.ManagedCassandra,
-}))
-defer ts.Close()
-
 // armcosmos.NewClientFactory(subID, cred, opts) with opts pointing Cloud.ResourceManager
-// at ts.URL and Transport at ts.Client() — see the SDK-Compat page for the ARM/TLS setup.
+// at https://localhost:4568 — see the SDK-Compat page for the ARM/TLS setup.
 cc := factory.NewCassandraClustersClient()
 poller, _ := cc.BeginCreateUpdate(ctx, "rg1", "cass", armcosmos.ClusterResource{
     Location: to.Ptr("eastus"),
@@ -43,6 +41,24 @@ created, _ := poller.PollUntilDone(ctx, nil)
 ```
 
 See the [SDK-Compat Server page](/docs/sdk-compat) for the Azure ARM/TLS setup.
+
+### In-process (Go unit tests)
+
+For Go unit tests written inside cloudemu-aware code, stand the same wire server up in-process with `httptest.NewTLSServer` and point the client at `ts.URL`. The `Drivers` you pass name exactly the drivers this service needs:
+
+```go
+import (
+    "github.com/stackshy/cloudemu/v2"
+    azureserver "github.com/stackshy/cloudemu/v2/server/azure"
+)
+
+cp := cloudemu.NewAzure()
+ts := httptest.NewTLSServer(azureserver.New(azureserver.Drivers{
+    ManagedCassandra: cp.ManagedCassandra,
+}))
+defer ts.Close()
+// point the same armcosmos factory at ts.URL instead of the running endpoint
+```
 
 ## Call the driver directly
 

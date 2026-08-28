@@ -2,11 +2,11 @@
 title: Prerequisites
 description: What you need before using cloudemu
 ---
-What you need depends on how you run cloudemu. Running it **in-process as a Go library** (the path this guide starts with) needs Go 1.25+ and a Go SDK. Running it as a [standalone server or in Docker](/docs/standalone-server) needs neither — start the emulator, then point any SDK or CLI, in any language, at its endpoints.
+What you need depends on how you run cloudemu. The recommended path for integration — running it as a [standalone server or in Docker](/docs/standalone-server) and pointing your app's SDK at its endpoints — needs neither Go nor a Go SDK; any language works. You only need the items below if you import cloudemu **in-process as a Go library** (for Go unit tests, or the Portable Go API).
 
 ## Required for the in-process (Go) path
 
-These apply when you import cloudemu as a Go library. For the [standalone server or Docker](/docs/standalone-server) path, skip straight to that guide — none of the items below are required there.
+These apply when you import cloudemu as a Go library. If you're integrating an existing app, prefer the [standalone server or Docker](/docs/standalone-server) path — start the emulator and override your SDK endpoint — and none of the items below are required.
 
 ### Go 1.25+
 

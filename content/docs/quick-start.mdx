@@ -1,9 +1,15 @@
 ---
 title: Quick Start
-description: Drop cloudemu in front of the real cloud SDK in 5 minutes
+description: Run cloudemu as a server and point your real app at it in 5 minutes
 ---
 
-cloudemu is a real cloud emulator: it speaks the actual AWS, Azure, and GCP wire protocols, so you point real SDK clients, CLIs, and apps at it and run production code unchanged. This page brings one up **in-process** with Go and drives it with `aws-sdk-go-v2` — the fastest way to see it work. The very same emulator also runs as a [standalone server or in Docker](/docs/standalone-server), which any SDK or CLI, in any language, can target the same way.
+cloudemu is a real cloud emulator: it speaks the actual AWS, Azure, and GCP wire protocols, so you point real SDK clients, CLIs, and apps at it and run production code unchanged.
+
+**The fastest way to integrate it is server mode:** run the binary (or Docker image) and set your SDK's endpoint at the printed address. Your already-running app now talks to an in-memory cloud over the real wire — the same code path it uses in production. This is the default for integration and end-to-end work.
+
+<Callout type="warn">
+To integrate cloudemu with an existing app, run it in **server mode** and set your SDK's endpoint (`AWS_ENDPOINT_URL` / `BaseEndpoint`, `option.WithEndpoint`, or the Azure ARM override), then point your already-running app at it — its real code path runs against cloudemu end-to-end. The in-process library path (further down) is for unit tests written inside Go code that already imports cloudemu.
+</Callout>
 
 No mocks. No cloud accounts. No bills — just a running endpoint your code already knows how to talk to.
 
@@ -12,92 +18,59 @@ No mocks. No cloud accounts. No bills — just a running endpoint your code alre
 ## Install
 
 ```bash
-go get github.com/stackshy/cloudemu/v2
-go get github.com/aws/aws-sdk-go-v2/service/s3
+go install github.com/stackshy/cloudemu/v2/cmd/cloudemu@latest
 ```
 
-## Stand up cloudemu over HTTP
+No Go toolchain? Use the published Docker image instead — see [Run the server](#run-the-server).
 
-```go
-package main
-
-import (
-    "bytes"
-    "context"
-    "fmt"
-    "net/http/httptest"
-
-    "github.com/aws/aws-sdk-go-v2/aws"
-    awsconfig "github.com/aws/aws-sdk-go-v2/config"
-    "github.com/aws/aws-sdk-go-v2/credentials"
-    "github.com/aws/aws-sdk-go-v2/service/s3"
-
-    "github.com/stackshy/cloudemu/v2"
-    awsserver "github.com/stackshy/cloudemu/v2/server/aws"
-)
-
-func main() {
-    ctx := context.Background()
-
-    // Create the in-memory cloud + the SDK-compat HTTP server in front of it.
-    cloud := cloudemu.NewAWS()
-    ts := httptest.NewServer(awsserver.New(awsserver.Drivers{
-        S3:         cloud.S3,
-        DynamoDB:   cloud.DynamoDB,
-        EC2:        cloud.EC2,
-        VPC:        cloud.VPC,
-        Lambda:     cloud.Lambda,
-        SQS:        cloud.SQS,
-        CloudWatch: cloud.CloudWatch,
-    }))
-    defer ts.Close()
-```
-
-## Use the real `aws-sdk-go-v2` client
-
-The only thing that changes vs. real AWS is `BaseEndpoint`. Every other line of your production code stays identical.
-
-```go title="main.go"
-    cfg, _ := awsconfig.LoadDefaultConfig(ctx,
-        awsconfig.WithRegion("us-east-1"),
-        awsconfig.WithCredentialsProvider(
-            credentials.NewStaticCredentialsProvider("test", "test", ""),
-        ),
-    )
-
-    client := s3.NewFromConfig(cfg, func(o *s3.Options) {
-        o.BaseEndpoint = aws.String(ts.URL) // [!code focus]
-        o.UsePathStyle = true
-    })
-
-    // ↓ This is your real production code, unchanged. ↓
-
-    client.CreateBucket(ctx, &s3.CreateBucketInput{
-        Bucket: aws.String("app-deployments"),
-    })
-
-    client.PutObject(ctx, &s3.PutObjectInput{
-        Bucket: aws.String("app-deployments"),
-        Key:    aws.String("v1.0/config.yaml"),
-        Body:   bytes.NewReader([]byte("db: rds-prod\nport: 8080")),
-    })
-
-    out, _ := client.GetObject(ctx, &s3.GetObjectInput{
-        Bucket: aws.String("app-deployments"),
-        Key:    aws.String("v1.0/config.yaml"),
-    })
-    defer out.Body.Close()
-    fmt.Println("Object retrieved.")
-}
-```
+## Run the server
 
 ```bash
-go run main.go
+cloudemu serve
 ```
 
-Done. Real SDK, in-memory backend, ~10 ms per call.
+On start it prints the live endpoints:
+
+```
+cloudemu — standalone server
+────────────────────────────
+  AWS         http://127.0.0.1:4566
+  Azure       https://127.0.0.1:4568   (self-signed TLS)
+  GCP         http://127.0.0.1:4569
+  Kubernetes  http://127.0.0.1:4570
+```
+
+Or with Docker, no Go required:
+
+```bash
+docker run --rm -p 4566:4566 -p 4568:4568 -p 4569:4569 ghcr.io/stackshy/cloudemu:latest
+```
+
+## Point your app at it
+
+The only thing that changes vs. real AWS is the endpoint. Every other line of your production code stays identical. For the AWS CLI and any language's SDK, the `AWS_ENDPOINT_URL` env var is enough:
+
+```bash
+export AWS_ENDPOINT_URL=http://127.0.0.1:4566
+aws s3 mb s3://app-deployments          # your real CLI, unchanged
+aws s3 cp ./config.yaml s3://app-deployments/v1.0/config.yaml
+```
+
+In `aws-sdk-go-v2`, override `BaseEndpoint` where your app builds its client:
+
+```go title="client.go — where your app builds its client"
+client := s3.NewFromConfig(cfg, func(o *s3.Options) {
+    o.BaseEndpoint = aws.String("http://127.0.0.1:4566") // [!code focus]
+    o.UsePathStyle = true
+})
+
+// ↓ This is your real production code, unchanged. ↓
+client.CreateBucket(ctx, &s3.CreateBucketInput{Bucket: aws.String("app-deployments")})
+```
 
 </div>
+
+Done. Real server, real SDK, in-memory backend, ~10 ms per call.
 
 ## What just happened
 
@@ -105,58 +78,72 @@ Done. Real SDK, in-memory backend, ~10 ms per call.
 
 The server speaks the actual AWS wire protocol (S3 REST + XML, DynamoDB JSON-RPC, EC2 query, SQS `AwsJson1_0`, CloudWatch Smithy CBOR, Lambda REST). The SDK can't tell the difference between this and `s3.amazonaws.com`.
 
-## Same pattern, every provider
+## The endpoint override, every SDK
 
-The Azure and GCP servers are drop-in replacements. The tabs below stay in sync across the whole site — pick your provider once.
+The endpoint override is the *only* change your app needs. Point your provider's client at the matching port — the tabs below stay in sync across the site, so pick your provider once.
 
 <ProviderTabs>
 <ProviderTab value="aws">
 
-```go title="aws_server.go"
-import awsserver "github.com/stackshy/cloudemu/v2/server/aws"
-
-cloud := cloudemu.NewAWS()
-ts := httptest.NewServer(awsserver.New(awsserver.Drivers{
-    S3: cloud.S3, DynamoDB: cloud.DynamoDB, EC2: cloud.EC2,
-    Lambda: cloud.Lambda, SQS: cloud.SQS, CloudWatch: cloud.CloudWatch,
-}))
-// s3.NewFromConfig with o.BaseEndpoint = ts.URL → done.
-```
-
-</ProviderTab>
-<ProviderTab value="azure">
-
-```go title="azure_server.go"
-// TLS required — the SDK rejects bearer tokens over plain HTTP.
-import azureserver "github.com/stackshy/cloudemu/v2/server/azure"
-
-cp := cloudemu.NewAzure()
-ts := httptest.NewTLSServer(azureserver.New(azureserver.Drivers{
-    VirtualMachines: cp.VirtualMachines, BlobStorage: cp.BlobStorage,
-    CosmosDB: cp.CosmosDB, Network: cp.VNet, Monitor: cp.Monitor,
-    Functions: cp.Functions, ServiceBus: cp.ServiceBus,
-}))
-// armcompute.NewVirtualMachinesClient with ts.URL → done.
+```go title="aws"
+// Any language / the CLI: set AWS_ENDPOINT_URL=http://127.0.0.1:4566
+client := s3.NewFromConfig(cfg, func(o *s3.Options) {
+    o.BaseEndpoint = aws.String("http://127.0.0.1:4566")
+    o.UsePathStyle = true
+})
+// Any credentials work — cloudemu doesn't validate signatures.
 ```
 
 </ProviderTab>
 <ProviderTab value="gcp">
 
-```go title="gcp_server.go"
+```go title="gcp"
 // REST endpoint via google.golang.org/api or the cloud.google.com/go SDKs.
-import gcpserver "github.com/stackshy/cloudemu/v2/server/gcp"
+client, _ := storage.NewClient(ctx,
+    option.WithEndpoint("http://127.0.0.1:4569"),
+    option.WithoutAuthentication())
+```
 
-cp := cloudemu.NewGCP()
-ts := httptest.NewServer(gcpserver.New(gcpserver.Drivers{
-    Compute: cp.GCE, Storage: cp.GCS, Firestore: cp.Firestore,
-    Networking: cp.VPC, Monitoring: cp.CloudMonitoring,
-    CloudFunctions: cp.CloudFunctions, PubSub: cp.PubSub,
-}))
-// option.WithEndpoint(ts.URL) on any cloud.google.com/go client → done.
+</ProviderTab>
+<ProviderTab value="azure">
+
+```go title="azure"
+// Served over HTTPS with a self-signed cert — point the SDK through a cloud.Configuration.
+cloudCfg := cloud.Configuration{
+    Services: map[cloud.ServiceName]cloud.ServiceConfiguration{
+        cloud.ResourceManager: {
+            Endpoint: "https://127.0.0.1:4568",
+            Audience: "https://management.azure.com",
+        },
+    },
+}
+opts := &arm.ClientOptions{ClientOptions: azcore.ClientOptions{Cloud: cloudCfg}}
 ```
 
 </ProviderTab>
 </ProviderTabs>
+
+See [Standalone Server](/docs/standalone-server) for ports, flags, `cloudemu env`, Testcontainers, and the `/_cloudemu/reset` control plane; and [Integrating cloudemu](/docs/integration) to make the endpoint injectable so the same code hits real cloud in prod and cloudemu in tests.
+
+## Library mode — Go unit tests only
+
+If you're writing unit tests *inside* Go code that imports cloudemu, you can skip the separate process and stand the server up in-process with `httptest`. Use this only for unit tests — for integrating an existing service, prefer server mode above.
+
+```go title="something_test.go"
+cloud := cloudemu.NewAWS()
+ts := httptest.NewServer(awsserver.New(awsserver.Drivers{
+    S3: cloud.S3, DynamoDB: cloud.DynamoDB, EC2: cloud.EC2,
+    Lambda: cloud.Lambda, SQS: cloud.SQS, CloudWatch: cloud.CloudWatch,
+}))
+defer ts.Close()
+
+client := s3.NewFromConfig(cfg, func(o *s3.Options) {
+    o.BaseEndpoint = aws.String(ts.URL) // same override, in-process URL
+    o.UsePathStyle = true
+})
+```
+
+The [Portable Go API](/docs/portable-api) goes one step further — call the in-memory drivers directly, no HTTP at all.
 
 ## SDK-compat coverage
 
@@ -190,7 +177,7 @@ Everything is equally reachable through the [Portable Go API](/docs/portable-api
 
 ## Next steps
 
+- [Standalone Server](/docs/standalone-server) — ports, flags, `cloudemu env`, Testcontainers, reset
+- [Integrating cloudemu](/docs/integration) — make the endpoint injectable so prod hits real cloud, tests hit cloudemu
 - [SDK-Compatible Server](/docs/sdk-compat) — full coverage tables, protocol detection, registration ordering
-- [Architecture](/docs/architecture) — how SDK-compat wraps the driver layer
 - [Chaos Engineering](/docs/chaos) — inject failures while real SDKs are talking to cloudemu
-- [Portable Go API](/docs/portable-api) — the alternative path when you want to skip HTTP entirely

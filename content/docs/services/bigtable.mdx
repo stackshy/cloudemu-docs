@@ -14,22 +14,22 @@ Reach for it when your provisioning code creates a Bigtable instance, adds clust
 
 ## Drive it with the real SDK
 
-Stand up the GCP SDK-compat server and point a `bigtableadmin` service at it. Long-running RPCs return a done `Operation` carrying the resulting resource, so SDK LRO waits complete immediately:
+Run cloudemu as a server and point a `bigtableadmin` service at it — the same client, with only the endpoint redirected. Start it with `cloudemu serve` (or `docker run --rm -p 4569:4569 ghcr.io/stackshy/cloudemu`), which serves the GCP API on `http://localhost:4569`:
+
+```bash
+cloudemu serve   # GCP API on http://localhost:4569
+```
+
+Then point the stock `bigtableadmin` service at that endpoint. Long-running RPCs return a done `Operation` carrying the resulting resource, so SDK LRO waits complete immediately:
 
 ```go
 import (
     "google.golang.org/api/bigtableadmin/v2"
     "google.golang.org/api/option"
-    "github.com/stackshy/cloudemu/v2"
-    gcpserver "github.com/stackshy/cloudemu/v2/server/gcp"
 )
 
-cloud := cloudemu.NewGCP()
-ts := httptest.NewServer(gcpserver.New(gcpserver.Drivers{Bigtable: cloud.Bigtable}))
-defer ts.Close()
-
 svc, _ := bigtableadmin.NewService(ctx,
-    option.WithEndpoint(ts.URL), option.WithoutAuthentication())
+    option.WithEndpoint("http://localhost:4569"), option.WithoutAuthentication())
 
 svc.Projects.Instances.Create("projects/my-project", &bigtableadmin.CreateInstanceRequest{
     InstanceId: "app",
@@ -42,6 +42,22 @@ svc.Projects.Instances.Create("projects/my-project", &bigtableadmin.CreateInstan
 ```
 
 See the [SDK-Compat Server page](/docs/sdk-compat) for the full quick start.
+
+### In-process (Go unit tests)
+
+For Go unit tests written inside cloudemu-aware code, stand the same wire server up in-process with `httptest.NewServer` and point the client at `ts.URL`. The `Drivers` you pass name exactly the drivers this service needs:
+
+```go
+import (
+    "github.com/stackshy/cloudemu/v2"
+    gcpserver "github.com/stackshy/cloudemu/v2/server/gcp"
+)
+
+cloud := cloudemu.NewGCP()
+ts := httptest.NewServer(gcpserver.New(gcpserver.Drivers{Bigtable: cloud.Bigtable}))
+defer ts.Close()
+// point the same bigtableadmin service at ts.URL instead of the running endpoint
+```
 
 ## Call the driver directly
 

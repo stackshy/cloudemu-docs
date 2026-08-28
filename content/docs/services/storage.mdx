@@ -18,22 +18,22 @@ Reach for it whenever your code writes a file to a bucket and reads it back, pag
 
 ## Drive it with the real SDK
 
-The recommended path is to drop the SDK-compat server in front of cloudemu and point your existing production code at it — no code changes, just a rewritten endpoint. This example stands up an in-memory S3, creates a bucket, writes an object, and reads it back exactly as the real client would:
+Run cloudemu as a server and point your existing production code at it — the same client, with only the endpoint redirected. Start it with `cloudemu serve` (or `docker run --rm -p 4566:4566 ghcr.io/stackshy/cloudemu`), which serves the AWS API on `http://localhost:4566`:
+
+```bash
+cloudemu serve   # AWS API on http://localhost:4566
+```
+
+Then create the stock S3 client, point it at that endpoint, and create a bucket, write an object, and read it back exactly as the real client would:
 
 ```go
 import (
     "github.com/aws/aws-sdk-go-v2/aws"
     "github.com/aws/aws-sdk-go-v2/service/s3"
-    "github.com/stackshy/cloudemu/v2"
-    awsserver "github.com/stackshy/cloudemu/v2/server/aws"
 )
 
-cloud := cloudemu.NewAWS()
-ts := httptest.NewServer(awsserver.New(awsserver.Drivers{S3: cloud.S3}))
-defer ts.Close()
-
 client := s3.NewFromConfig(cfg, func(o *s3.Options) {
-    o.BaseEndpoint = aws.String(ts.URL)
+    o.BaseEndpoint = aws.String("http://localhost:4566")
     o.UsePathStyle = true
 })
 
@@ -49,6 +49,22 @@ out, _ := client.GetObject(ctx, &s3.GetObjectInput{
 ```
 
 The same pattern works with `armappservice` / `azblob` (Azure) and `cloud.google.com/go/storage` (GCP). See the [SDK-Compat Server page](/docs/sdk-compat#quick-start-azure) for full quick starts per provider.
+
+### In-process (Go unit tests)
+
+For Go unit tests written inside cloudemu-aware code, stand the same wire server up in-process with `httptest.NewServer` and point the client at `ts.URL`. The `Drivers` you pass name exactly the drivers this service needs:
+
+```go
+import (
+    "github.com/stackshy/cloudemu/v2"
+    awsserver "github.com/stackshy/cloudemu/v2/server/aws"
+)
+
+cloud := cloudemu.NewAWS()
+ts := httptest.NewServer(awsserver.New(awsserver.Drivers{S3: cloud.S3}))
+defer ts.Close()
+// point the same s3 client at ts.URL instead of the running endpoint
+```
 
 ## Call the driver directly
 

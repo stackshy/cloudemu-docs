@@ -62,20 +62,17 @@ The driver is the contract — every consumer above this line sees the same inte
 
 ## Layer 3: SDK-compat HTTP server (the primary surface)
 
-The `server/` package wraps drivers with handlers that speak each cloud's real wire protocol. Pointing a real SDK client at a local `httptest.NewServer` is the recommended way to use cloudemu:
+The `server/` package wraps drivers with handlers that speak each cloud's real wire protocol. The recommended way to use cloudemu is to run this server — as a standalone process or the Docker image — and point a real SDK client at its endpoint:
 
 ```go
-cloud := cloudemu.NewAWS()
-ts := httptest.NewServer(awsserver.New(awsserver.Drivers{
-    S3: cloud.S3, DynamoDB: cloud.DynamoDB, Lambda: cloud.Lambda, SQS: cloud.SQS,
-    EC2: cloud.EC2, VPC: cloud.VPC, CloudWatch: cloud.CloudWatch,
-}))
-
+// Terminal: cloudemu serve  (or docker run -p 4566:4566 ghcr.io/stackshy/cloudemu)
 client := s3.NewFromConfig(cfg, func(o *s3.Options) {
-    o.BaseEndpoint = aws.String(ts.URL)
+    o.BaseEndpoint = aws.String("http://127.0.0.1:4566") // or AWS_ENDPOINT_URL
 })
 client.PutObject(ctx, &s3.PutObjectInput{ /* real production code */ })
 ```
+
+Go test suites can host the same server in-process with `httptest.NewServer(awsserver.New(...))` and point the client at `ts.URL` instead — the wire path is identical.
 
 Each handler is a self-contained package (`server/aws/s3`, `server/azure/cosmos`, `server/gcp/pubsub`, …). Adding a new service is one new package + one `Register` call — the core never changes. See [SDK-Compatible Server](/docs/sdk-compat) for the full coverage matrix and quick starts.
 

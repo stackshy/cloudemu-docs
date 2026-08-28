@@ -14,22 +14,22 @@ Reach for it when your provisioning or IaC code creates a MemoryDB cluster, wire
 
 ## Drive it with the real SDK
 
-The recommended path is to point the stock AWS SDK at the SDK-compat server — only the endpoint changes. This provisions a two-shard cluster against an in-memory control plane:
+Run cloudemu as a server and point the stock AWS SDK at it — only the endpoint changes. Start it with `cloudemu serve` (or `docker run --rm -p 4566:4566 ghcr.io/stackshy/cloudemu`), which serves the AWS API on `http://localhost:4566`:
+
+```bash
+cloudemu serve   # AWS API on http://localhost:4566
+```
+
+Then point the MemoryDB client at that endpoint and provision a two-shard cluster against the control plane:
 
 ```go
 import (
     "github.com/aws/aws-sdk-go-v2/aws"
     "github.com/aws/aws-sdk-go-v2/service/memorydb"
-    "github.com/stackshy/cloudemu/v2"
-    awsserver "github.com/stackshy/cloudemu/v2/server/aws"
 )
 
-cloud := cloudemu.NewAWS()
-ts := httptest.NewServer(awsserver.New(awsserver.Drivers{MemoryDB: cloud.MemoryDB}))
-defer ts.Close()
-
 client := memorydb.NewFromConfig(cfg, func(o *memorydb.Options) {
-    o.BaseEndpoint = aws.String(ts.URL)
+    o.BaseEndpoint = aws.String("http://localhost:4566")
 })
 
 client.CreateCluster(ctx, &memorydb.CreateClusterInput{
@@ -42,6 +42,22 @@ client.CreateCluster(ctx, &memorydb.CreateClusterInput{
 ```
 
 See the [SDK-Compat Server page](/docs/sdk-compat) for the full quick start.
+
+### In-process (Go unit tests)
+
+For Go unit tests written inside cloudemu-aware code, stand the same wire server up in-process with `httptest.NewServer` and point the client at `ts.URL`. The `Drivers` you pass name exactly the drivers this service needs:
+
+```go
+import (
+    "github.com/stackshy/cloudemu/v2"
+    awsserver "github.com/stackshy/cloudemu/v2/server/aws"
+)
+
+cloud := cloudemu.NewAWS()
+ts := httptest.NewServer(awsserver.New(awsserver.Drivers{MemoryDB: cloud.MemoryDB}))
+defer ts.Close()
+// point the same memorydb client at ts.URL instead of the running endpoint
+```
 
 ## Call the driver directly
 

@@ -18,11 +18,36 @@ Reach for it when your code provisions clusters, or when it drives Kubernetes ob
 
 ## Create a cluster and drive its data plane
 
-The recommended path points the real SDK at the SDK-compat server. Pass a shared `*kubernetes.APIServer` as `K8sAPI` and call `SetBaseURL` so the kubeconfigs the control plane issues point back at this server — then `DescribeCluster` returns a kubeconfig you can hand straight to `client-go`:
+Run cloudemu as a server and point the real SDK at it. Start it with `cloudemu serve` (or `docker run --rm -p 4566:4566 -p 4570:4570 ghcr.io/stackshy/cloudemu`), which serves the AWS API on `http://localhost:4566` and the shared Kubernetes data plane alongside it — the server wires that data plane and issues kubeconfigs that point back at itself:
+
+```bash
+cloudemu serve   # AWS API on http://localhost:4566, Kubernetes data plane wired in
+```
+
+Then point the stock `eks` client at that endpoint. `DescribeCluster` returns a kubeconfig you can hand straight to `client-go`:
 
 ```go
 import (
     "github.com/aws/aws-sdk-go-v2/service/eks"
+)
+
+client := eks.NewFromConfig(cfg, func(o *eks.Options) {
+    o.BaseEndpoint = aws.String("http://localhost:4566")
+})
+
+client.CreateCluster(ctx, &eks.CreateClusterInput{Name: aws.String("prod")})
+// DescribeCluster now returns a kubeconfig whose server URL is the in-memory
+// data plane — point client-go at it and `kubectl apply` works.
+```
+
+The AKS and GKE control planes are equivalent (`armcontainerservice`, `container/apiv1`) and share the same data plane. See the [SDK-Compat Server](/docs/sdk-compat).
+
+### In-process (Go unit tests)
+
+For Go unit tests written inside cloudemu-aware code, stand the same wire server up in-process with `httptest.NewServer`. Pass a shared `*kubernetes.APIServer` as `K8sAPI` and call `SetBaseURL(ts.URL)` so the kubeconfigs the control plane issues point back at this server. The `Drivers` you pass name exactly the drivers this service needs:
+
+```go
+import (
     "github.com/stackshy/cloudemu/v2"
     "github.com/stackshy/cloudemu/v2/services/kubernetes"
     awsserver "github.com/stackshy/cloudemu/v2/server/aws"
@@ -36,17 +61,9 @@ ts := httptest.NewServer(awsserver.New(awsserver.Drivers{
     K8sAPI: k8s, // shared in-memory Kubernetes data plane
 }))
 k8s.SetBaseURL(ts.URL) // so issued kubeconfigs point back at this server
-
-client := eks.NewFromConfig(cfg, func(o *eks.Options) {
-    o.BaseEndpoint = aws.String(ts.URL)
-})
-
-client.CreateCluster(ctx, &eks.CreateClusterInput{Name: aws.String("prod")})
-// DescribeCluster now returns a kubeconfig whose server URL is the in-memory
-// data plane — point client-go at it and `kubectl apply` works.
+defer ts.Close()
+// point the same eks client at ts.URL instead of the running endpoint
 ```
-
-The AKS and GKE control planes are equivalent (`armcontainerservice`, `container/apiv1`) and share the same data plane. See the [SDK-Compat Server](/docs/sdk-compat).
 
 ## Portable Go API
 

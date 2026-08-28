@@ -18,23 +18,23 @@ Reach for it when your code provisions load balancers, registers or deregisters 
 
 ## Drive it with the real SDK
 
-The recommended path is to drop the SDK-compat server in front of cloudemu and point your existing production code at it — no code changes, just a rewritten endpoint. This example stands up an in-memory ELBv2, creates an ALB, and adds a target group exactly as the real client would:
+Run cloudemu as a server and point your existing production code at it — the same client, with only the endpoint redirected. Start it with `cloudemu serve` (or `docker run --rm -p 4566:4566 ghcr.io/stackshy/cloudemu`), which serves the AWS API on `http://localhost:4566`:
+
+```bash
+cloudemu serve   # AWS API on http://localhost:4566
+```
+
+Then point the stock ELBv2 client at that endpoint and create an ALB and a target group exactly as the real client would:
 
 ```go
 import (
     "github.com/aws/aws-sdk-go-v2/aws"
     elb "github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2"
     elbtypes "github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2/types"
-    "github.com/stackshy/cloudemu/v2"
-    awsserver "github.com/stackshy/cloudemu/v2/server/aws"
 )
 
-cloud := cloudemu.NewAWS()
-ts := httptest.NewServer(awsserver.New(awsserver.Drivers{ELB: cloud.ELB}))
-defer ts.Close()
-
 client := elb.NewFromConfig(cfg, func(o *elb.Options) {
-    o.BaseEndpoint = aws.String(ts.URL)
+    o.BaseEndpoint = aws.String("http://localhost:4566")
 })
 
 lb, _ := client.CreateLoadBalancer(ctx, &elb.CreateLoadBalancerInput{
@@ -50,6 +50,22 @@ tg, _ := client.CreateTargetGroup(ctx, &elb.CreateTargetGroupInput{
 ```
 
 The same pattern works with `armnetwork.LoadBalancersClient` (Azure) and the GCP forwarding-rule / backend-service REST clients — only the endpoint changes. See the [SDK-Compat Server page](/docs/sdk-compat).
+
+### In-process (Go unit tests)
+
+For Go unit tests written inside cloudemu-aware code, stand the same wire server up in-process with `httptest.NewServer` and point the client at `ts.URL`. The `Drivers` you pass name exactly the drivers this service needs:
+
+```go
+import (
+    "github.com/stackshy/cloudemu/v2"
+    awsserver "github.com/stackshy/cloudemu/v2/server/aws"
+)
+
+cloud := cloudemu.NewAWS()
+ts := httptest.NewServer(awsserver.New(awsserver.Drivers{ELB: cloud.ELB}))
+defer ts.Close()
+// point the same elb client at ts.URL instead of the running endpoint
+```
 
 ## Call the driver directly
 

@@ -18,25 +18,23 @@ Reach for it when your code provisions clusters, registers task definitions, or 
 
 ## Drive it with the real SDK
 
-The recommended path drops the SDK-compat server in front of cloudemu and points a stock `aws-sdk-go-v2/service/ecs` client at it. This example registers a container instance so the cluster has EC2 capacity, registers a task definition, and runs a task that gets first-fit placed onto that instance:
+Run cloudemu as a server and point a stock `aws-sdk-go-v2/service/ecs` client at it. Start it with `cloudemu serve` (or `docker run --rm -p 4566:4566 ghcr.io/stackshy/cloudemu`), which serves the AWS API on `http://localhost:4566`:
+
+```bash
+cloudemu serve   # AWS API on http://localhost:4566
+```
+
+Then point the ECS client at that endpoint. This example registers a container instance so the cluster has EC2 capacity, registers a task definition, and runs a task that gets first-fit placed onto that instance:
 
 ```go
 import (
     "github.com/aws/aws-sdk-go-v2/aws"
     "github.com/aws/aws-sdk-go-v2/service/ecs"
     ecstypes "github.com/aws/aws-sdk-go-v2/service/ecs/types"
-    "github.com/stackshy/cloudemu/v2"
-    awsserver "github.com/stackshy/cloudemu/v2/server/aws"
 )
 
-cloud := cloudemu.NewAWS()
-ts := httptest.NewServer(awsserver.New(awsserver.Drivers{
-    ECS: cloud.ECS, EC2: cloud.EC2,
-}))
-defer ts.Close()
-
 client := ecs.NewFromConfig(cfg, func(o *ecs.Options) {
-    o.BaseEndpoint = aws.String(ts.URL)
+    o.BaseEndpoint = aws.String("http://localhost:4566")
 })
 
 client.CreateCluster(ctx, &ecs.CreateClusterInput{ClusterName: aws.String("prod")})
@@ -57,6 +55,24 @@ out, _ := client.RunTask(ctx, &ecs.RunTaskInput{
 ```
 
 See the [SDK-Compat Server page](/docs/sdk-compat) for the full quick start.
+
+### In-process (Go unit tests)
+
+For Go unit tests written inside cloudemu-aware code, stand the same wire server up in-process with `httptest.NewServer` and point the client at `ts.URL`. The `Drivers` you pass name exactly the drivers this service needs:
+
+```go
+import (
+    "github.com/stackshy/cloudemu/v2"
+    awsserver "github.com/stackshy/cloudemu/v2/server/aws"
+)
+
+cloud := cloudemu.NewAWS()
+ts := httptest.NewServer(awsserver.New(awsserver.Drivers{
+    ECS: cloud.ECS, EC2: cloud.EC2,
+}))
+defer ts.Close()
+// point the same ecs client at ts.URL instead of the running endpoint
+```
 
 ## Call the driver directly
 
