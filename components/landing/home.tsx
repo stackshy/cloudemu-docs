@@ -19,11 +19,11 @@ const TICKER = [
   'GCS', 'Firestore', 'Pub/Sub', 'GKE', 'Cloud Run', 'BigQuery',
 ];
 
-/* Compact one-liners per run mode for the §03 cards. */
+/* Compact one-liners per run mode for the §05 cards. */
 const WAY_SNIPPETS: Record<string, { p: string; rest: string; em?: string; tail?: string }> = {
-  'in-process': { p: 'cloud := ', rest: 'cloudemu.', em: 'NewAWS', tail: '()' },
-  server: { p: '$ ', rest: 'go run ./cmd/cloudemu ', em: 'serve' },
-  docker: { p: '$ ', rest: 'docker run -p 4566:4566 ', em: 'cloudemu' },
+  server: { p: '$ ', rest: 'docker run -p 4566:4566 ', em: 'cloudemu' },
+  'in-process': { p: 'ts := ', rest: 'httptest.', em: 'NewServer', tail: '(…)' },
+  library: { p: 'cloud := ', rest: 'cloudemu.', em: 'NewAWS', tail: '()' },
 };
 
 function Machine() {
@@ -46,6 +46,76 @@ function Machine() {
           </div>
           <Reveal delay={0.1}><MemoryGrid /></Reveal>
         </div>
+      </div>
+    </section>
+  );
+}
+
+function Integrate() {
+  return (
+    <section className="cl-sec">
+      <div className="mx-auto max-w-[1180px]">
+        <Reveal><div className="cl-k">§ 02 — integrate</div></Reveal>
+        <Reveal delay={0.05}>
+          <h2 className="cl-h2 mt-3.5">Wire it into a <span className="em">running app</span>. One endpoint override.</h2>
+        </Reveal>
+        <Reveal delay={0.1}>
+          <p className="cl-lead">
+            To integrate cloudemu with an existing app, run it in <strong>server mode</strong> and set your SDK&apos;s
+            endpoint — <code>AWS_ENDPOINT_URL</code> / <code>BaseEndpoint</code>, <code>option.WithEndpoint</code>, or the
+            Azure ARM override. That runs your real code path end to end. Don&apos;t write a throwaway <code>_test.go</code> for
+            integration.
+          </p>
+        </Reveal>
+
+        <div className="mt-11 grid gap-[18px] md:grid-cols-2">
+          <Reveal>
+            <div className="cl-way">
+              <div className="n">SERVER MODE / INTEGRATION · E2E</div>
+              <h3>Run it, point real code at it</h3>
+              <p>Start the binary or Docker image and aim your already-running app, CLI or SDK — any language — at the printed endpoints. The real wire path runs end to end.</p>
+              <pre><span className="p">$ </span>docker run -p 4566:4566 ghcr.io/stackshy/<span className="em">cloudemu</span></pre>
+            </div>
+          </Reveal>
+          <Reveal delay={0.06}>
+            <div className="cl-way">
+              <div className="n">LIBRARY MODE / GO UNIT TESTS</div>
+              <h3>Call the drivers directly</h3>
+              <p>Only inside Go code that already imports cloudemu — a fast in-process handle for unit tests. Not the path for wiring an existing service.</p>
+              <pre><span className="p">cloud := cloudemu.</span><span className="em">NewAWS</span>()</pre>
+            </div>
+          </Reveal>
+        </div>
+
+        <Reveal delay={0.1}>
+          <div className="cl-way mt-[18px]">
+            <div className="n">THE ONE CHANGE YOUR APP NEEDS</div>
+            <h3>Override the SDK endpoint</h3>
+            <p>Production points at the real cloud; in front of cloudemu you flip one endpoint. Every SDK exposes the seam — nothing else changes.</p>
+            <pre>
+              <span className="p"># AWS — any SDK / CLI via env, or aws-sdk-go-v2</span>{'\n'}
+              {'export AWS_ENDPOINT_URL='}<span className="em">http://127.0.0.1:4566</span>{'\n'}
+              {'o.BaseEndpoint = aws.String('}<span className="em">&quot;http://127.0.0.1:4566&quot;</span>{')'}{'\n\n'}
+              <span className="p"># GCP — cloud.google.com/go</span>{'\n'}
+              {'option.WithEndpoint('}<span className="em">&quot;http://127.0.0.1:4569&quot;</span>{'), option.WithoutAuthentication()'}{'\n\n'}
+              <span className="p"># Azure — azure-sdk-for-go (ARM, https + self-signed TLS)</span>{'\n'}
+              {'arm.ClientOptions → cloud endpoint '}<span className="em">https://127.0.0.1:4568</span>
+            </pre>
+          </div>
+        </Reveal>
+
+        <Reveal delay={0.1}>
+          <div className="cl-note">
+            <div className="ic">▍ AI</div>
+            <div>
+              <div className="t">Wiring cloudemu into an existing service with an AI agent?</div>
+              <p>
+                Use an endpoint override on the running service (<code>AWS_ENDPOINT_URL</code>), not a new test file.
+                Run server mode, set the SDK endpoint, and keep your production code unchanged.
+              </p>
+            </div>
+          </div>
+        </Reveal>
       </div>
     </section>
   );
@@ -152,11 +222,11 @@ function Ways() {
   );
 }
 
-/* Card copy for §03, derived from RUN_MODES ids. */
+/* Card copy for §05, derived from RUN_MODES ids. */
 const PRODUCT_WAYS = [
-  { id: 'server', kicker: 'SERVER', label: 'Standalone / Docker', blurb: 'A long-lived local cloud. Point any app, CLI or SDK — any language — at it.' },
-  { id: 'in-process', kicker: 'SDK-COMPAT', label: 'In-process HTTP', blurb: 'Wrap it in httptest and aim real SDK clients straight at the handle.' },
-  { id: 'docker', kicker: 'LIBRARY', label: 'Typed Go API', blurb: 'Skip the wire entirely — call the in-memory drivers directly.' },
+  { id: 'server', kicker: 'SERVER', label: 'Standalone / Docker', blurb: 'A long-lived local cloud. Point any app, CLI or SDK — any language — at it. The default for integration & E2E.' },
+  { id: 'in-process', kicker: 'SDK-COMPAT', label: 'In-process HTTP', blurb: 'Wrap it in httptest and aim real SDK clients straight at the handle — for Go tests.' },
+  { id: 'library', kicker: 'LIBRARY', label: 'Typed Go API', blurb: 'Skip the wire entirely — call the in-memory drivers directly in unit tests.' },
 ] as const;
 
 function Colophon() {
@@ -210,6 +280,7 @@ export function Home() {
       <ScrollProgress />
       <CollapseHero />
       <Machine />
+      <Integrate />
       <HorizontalReel />
       <Coverage />
       <RealWork />
