@@ -8,7 +8,7 @@ cloudemu is a real cloud emulator: it speaks the actual AWS, Azure, and GCP wire
 **The fastest way to integrate it is server mode:** run the binary (or Docker image) and set your SDK's endpoint at the printed address. Your already-running app now talks to an in-memory cloud over the real wire — the same code path it uses in production. This is the default for integration and end-to-end work.
 
 <Callout type="warn">
-To integrate cloudemu with an existing app, run it in **server mode** and set your SDK's endpoint (`AWS_ENDPOINT_URL` / `BaseEndpoint`, `option.WithEndpoint`, or the Azure ARM override). **Don't write a `_test.go` file for integration** — that tests the library, not your app. The in-process library path (further down) is only for unit tests inside Go code that already imports cloudemu.
+To integrate cloudemu with an existing app, run it in **server mode** and set your SDK's endpoint (`AWS_ENDPOINT_URL` / `BaseEndpoint`, `option.WithEndpoint`, or the Azure ARM override), then point your already-running app at it — its real code path runs against cloudemu end-to-end. The in-process library path (further down) is for unit tests written inside Go code that already imports cloudemu.
 </Callout>
 
 No mocks. No cloud accounts. No bills — just a running endpoint your code already knows how to talk to.

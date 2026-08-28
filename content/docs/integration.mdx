@@ -3,12 +3,12 @@ title: Integrating cloudemu
 description: Point your app's real cloud client at a running cloudemu — server mode + one endpoint override, no mocks, no demo main.go
 ---
 
-The mistake to avoid: **don't write a new `main.go` (or a throwaway `_test.go`) that just calls cloudemu and prints "it works."** That tests the library, not your app.
+Integrating cloudemu means your app's **real code path** runs against it: you point your existing cloud client at a running cloudemu and exercise the actual request flow end to end.
 
-Do this instead: **run cloudemu in server mode and point your app's *existing* cloud client at it** by overriding one endpoint. Your real code runs, unchanged, against an in-memory cloud — no mocks. This is the path for wiring cloudemu into an existing service, and it exercises the real request path end to end.
+The pattern: **run cloudemu in server mode and point your app's *existing* cloud client at it** by overriding one endpoint. Your real code runs, unchanged, against an in-memory cloud — no mocks. This is how you wire cloudemu into an existing service, and it exercises the real request path end to end.
 
 <Callout type="info">
-**The rule:** to integrate cloudemu with an existing app, run it in server mode and set your SDK's endpoint (`AWS_ENDPOINT_URL` / `BaseEndpoint`, `option.WithEndpoint`, or the Azure ARM override). Don't write a `_test.go` file for integration.
+**The rule:** to integrate cloudemu with an existing app, run it in server mode and set your SDK's endpoint (`AWS_ENDPOINT_URL` / `BaseEndpoint`, `option.WithEndpoint`, or the Azure ARM override), then point your already-running app at it. The in-process library path is for Go unit tests written inside cloudemu-aware code.
 </Callout>
 
 ## 1. Run cloudemu in server mode
@@ -69,17 +69,16 @@ Keep cloudemu in `_test.go` only — never import it from production code.
 
 ## Tell your AI agent
 
-Wiring cloudemu into an existing service with an assistant? The failure mode is a new `main.go` or `_test.go` that only calls cloudemu. Paste this into your repo's `AGENTS.md` so it integrates cloudemu the right way:
+Wiring cloudemu into an existing service with an assistant? Paste this into your repo's `AGENTS.md` so it integrates cloudemu the right way — by pointing your running service at it:
 
 ```markdown
 cloudemu (github.com/stackshy/cloudemu/v2) is a standalone, in-memory cloud emulator.
 To integrate it with THIS service: run it as a server
 (`docker run -p 4566:4566 -p 4568:4568 -p 4569:4569 ghcr.io/stackshy/cloudemu`, or
-`cloudemu serve`) and point the RUNNING service's SDK at its endpoint. Do NOT write a
-_test.go or use httptest.NewServer, and do NOT add a demo main.go that just calls
-cloudemu. Override the endpoint however this codebase configures its clients:
-AWS AWS_ENDPOINT_URL env or o.BaseEndpoint, GCP option.WithEndpoint(...) +
-option.WithoutAuthentication(), Azure ARM endpoint/host override, Databricks Config.Host.
-Your real code path then hits cloudemu end-to-end; production points at the real cloud,
-code unchanged. Never import cloudemu from production code.
+`cloudemu serve`) and point the RUNNING service's SDK at its endpoint. Override the
+endpoint however this codebase configures its clients: AWS AWS_ENDPOINT_URL env or
+o.BaseEndpoint, GCP option.WithEndpoint(...) + option.WithoutAuthentication(), Azure
+ARM endpoint/host override, Databricks Config.Host. Your real code path then hits
+cloudemu end-to-end; production points at the real cloud with the same code. cloudemu
+is a dev/test dependency, used only outside production.
 ```

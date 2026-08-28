@@ -110,8 +110,8 @@ function Integrate() {
             <div>
               <div className="t">Wiring cloudemu into an existing service with an AI agent?</div>
               <p>
-                Use an endpoint override on the running service (<code>AWS_ENDPOINT_URL</code>), not a new test file.
-                Run server mode, set the SDK endpoint, and keep your production code unchanged.
+                Run cloudemu in server mode and point your running service's SDK at it with an endpoint override
+                (<code>AWS_ENDPOINT_URL</code>) — your real code path exercises it end-to-end, production unchanged.
               </p>
             </div>
           </div>
