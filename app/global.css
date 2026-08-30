@@ -828,15 +828,16 @@ samp {
   margin-top: auto;
   background: var(--text-1);
   color: #e9e6db;
+  border: 1px solid rgba(233, 230, 219, 0.09); /* crisp hairline edge on the ink chip */
   border-radius: 10px;
-  padding: 13px 14px;
+  padding: 14px 16px;
   font-family: var(--font-mono);
   font-size: 12.5px;
   line-height: 1.7;
   overflow-x: auto;
 }
 .cl-way pre .p {
-  color: #8b8d81;
+  color: #9fa192; /* brighter prefix — legible on the ink terminal */
 }
 .cl-way pre .em {
   color: #ff8a5c;
@@ -1924,6 +1925,22 @@ kbd {
   border: 1px solid var(--border);
   border-radius: 3px;
   padding: 1px 5px;
+  color: var(--text-2);
+}
+
+/* Search trigger bar — an opaque, recessed paper field (not the fragile
+   semi-transparent secondary wash, which reads as a heavy grey smudge on the
+   Bone sidebar). The stage cream sits a hair below the paper sidebar, so a
+   defined hairline makes it a deliberate, recessed input; hover lifts it to
+   paper with the stronger rule. */
+[data-search-full] {
+  background: var(--bg);
+  border-color: var(--border);
+  color: var(--text-3);
+}
+[data-search-full]:hover {
+  background: var(--bg-2);
+  border-color: var(--border-2);
   color: var(--text-2);
 }
 
