@@ -842,6 +842,28 @@ samp {
   color: #ff8a5c;
 }
 
+/* §02 integrate — the demoted library-mode aside under the primary card */
+.cl-aside {
+  margin: 14px 2px 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text-2);
+}
+.cl-aside .arw {
+  color: var(--ember);
+  font-family: var(--font-mono);
+  margin-right: 6px;
+}
+.cl-aside code {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 1px 6px;
+  color: var(--text-1);
+}
+
 /* Persistence band — a full-width capability callout under the two cards. */
 .cl-persist {
   margin-top: 18px;
