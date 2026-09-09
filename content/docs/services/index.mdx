@@ -3,9 +3,13 @@ title: Services Overview
 description: Every emulated service across AWS, Azure, and GCP, and which ones speak the real SDK wire protocol
 ---
 
-Find any emulated service across **AWS, Azure, and GCP**, and whether it speaks the real SDK wire format. Most core categories are implemented for all three providers; the rest are provider-specific, matching where the real service exists (ECS, MemoryDB, and Keyspaces on AWS; Managed Cassandra and Azure AI on Azure; Bigtable and Vertex AI on GCP; and so on).
+Find any emulated service across **AWS, Azure, and GCP**, and whether it speaks the real SDK wire format. cloudemu emulates **173 service interfaces spanning 3,700+ operations** — **76 AWS · 75 Azure · 55 GCP** service implementations (plus a foundational OCI set). Most core categories are implemented for all three providers; the rest are provider-specific, matching where the real service exists (ECS, MemoryDB, and Keyspaces on AWS; Managed Cassandra and Azure AI on Azure; Bigtable and Vertex AI on GCP; and so on).
 
-The **SDK-compat** column shows whether a category has an HTTP wire-format handler that real cloud SDKs (`aws-sdk-go-v2`, `azure-sdk-for-go`, `cloud.google.com/go`, `databricks-sdk-go`) can talk to with only an endpoint change. See the [SDK-Compatible Server](/docs/sdk-compat) page for the full operation tables.
+The **SDK-compat** column shows whether a category has an HTTP wire-format handler that real cloud SDKs (`aws-sdk-go-v2`, `azure-sdk-for-go`, `cloud.google.com/go`, `databricks-sdk-go`) can talk to with only an endpoint change. See the [SDK-Compatible Server](/docs/sdk-compat) page for the full operation tables. Every service below speaks its cloud's real wire protocol.
+
+<Callout title="The authoritative, always-current list">
+This page is a curated map. The exhaustive, machine-generated list of every service and operation — produced from the driver interfaces so it cannot drift — lives in the product repo under [`docs/coverage`](https://github.com/stackshy/cloudemu/tree/development/docs/coverage) (and as [`coverage.json`](https://github.com/stackshy/cloudemu/blob/development/docs/coverage/coverage.json), machine-readable).
+</Callout>
 
 ## Core services — all three providers
 
@@ -33,9 +37,9 @@ The **SDK-compat** column shows whether a category has an HTTP wire-format handl
 
 Every core category above has a live SDK-compat wire handler on all three providers — real cloud SDKs talk to it with only an endpoint change.
 
-## Provider-specific services
+## Provider-specific services — with a dedicated guide
 
-Services that exist on one (or a subset of) providers, matching the real cloud:
+Services that exist on one (or a subset of) providers, matching the real cloud, each with its own page:
 
 | Category | Provider(s) | Service | SDK-compat |
 |----------|-------------|---------|:----------:|
@@ -52,6 +56,76 @@ Services that exist on one (or a subset of) providers, matching the real cloud:
 | [Machine Learning](/docs/services/machine-learning) | AWS, GCP, Azure | SageMaker, Vertex AI, Azure ML | ✓ |
 | [AI Search](/docs/services/ai-search) | Azure | Azure AI Search | ✓ |
 | [Databricks](/docs/services/databricks) | Azure | Databricks (ARM + data plane) | ✓ |
+
+## Full service surface
+
+The rest of the emulated surface, grouped by domain. Every service here speaks its cloud's real wire protocol; drive it with the stock SDK, CLI, or Terraform provider by pointing at a cloudemu endpoint. For the per-operation detail, see the generated [capability coverage](https://github.com/stackshy/cloudemu/tree/development/docs/coverage).
+
+### Analytics & big data
+
+| AWS | Azure | GCP |
+|-----|-------|-----|
+| Athena · Glue · EMR · Kinesis · Kinesis Video · OpenSearch · OpenSearch Serverless | Synapse · Stream Analytics · Data Explorer (Kusto) · Purview | BigQuery · Dataproc · Dataplex · Data Catalog · Dataform · Datastream · Dataproc Metastore |
+
+### AI / ML
+
+| AWS | Azure | GCP |
+|-----|-------|-----|
+| Bedrock · Bedrock Agents · SageMaker · Kendra | Azure OpenAI / AI · AI Search · Machine Learning | Vertex AI |
+
+### Networking (extended)
+
+| AWS | Azure | GCP |
+|-----|-------|-----|
+| Global Accelerator · VPC Lattice · Route 53 Resolver · CloudFront · WAFv2 | Azure Firewall · Application Gateway · Front Door · Bastion · Private DNS | Network Connectivity Center · Serverless VPC Access · Cloud IDS · Service Directory · Service Networking |
+
+### Security, identity & keys
+
+| AWS | Azure | GCP |
+|-----|-------|-----|
+| KMS · ACM · GuardDuty · Cognito · STS | Managed Identity · Locks | KMS · Certificate Manager · Private CA · Binary Authorization · Access Context Manager |
+
+### Developer, delivery & integration
+
+| AWS | Azure | GCP |
+|-----|-------|-----|
+| CodeArtifact · App Runner · AppSync · Transfer Family · Amazon MQ · AppFlow | Dev Center · Communication Services | Cloud Deploy · Cloud Tasks · Cloud Scheduler · Workflows · Secure Source Manager · API Gateway |
+
+### Databases & data platform (extended)
+
+| AWS | Azure | GCP |
+|-----|-------|-----|
+| Timestream · MemoryDB · Keyspaces | PostgreSQL Flexible Server · MySQL Flexible Server · Cosmos DB for PostgreSQL · Managed Cassandra · Mongo Cluster · Redis Enterprise | Spanner · Bigtable · AlloyDB |
+
+### Containers, serverless & batch (extended)
+
+| AWS | Azure | GCP |
+|-----|-------|-----|
+| App Runner · AWS Batch · ECS | Container Apps · Container Instances · Azure Batch | Cloud Run · GKE Hub / Fleet |
+
+### Storage & files (extended)
+
+| AWS | Azure | GCP |
+|-----|-------|-----|
+| EFS · AWS Backup | Managed Lustre · Elastic SAN · Table Storage | Filestore · Backup for GKE |
+
+### Messaging, events & realtime (extended)
+
+| AWS | Azure | GCP |
+|-----|-------|-----|
+| EventBridge Scheduler | SignalR · Web PubSub · Event Hubs · Notification Hubs · IoT Hub | Eventarc · Cloud Tasks |
+
+### Management, governance & ops
+
+| AWS | Azure | GCP |
+|-----|-------|-----|
+| CloudFormation · Config · CloudTrail · FIS · Service Quotas · Savings Plans · Resource Explorer · Resource Groups Tagging | Chaos Studio · Recovery Services · Tags · Resource Graph · Load Testing · Digital Twins · Application Insights | Cloud Asset Inventory · Cloud Billing · Resource Manager |
+
+### Media & workflow
+
+| AWS | Azure | GCP |
+|-----|-------|-----|
+| Kinesis Video Streams · Location Service · MWAA (Managed Airflow) | Digital Twins | Cloud Composer · Workflows |
 
 ## Accessing Services
 
@@ -70,6 +144,8 @@ aws.VPC           // Networking
 aws.CloudWatch    // Monitoring
 aws.SSM           // Parameter Store
 aws.Bedrock       // Generative AI
+aws.Athena        // Analytics
+aws.KMS           // Key management
 
 azure := cloudemu.NewAzure()
 azure.VirtualMachines  // Compute
@@ -78,6 +154,8 @@ azure.AKS              // Kubernetes
 azure.AI               // Azure OpenAI / AI
 azure.Databricks       // Databricks
 azure.TableStorage     // Table Storage
+azure.DataFactory      // Data integration
+azure.Firewall         // Azure Firewall
 
 gcp := cloudemu.NewGCP()
 gcp.GCE               // Compute
@@ -86,6 +164,8 @@ gcp.CloudSQL          // Relational DB
 gcp.GKE               // Kubernetes
 gcp.Bigtable          // Bigtable
 gcp.VertexAI          // Machine Learning
+gcp.Spanner           // Spanner
+gcp.Dataproc          // Analytics
 ```
 
 All providers implement the same driver interfaces, so operations and behaviors are consistent across clouds.

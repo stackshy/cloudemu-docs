@@ -5,8 +5,8 @@
  * marketing surfaces MUST come from here. No hard-coded numbers in
  * components. Numbers are derived from the product repo (github.com/stackshy/cloudemu):
  *   - providers: cloudemu.go exports NewAWS / NewAzure / NewGCP (exactly 3).
- *   - sdkCompatServices: server/{aws,azure,gcp} handler dirs (30 + 36 + 24 = 90).
- *   - serviceDomains: services/ portable domains (~36).
+ *   - sdkCompatServices: total provider service implementations (AWS 76 + Azure 75 + GCP 55 + OCI 4 = 210).
+ *   - serviceDomains: distinct service interfaces in docs/coverage/coverage.json (173, spanning 3,700+ operations).
  *   - ports/reset: docs/standalone-server.md.
  * When the product adds services, update the counts here and nowhere else.
  */
@@ -29,8 +29,8 @@ export const PRODUCT = {
 
 export const STATS = {
   clouds: 3, // AWS, Azure, GCP
-  serviceDomains: 36, // services/ portable domains
-  sdkCompatServices: 107, // server/{aws:45, azure:37, gcp:25} handlers
+  serviceDomains: 173, // distinct service interfaces (coverage.json)
+  sdkCompatServices: 210, // provider impls: AWS 76 + Azure 75 + GCP 55 + OCI 4
   runModes: 3,
   latency: '~10 ms', // in-process, per call
 } as const;

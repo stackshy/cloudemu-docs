@@ -56,7 +56,7 @@ client.PutObject(ctx, &s3.PutObjectInput{ /* your real production code */ })
 
 ## What's included
 
-- **[SDK-compatible HTTP server](/docs/sdk-compat)** — real SDK wire protocols across AWS, Azure, and GCP, spanning dozens of services per cloud: compute, storage, NoSQL and relational databases, serverless, Kubernetes, networking, monitoring, logging, message queues, DNS, load balancing, cache, secrets, notification, event bus, IAM, container registry, resource discovery, and provider-specific generative AI (Bedrock/SageMaker/Vertex AI) and Databricks
+- **[SDK-compatible HTTP server](/docs/sdk-compat)** — real SDK wire protocols across AWS, Azure, and GCP, spanning **173 service interfaces / 3,700+ operations** (76 AWS · 75 Azure · 55 GCP): compute, storage, NoSQL and relational databases, serverless, Kubernetes, networking (incl. firewalls, Global Accelerator, Front Door), monitoring, logging, message queues, DNS, load balancing, cache, secrets, KMS, notification, event bus, IAM, container registry, resource discovery, analytics & big data (Athena/Glue/BigQuery/Dataproc/Kusto), delivery & integration (Cloud Deploy/Cloud Tasks/Transfer/AppSync), governance (Config/CloudTrail/Backup/Chaos Studio), and provider-specific generative AI (Bedrock/SageMaker/Vertex AI) and Databricks
 - **Three cloud providers** — AWS, Azure, and GCP in one binary
 - **Realistic behaviors** — state machines, auto-metrics, alarm evaluation, FIFO dedup, DLQs, TTL expiry
 - **[Chaos engineering](/docs/chaos)** — inject failures, latency spikes, and throttling in time-bounded windows
