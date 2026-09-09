@@ -1,4 +1,5 @@
 import { PRODUCT, STATS } from '@/lib/product';
+import { SITE_URL } from '@/lib/seo';
 import { CopyButton } from '@/components/code/copy-button';
 import { Reveal } from './reveal';
 import { CollapseHero } from './collapse-hero';
@@ -15,8 +16,11 @@ import { ScrollProgress, CountUp } from './motion';
 /* Services shown in the coverage ticker — illustrative names cloudemu covers. */
 const TICKER = [
   'S3', 'EC2', 'DynamoDB', 'Lambda', 'VPC', 'Route 53', 'SQS', 'SNS', 'KMS', 'RDS', 'ECS', 'EKS',
+  'Athena', 'Glue', 'Step Functions', 'Global Accelerator', 'Cognito',
   'Blob Storage', 'Cosmos DB', 'Functions', 'Key Vault', 'Service Bus', 'AKS',
+  'Data Factory', 'Front Door', 'Azure Firewall', 'SignalR',
   'GCS', 'Firestore', 'Pub/Sub', 'GKE', 'Cloud Run', 'BigQuery',
+  'Spanner', 'Dataproc', 'Cloud Composer', 'Bigtable',
 ];
 
 /* Compact one-liners per run mode for the §05 cards. */
@@ -61,59 +65,78 @@ function Integrate() {
         </Reveal>
         <Reveal delay={0.1}>
           <p className="cl-lead">
-            To integrate cloudemu with an existing app, run it in <strong>server mode</strong> and set your SDK&apos;s
-            endpoint — <code>AWS_ENDPOINT_URL</code> / <code>BaseEndpoint</code>, <code>option.WithEndpoint</code>, or the
-            Azure ARM override. That runs your real code path end to end. Don&apos;t write a throwaway <code>_test.go</code> for
-            integration.
+            To integrate cloudemu with an existing app, run it in <strong>server mode</strong> and point your SDK&apos;s
+            endpoint at it. That exercises your real code path end to end — no throwaway test harness, no code changes
+            beyond the one endpoint.
           </p>
         </Reveal>
 
-        <div className="mt-11 grid gap-[18px] md:grid-cols-2">
-          <Reveal>
-            <div className="cl-way">
-              <div className="n">SERVER MODE / INTEGRATION · E2E</div>
-              <h3>Run it, point real code at it</h3>
-              <p>Start the binary or Docker image and aim your already-running app, CLI or SDK — any language — at the printed endpoints. The real wire path runs end to end.</p>
-              <pre><span className="p">$ </span>docker run -p 4566:4566 ghcr.io/stackshy/<span className="em">cloudemu</span></pre>
-            </div>
-          </Reveal>
-          <Reveal delay={0.06}>
-            <div className="cl-way">
-              <div className="n">LIBRARY MODE / GO UNIT TESTS</div>
-              <h3>Call the drivers directly</h3>
-              <p>Only inside Go code that already imports cloudemu — a fast in-process handle for unit tests. Not the path for wiring an existing service.</p>
-              <pre><span className="p">cloud := cloudemu.</span><span className="em">NewAWS</span>()</pre>
-            </div>
-          </Reveal>
-        </div>
-
-        <Reveal delay={0.1}>
-          <div className="cl-way mt-[18px]">
-            <div className="n">THE ONE CHANGE YOUR APP NEEDS</div>
-            <h3>Override the SDK endpoint</h3>
-            <p>Production points at the real cloud; in front of cloudemu you flip one endpoint. Every SDK exposes the seam — nothing else changes.</p>
-            <pre>
-              <span className="p"># AWS — any SDK / CLI via env, or aws-sdk-go-v2</span>{'\n'}
-              {'export AWS_ENDPOINT_URL='}<span className="em">http://127.0.0.1:4566</span>{'\n'}
-              {'o.BaseEndpoint = aws.String('}<span className="em">&quot;http://127.0.0.1:4566&quot;</span>{')'}{'\n\n'}
-              <span className="p"># GCP — cloud.google.com/go</span>{'\n'}
-              {'option.WithEndpoint('}<span className="em">&quot;http://127.0.0.1:4569&quot;</span>{'), option.WithoutAuthentication()'}{'\n\n'}
-              <span className="p"># Azure — azure-sdk-for-go (ARM, https + self-signed TLS)</span>{'\n'}
-              {'arm.ClientOptions → cloud endpoint '}<span className="em">https://127.0.0.1:4568</span>
-            </pre>
+        <Reveal>
+          <div
+            className="cl-way mt-11"
+            style={{ borderLeft: '3px solid var(--ember)', background: 'color-mix(in srgb, var(--ember) 5%, var(--bg-2))' }}
+          >
+            <div className="n">SERVER MODE · INTEGRATION / E2E</div>
+            <h3>Run it, point real code at it</h3>
+            <p>Start the binary or Docker image and aim your already-running app, CLI, or SDK — any language — at the printed endpoints. The real wire path runs end to end, exactly as production would.</p>
+            <pre><span className="p">$ </span>docker run -p 4566:4566 -p 4568:4568 -p 4569:4569 ghcr.io/stackshy/<span className="em">cloudemu</span></pre>
           </div>
         </Reveal>
 
+        <Reveal delay={0.06}>
+          <p className="cl-aside">
+            <span className="arw">↳</span> Writing Go unit tests <em>inside</em> cloudemu-aware code? Skip the server and take an in-process
+            handle — <code>cloud := cloudemu.NewAWS()</code>. That&apos;s the library path, not how you wire an existing app.
+          </p>
+        </Reveal>
+
         <Reveal delay={0.1}>
-          <div className="cl-note">
-            <div className="ic">▍ AI</div>
-            <div>
-              <div className="t">Wiring cloudemu into an existing service with an AI agent?</div>
-              <p>
-                Run cloudemu in server mode and point your running service's SDK at it with an endpoint override
-                (<code>AWS_ENDPOINT_URL</code>) — your real code path exercises it end-to-end, production unchanged.
-              </p>
-            </div>
+          <div style={{ marginTop: 40 }}>
+            <div className="cl-k">The one change your app needs</div>
+            <p className="cl-lead" style={{ marginTop: 12, maxWidth: '70ch' }}>
+              <strong>Override the SDK endpoint.</strong> Production points at the real cloud; in front of cloudemu you flip
+              one endpoint — every SDK exposes the same seam, nothing else changes.
+            </p>
+          </div>
+        </Reveal>
+
+        <Reveal delay={0.12}>
+          <div style={{ marginTop: 22, border: '1px solid var(--border)', borderRadius: 16, overflow: 'hidden', background: 'var(--bg-2)' }}>
+            {[
+              {
+                p: 'AWS', sdk: 'aws-sdk-go-v2 · CLI', port: ':4566',
+                code: <>{'export '}<span style={{ color: '#ff8a5c' }}>AWS_ENDPOINT_URL</span>{'=http://127.0.0.1:4566'}</>,
+              },
+              {
+                p: 'GCP', sdk: 'cloud.google.com/go', port: ':4569',
+                code: <>{'option.'}<span style={{ color: '#ff8a5c' }}>WithEndpoint</span>{'("http://127.0.0.1:4569")'}</>,
+              },
+              {
+                p: 'Azure', sdk: 'azure-sdk-for-go · ARM', port: ':4568 · TLS',
+                code: <>{'arm.ClientOptions → '}<span style={{ color: '#ff8a5c' }}>https://127.0.0.1:4568</span></>,
+              },
+            ].map((r, i) => (
+              <div
+                key={r.p}
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '200px 1fr',
+                  gap: 24,
+                  alignItems: 'center',
+                  padding: '20px 26px',
+                  borderTop: i ? '1px solid var(--border)' : 'none',
+                }}
+              >
+                <div>
+                  <b style={{ display: 'block', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 18, letterSpacing: '-0.01em', color: 'var(--text-1)' }}>{r.p}</b>
+                  <div style={{ marginTop: 4, fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--text-3)' }}>
+                    {r.sdk}
+                    <span style={{ marginLeft: 8, color: 'var(--ember)', border: '1px solid var(--border)', borderRadius: 999, padding: '1px 8px', fontSize: 11, whiteSpace: 'nowrap' }}>{r.port}</span>
+                  </div>
+                </div>
+                <pre style={{ margin: 0, background: 'var(--text-1)', color: '#e9e6db', borderRadius: 10, padding: '12px 14px', fontFamily: 'var(--font-mono)', fontSize: 12.5, lineHeight: 1.6, overflowX: 'auto' }}>{r.code}</pre>
+              </div>
+            ))}
           </div>
         </Reveal>
       </div>
@@ -268,7 +291,7 @@ function Foot() {
       <div className="mx-auto flex max-w-[1180px] flex-wrap items-center justify-between gap-3 px-[clamp(26px,6vw,90px)] py-8 font-mono text-[11px] tracking-[0.04em] text-ink-3">
         <span>cloudemu — the cloud, in memory</span>
         <span className="hidden md:inline">AWS :{aws} · AZURE :{azure} · GCP :{gcp} · K8S :{kubernetes}</span>
-        <span>{PRODUCT.license} · localhost</span>
+        <span>{PRODUCT.license} · {SITE_URL.replace(/^https?:\/\//, '')}</span>
       </div>
     </footer>
   );
