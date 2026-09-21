@@ -101,40 +101,30 @@ function Integrate() {
         </Reveal>
 
         <Reveal delay={0.12}>
-          <div style={{ marginTop: 22, border: '1px solid var(--border)', borderRadius: 16, overflow: 'hidden', background: 'var(--bg-2)' }}>
+          <div className="cl-sdk-table">
             {[
               {
                 p: 'AWS', sdk: 'aws-sdk-go-v2 · CLI', port: ':4566',
-                code: <>{'export '}<span style={{ color: '#ff8a5c' }}>AWS_ENDPOINT_URL</span>{'=http://127.0.0.1:4566'}</>,
+                code: <>{'export '}<span className="k">AWS_ENDPOINT_URL</span>{'=http://127.0.0.1:4566'}</>,
               },
               {
                 p: 'GCP', sdk: 'cloud.google.com/go', port: ':4569',
-                code: <>{'option.'}<span style={{ color: '#ff8a5c' }}>WithEndpoint</span>{'("http://127.0.0.1:4569")'}</>,
+                code: <>{'option.'}<span className="k">WithEndpoint</span>{'("http://127.0.0.1:4569")'}</>,
               },
               {
                 p: 'Azure', sdk: 'azure-sdk-for-go · ARM', port: ':4568 · TLS',
-                code: <>{'arm.ClientOptions → '}<span style={{ color: '#ff8a5c' }}>https://127.0.0.1:4568</span></>,
+                code: <>{'arm.ClientOptions → '}<span className="k">https://127.0.0.1:4568</span></>,
               },
-            ].map((r, i) => (
-              <div
-                key={r.p}
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: '200px 1fr',
-                  gap: 24,
-                  alignItems: 'center',
-                  padding: '20px 26px',
-                  borderTop: i ? '1px solid var(--border)' : 'none',
-                }}
-              >
-                <div>
-                  <b style={{ display: 'block', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 18, letterSpacing: '-0.01em', color: 'var(--text-1)' }}>{r.p}</b>
-                  <div style={{ marginTop: 4, fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--text-3)' }}>
-                    {r.sdk}
-                    <span style={{ marginLeft: 8, color: 'var(--ember)', border: '1px solid var(--border)', borderRadius: 999, padding: '1px 8px', fontSize: 11, whiteSpace: 'nowrap' }}>{r.port}</span>
+            ].map((r) => (
+              <div key={r.p} className="cl-sdk-row">
+                <div className="cl-sdk-meta">
+                  <b>{r.p}</b>
+                  <div className="sdk">
+                    <span>{r.sdk}</span>
+                    <span className="port">{r.port}</span>
                   </div>
                 </div>
-                <pre style={{ margin: 0, background: 'var(--text-1)', color: '#e9e6db', borderRadius: 10, padding: '12px 14px', fontFamily: 'var(--font-mono)', fontSize: 12.5, lineHeight: 1.6, overflowX: 'auto' }}>{r.code}</pre>
+                <pre className="cl-sdk-code">{r.code}</pre>
               </div>
             ))}
           </div>

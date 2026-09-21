@@ -1483,21 +1483,115 @@ samp {
   .hr-sticky {
     position: static;
     height: auto;
-    padding: 24px 0;
+    padding: 8px 0 20px;
+    overflow: visible;
+    display: block;
   }
   .hr-track {
     overflow-x: auto;
+    overflow-y: visible;
     scroll-snap-type: x mandatory;
     -webkit-overflow-scrolling: touch;
-    padding-bottom: 12px;
+    gap: 16px;
+    /* Gutter so the first card sits inside the edge and the next card peeks —
+       a deliberate, even sliver that reads as "more →", not a clipped drape. */
+    padding: 4px clamp(20px, 5vw, 40px) 20px;
+    scroll-padding-inline: clamp(20px, 5vw, 40px);
+    /* a slim, on-brand scrollbar makes the horizontal axis obvious */
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-2) transparent;
+  }
+  .hr-track::-webkit-scrollbar {
+    height: 4px;
+  }
+  .hr-track::-webkit-scrollbar-thumb {
+    background: var(--border-2);
+    border-radius: 999px;
   }
   .hr-panel {
-    width: min(80vw, 360px);
-    scroll-snap-align: center;
+    width: min(84vw, 340px);
+    scroll-snap-align: start;
+    justify-content: flex-start;
+  }
+  .hr-intro {
+    justify-content: center;
   }
   .hr-card {
     height: auto;
-    min-height: 320px;
+    min-height: 300px;
+    /* lighter, warmer lift on mobile — the heavy desktop drop-shadow read as a
+       dark blob on the peeking card */
+    box-shadow: 0 12px 28px -20px rgba(18, 20, 15, 0.28);
+  }
+  .hr-hint {
+    margin-top: 18px;
+  }
+}
+
+/* ---- §02 SDK-endpoint override table ---- */
+.cl-sdk-table {
+  margin-top: 22px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+  background: var(--bg-2);
+}
+.cl-sdk-row {
+  display: grid;
+  grid-template-columns: 200px minmax(0, 1fr);
+  gap: 24px;
+  align-items: center;
+  padding: 20px 26px;
+}
+.cl-sdk-row + .cl-sdk-row {
+  border-top: 1px solid var(--border);
+}
+.cl-sdk-meta b {
+  display: block;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 18px;
+  letter-spacing: -0.01em;
+  color: var(--text-1);
+}
+.cl-sdk-meta .sdk {
+  margin-top: 5px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-3);
+}
+.cl-sdk-meta .port {
+  color: var(--ember);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 1px 8px;
+  font-size: 11px;
+  white-space: nowrap;
+}
+.cl-sdk-code {
+  margin: 0;
+  min-width: 0; /* let the grid track shrink; the pane scrolls, never clips the row */
+  background: var(--text-1);
+  color: #e9e6db;
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 1.6;
+  overflow-x: auto;
+}
+.cl-sdk-code .k {
+  color: #ff8a5c;
+}
+@media (max-width: 640px) {
+  .cl-sdk-row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+    padding: 18px;
   }
 }
 
