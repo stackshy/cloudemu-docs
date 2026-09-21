@@ -382,9 +382,8 @@ samp {
   stroke: color-mix(in srgb, var(--ember) 55%, transparent);
   stroke-dasharray: 4 3;
 }
-.iso-fcube.is-soon .fc-label {
-  fill: var(--text-3);
-  font-size: 10.5px;
+.iso-fcube.is-soon .fc-inlabel {
+  opacity: 0.4;
 }
 @keyframes iso-bob {
   0%, 100% { transform: translateY(3px); }

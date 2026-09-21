@@ -91,22 +91,16 @@ export function IsoMemory() {
                 <polygon className="fc-left" points={fc.left} />
                 <polygon className="fc-right" points={fc.right} />
                 <polygon className="fc-top" points={fc.top} />
-                {f.soon ? (
-                  // ghost cube: label sits above it (no solid face to etch into)
-                  <text className="fc-label" x={tc.x.toFixed(1)} y={(tc.y - 30).toFixed(1)} textAnchor="middle">
-                    {f.label} · soon
-                  </text>
-                ) : (
-                  // etched into the cube's top face: skewed onto the iso plane, faded
-                  <text
-                    className="fc-inlabel"
-                    transform={`matrix(1,0.5,-1,0.5,${tc.x.toFixed(1)},${tc.y.toFixed(1)})`}
-                    textAnchor="middle"
-                    dominantBaseline="middle"
-                  >
-                    {f.label}
-                  </text>
-                )}
+                {/* etched into the cube's top face: skewed onto the iso plane, faded.
+                    OCI's cube is the dashed ghost, so its label reads fainter still. */}
+                <text
+                  className="fc-inlabel"
+                  transform={`matrix(1,0.5,-1,0.5,${tc.x.toFixed(1)},${tc.y.toFixed(1)})`}
+                  textAnchor="middle"
+                  dominantBaseline="middle"
+                >
+                  {f.label}
+                </text>
               </g>
             );
           })}
