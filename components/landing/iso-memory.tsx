@@ -172,16 +172,18 @@ export function IsoMemory() {
                 <rect x="0" y="-60" width="110" height="120" />
               </clipPath>
             </defs>
-            {/* left half → left face (horizontals slope down-right) */}
+            {/* left half → left face (horizontals slope down-right). The logo is
+                shifted left so the cloud straddles the seam — weight splits evenly
+                across the two faces instead of piling on the right. */}
             <g transform={`matrix(1,0.5,0,1,${core.x.toFixed(1)},${core.y.toFixed(1)})`}>
               <g clipPath="url(#hub-clip-l)">
-                <Logo x={-48} y={-25} width={96} height={50} />
+                <Logo x={-66} y={-25} width={96} height={50} />
               </g>
             </g>
             {/* right half → right face (horizontals slope up-right) */}
             <g transform={`matrix(1,-0.5,0,1,${core.x.toFixed(1)},${core.y.toFixed(1)})`}>
               <g clipPath="url(#hub-clip-r)">
-                <Logo x={-48} y={-25} width={96} height={50} />
+                <Logo x={-66} y={-25} width={96} height={50} />
               </g>
             </g>
           </g>
