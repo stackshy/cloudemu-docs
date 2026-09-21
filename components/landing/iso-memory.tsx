@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Logo } from '@/components/logo';
 
 /**
  * IsoMemory — the "Review Failures" pattern: a solid 3×3×3 isometric memory block
@@ -39,9 +38,8 @@ const FLOATERS = [
 
 export function IsoMemory() {
   const cx = v(1.5, 1.5, 1.5);
-  // the cloudemu logo is suspended INSIDE the block; the frosted-glass top ghosts
-  // over it. Wires plug into this inner point.
-  const core = v(1.5, 1.5, 2.25);
+  // the point every provider wire converges on — the block's top-centre socket
+  const core = v(1.5, 1.5, N);
 
   // gate the SMIL pulses on reduced-motion (SMIL can't read the CSS media query)
   const [motion, setMotion] = useState(false);
@@ -76,14 +74,7 @@ export function IsoMemory() {
             <line x1={-AY.x * 5} y1={-AY.y * 5 + cx.y} x2={AY.x * 5} y2={AY.y * 5 + cx.y} />
           </g>
 
-          {/* the cloudemu core — suspended inside the block; the frosted-glass top
-              and grid lines draw over it so it reads as the core seen through glass */}
-          <g className="iso-core">
-            <circle className="iso-core-halo" cx="0" cy="-30" r="34" />
-            <Logo x={-40} y={-51} width={80} height={42} />
-          </g>
-
-          {/* solid block — glass: the top face is translucent so the core shows through */}
+          {/* solid block */}
           <g className="iso-block">
             <polygon className="ip-top" points={P([v(0, 0, N), v(N, 0, N), v(N, N, N), v(0, N, N)])} />
             <polygon className="ip-left" points={P([v(0, N, 0), v(N, N, 0), v(N, N, N), v(0, N, N)])} />
