@@ -121,7 +121,7 @@ export function HorizontalReel() {
       <div className="hr-sticky">
         <div className="hr-track" ref={trackRef}>
           <div className="hr-panel hr-intro">
-            <div className="cl-k">§ 02 — behaviors</div>
+            <div className="cl-k">02 — behaviors</div>
             <h2 className="cl-h2 mt-3.5">Not a mock. A cloud you can <span className="em">push until it breaks</span>.</h2>
             <p className="cl-lead">It enforces lifecycle, throttles under load, injects outages and bends time — the failure paths your retries otherwise never run.</p>
             <div className="hr-hint">drag / scroll →</div>

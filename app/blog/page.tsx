@@ -18,7 +18,7 @@ export default function BlogPage() {
   return (
     <main className="mx-auto max-w-2xl px-6 py-20">
       <header className="flex flex-col gap-4 border-b border-line pb-10">
-        <span className="u-eyebrow">§ Blog</span>
+        <span className="u-eyebrow">Blog</span>
         <h1 className="font-serif text-[clamp(38px,7vw,64px)] font-extrabold leading-[0.95] tracking-[-0.03em] text-ink">
           Notes from the build
         </h1>

@@ -1646,7 +1646,7 @@ samp {
 }
 /* Breadcrumb reads as a manual reference path — "§ Reference › Services". */
 .u-breadcrumb::before {
-  content: '§';
+  content: none;
   margin-right: 7px;
   color: var(--accent) !important;
   font-weight: 700 !important;

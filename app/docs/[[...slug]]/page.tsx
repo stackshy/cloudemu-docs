@@ -97,7 +97,7 @@ export default async function Page(props: {
       >
       <div className="u-chapter-opener not-prose mb-8 border-b border-line pb-7">
         <p className="mb-3 font-mono text-[11px] uppercase tracking-[0.18em] text-ink-3">
-          <span className="text-accent">§</span> Documentation
+          Documentation
         </p>
         <DocsTitle className="font-serif text-[40px] leading-[1.08] tracking-[-0.025em] text-ink">
           {data.title}

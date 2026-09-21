@@ -19,7 +19,7 @@ export function ContributorsBoard({ initial }: { initial: Contributor[] }) {
     <>
       <header className="border-b border-line pb-10">
         <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-ink-3">
-          <span className="text-accent">§</span> Contributors
+          Contributors
         </span>
         <h1 className="font-serif mt-4 text-[clamp(38px,7vw,72px)] font-extrabold leading-[0.92] tracking-[-0.03em] text-ink text-balance">
           Collapsed by <span className="text-ember">{people.length} hands</span>.

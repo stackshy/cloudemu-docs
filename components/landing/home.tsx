@@ -36,7 +36,7 @@ function Machine() {
       <div className="mx-auto max-w-[1180px]">
         <div className="cl-machine">
           <div>
-            <Reveal><div className="cl-k">§ 01 — the machine</div></Reveal>
+            <Reveal><div className="cl-k">01 — the machine</div></Reveal>
             <Reveal delay={0.05}>
               <h2 className="cl-h2 mt-3.5">Every resource is <span className="em">live in RAM</span>, on the real wire.</h2>
             </Reveal>
@@ -59,7 +59,7 @@ function Integrate() {
   return (
     <section className="cl-sec">
       <div className="mx-auto max-w-[1180px]">
-        <Reveal><div className="cl-k">§ 02 — integrate</div></Reveal>
+        <Reveal><div className="cl-k">02 — integrate</div></Reveal>
         <Reveal delay={0.05}>
           <h2 className="cl-h2 mt-3.5">Wire it into a <span className="em">running app</span>. One endpoint override.</h2>
         </Reveal>
@@ -138,7 +138,7 @@ function Coverage() {
   return (
     <section className="cl-sec">
       <div className="mx-auto max-w-[1180px]">
-        <Reveal><div className="cl-k">§ 03 — coverage</div></Reveal>
+        <Reveal><div className="cl-k">03 — coverage</div></Reveal>
         <Reveal delay={0.05}><h2 className="cl-h2 mt-3.5">One binary. <span className="em">Three clouds.</span></h2></Reveal>
         <div className="cl-stats">
           <Reveal><div className="cl-stat"><div className="v"><CountUp to={STATS.sdkCompatServices} className="em" /></div><div className="l">services emulated</div></div></Reveal>
@@ -164,7 +164,7 @@ function RealWork() {
   return (
     <section className="cl-sec">
       <div className="mx-auto max-w-[1180px]">
-        <Reveal><div className="cl-k">§ 04 — real work</div></Reveal>
+        <Reveal><div className="cl-k">04 — real work</div></Reveal>
         <Reveal delay={0.05}><h2 className="cl-h2 mt-3.5">Not just mocks. <span className="em">Real backends.</span></h2></Reveal>
         <Reveal delay={0.1}>
           <p className="cl-lead">
@@ -213,7 +213,7 @@ function Ways() {
   return (
     <section className="cl-sec">
       <div className="mx-auto max-w-[1180px]">
-        <Reveal><div className="cl-k">§ 05 — three ways to run it</div></Reveal>
+        <Reveal><div className="cl-k">05 — three ways to run it</div></Reveal>
         <Reveal delay={0.05}><h2 className="cl-h2 mt-3.5">Point <span className="em">real code</span> at it.</h2></Reveal>
         <div className="cl-ways">
           {PRODUCT_WAYS.map((w, i) => {
@@ -246,7 +246,7 @@ function Colophon() {
   return (
     <section className="cl-sec">
       <div className="mx-auto max-w-[1180px] text-center">
-        <Reveal><div className="cl-k">§ 06 — power on</div></Reveal>
+        <Reveal><div className="cl-k">06 — power on</div></Reveal>
         <Reveal delay={0.05}>
           <h2 className="cl-h2 mx-auto mt-3.5 max-w-[18ch] text-center">Bring a cloud up in <span className="em">one line</span>.</h2>
         </Reveal>
