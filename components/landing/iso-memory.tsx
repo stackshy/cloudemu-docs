@@ -39,9 +39,9 @@ const FLOATERS = [
 
 export function IsoMemory() {
   const cx = v(1.5, 1.5, 1.5);
-  // the cloudemu logo sits upright on the front-centre of the block's top face
-  // (clear of the AWS cube over the back socket); every provider wire lands on it.
-  const core = v(2.0, 2.0, N);
+  // the cloudemu logo is suspended INSIDE the block; the frosted-glass top ghosts
+  // over it. Wires plug into this inner point.
+  const core = v(1.5, 1.5, 2.25);
 
   // gate the SMIL pulses on reduced-motion (SMIL can't read the CSS media query)
   const [motion, setMotion] = useState(false);
@@ -76,7 +76,14 @@ export function IsoMemory() {
             <line x1={-AY.x * 5} y1={-AY.y * 5 + cx.y} x2={AY.x * 5} y2={AY.y * 5 + cx.y} />
           </g>
 
-          {/* solid block */}
+          {/* the cloudemu core — suspended inside the block; the frosted-glass top
+              and grid lines draw over it so it reads as the core seen through glass */}
+          <g className="iso-core">
+            <circle className="iso-core-halo" cx="0" cy="-30" r="34" />
+            <Logo x={-40} y={-51} width={80} height={42} />
+          </g>
+
+          {/* solid block — glass: the top face is translucent so the core shows through */}
           <g className="iso-block">
             <polygon className="ip-top" points={P([v(0, 0, N), v(N, 0, N), v(N, N, N), v(0, N, N)])} />
             <polygon className="ip-left" points={P([v(0, N, 0), v(N, N, 0), v(N, N, N), v(0, N, N)])} />
@@ -159,16 +166,6 @@ export function IsoMemory() {
             );
           })}
 
-          {/* the cloudemu logo — upright at the core, with a paper-coloured halo so
-              it reads crisply over the grid lines. Drawn last; wires plug into it. */}
-          <g className="iso-core">
-            <Logo
-              x={(core.x - 45).toFixed(1)}
-              y={(core.y - 23.5).toFixed(1)}
-              width={90}
-              height={47}
-            />
-          </g>
         </g>
       </svg>
     </div>
