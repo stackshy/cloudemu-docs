@@ -20,6 +20,11 @@ const LANG_MARK: Record<string, string> = {
 
 const TERMINAL_LANGS = new Set(['bash', 'sh', 'shell', 'console', 'zsh']);
 
+/** Langs that carry no meaningful badge — ASCII diagrams, banners, output.
+ * We render the code block chrome but omit the label rather than stamping an
+ * unpolished "PLAINTEXT"/"TEXT" chip. */
+const PLAIN_LANGS = new Set(['plaintext', 'text', 'txt', 'plain', 'ansi', 'none']);
+
 /**
  * MDX `pre` override — ONE code surface for the whole site.
  *
@@ -52,7 +57,7 @@ export function CodePre({
       <figure className="u-terminal not-prose group relative my-4 overflow-hidden rounded-lg border border-line bg-inset">
         <CopyButton
           target={text}
-          className="absolute right-2 top-2 z-10 text-ink-inset-muted hover:bg-white/10 hover:text-ink-inset"
+          className="absolute right-2 top-2 z-10 text-ink-inset-muted hover:bg-raised hover:text-ink-inset"
         />
         <pre
           ref={preRef}
@@ -68,7 +73,7 @@ export function CodePre({
   return (
     <figure className="u-codeblock not-prose group my-4 overflow-hidden">
       <figcaption className="flex items-center gap-2 border-b border-line bg-surface px-3.5 py-1.5">
-        {lang && (
+        {lang && !PLAIN_LANGS.has(lang) && (
           <span
             aria-hidden
             className="rounded-[3px] border border-line px-1 py-px font-mono text-[10px] font-medium tracking-wider text-ink-3"

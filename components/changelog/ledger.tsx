@@ -159,7 +159,7 @@ export function Ledger() {
               </div>
             )}
 
-            <article id={id} className="grid scroll-mt-24 gap-4 py-6 md:grid-cols-[168px_minmax(0,1fr)] md:gap-10">
+            <article id={id} className="grid grid-cols-1 scroll-mt-24 gap-4 py-6 md:grid-cols-[168px_minmax(0,1fr)] md:gap-10">
               <aside className="md:pt-2">
                 <a
                   href={`#${id}`}

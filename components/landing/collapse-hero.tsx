@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { PRODUCT } from '@/lib/product';
+import { GitHubMark } from '@/components/github-mark';
 import { IsoMemory } from './iso-memory';
 
 /**
@@ -59,7 +60,7 @@ export function CollapseHero() {
 
       <div className="cl-hero">
         <div className="cl-fade cl-fade-1 font-mono text-[12.5px] uppercase tracking-[0.16em] text-ink-2 flex items-center gap-2.5">
-          <span className="inline-block h-[7px] w-[7px] rounded-[2px] bg-ember" /> A real emulator · AWS · Azure · GCP · OCI
+          <span className="inline-block h-[7px] w-[7px] rounded-[2px] bg-ember" /> A real emulator · AWS · Azure · GCP
         </div>
         <h1 className="cl-h1">
           <span className="cl-line"><span>The whole cloud,</span></span>
@@ -71,7 +72,7 @@ export function CollapseHero() {
         </p>
         <div className="cl-cta cl-fade cl-fade-3 mt-8 flex flex-wrap gap-3">
           <Link className="cl-btn-p" href="/docs/quick-start" ref={magRef}>Get started →</Link>
-          <a className="cl-btn-s" href={PRODUCT.repo} target="_blank" rel="noreferrer">★ Star on GitHub</a>
+          <a className="cl-btn-s" href={PRODUCT.repo} target="_blank" rel="noreferrer"><GitHubMark />GitHub</a>
         </div>
       </div>
 
@@ -79,7 +80,7 @@ export function CollapseHero() {
       <div className="cl-dock on" aria-label="Run a command">
         {COMMANDS.map((c) => (
           <button key={c.id} className="cl-chip" onClick={() => fireToast(c)}>
-            <span className="p">$</span> {c.cmd}
+            {c.cmd}
           </button>
         ))}
       </div>

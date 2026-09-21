@@ -356,6 +356,46 @@ samp {
   animation-delay: var(--d, 0s);
   will-change: transform;
 }
+.fc-label {
+  fill: var(--text-2);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+/* provider → core connector wires + the packet that pulses down each one */
+.iso-wire {
+  stroke: color-mix(in srgb, var(--ember) 32%, transparent);
+  stroke-width: 1.2;
+  stroke-dasharray: 3 4;
+  fill: none;
+}
+.iso-pulse {
+  fill: var(--ember);
+  filter: drop-shadow(0 0 3px color-mix(in srgb, var(--ember) 60%, transparent));
+}
+/* provider name etched into the cube's top face — skewed onto the iso plane,
+   faded so it reads as embossed rather than a sticker */
+.fc-inlabel {
+  fill: var(--accent);
+  opacity: 0.5;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+/* OCI — still forming: dashed ghost cube, muted label */
+.iso-fcube.is-soon .fc-top,
+.iso-fcube.is-soon .fc-left,
+.iso-fcube.is-soon .fc-right {
+  fill: transparent;
+  stroke: color-mix(in srgb, var(--ember) 55%, transparent);
+  stroke-dasharray: 4 3;
+}
+.iso-fcube.is-soon .fc-inlabel {
+  opacity: 0.4;
+}
 @keyframes iso-bob {
   0%, 100% { transform: translateY(3px); }
   50% { transform: translateY(-7px); }
@@ -703,6 +743,72 @@ samp {
 .cl-cell.gc {
   background: var(--viz-gcp);
 }
+.cl-gridlegend {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 14px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--text-3);
+}
+.cl-gridlegend .lg {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.cl-gridlegend .lg::before {
+  content: '';
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  background: var(--bg-3);
+}
+.cl-gridlegend .lg.aws::before {
+  background: var(--viz-aws);
+}
+.cl-gridlegend .lg.az::before {
+  background: var(--viz-azure);
+}
+.cl-gridlegend .lg.gc::before {
+  background: var(--viz-gcp);
+}
+.cl-gridlegend .lg.free::before {
+  background: var(--bg-3);
+  border: 1px solid var(--border-2);
+}
+.cl-gridlive {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  white-space: nowrap;
+  color: var(--text-3);
+}
+.cl-gridlive i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: cl-live-pulse 1.8s ease-in-out infinite;
+}
+@keyframes cl-live-pulse {
+  0%, 100% { opacity: 0.35; transform: scale(0.85); }
+  50% { opacity: 1; transform: scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cl-gridlive i { animation: none; opacity: 1; }
+}
+@media (max-width: 560px) {
+  .cl-gridlegend {
+    gap: 10px 14px;
+    flex-wrap: wrap;
+  }
+  .cl-gridlive {
+    margin-left: 0;
+  }
+}
 
 /* §02 stats + ticker */
 .cl-stats {
@@ -776,7 +882,7 @@ samp {
 /* §03 run-mode cards */
 .cl-ways {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 18px;
   margin-top: 44px;
 }
@@ -789,6 +895,7 @@ samp {
   display: flex;
   flex-direction: column;
   height: 100%;
+  min-width: 0;
   background: var(--bg-2);
   border: 1px solid var(--border);
   border-radius: 16px;
@@ -826,8 +933,11 @@ samp {
 .cl-way pre {
   margin: 0;
   margin-top: auto;
-  background: var(--text-1);
-  color: #e9e6db;
+  min-width: 0;
+  max-width: 100%;
+  background: var(--bg-3);
+  color: var(--terminal-ink);
+  border: 1px solid var(--border);
   border-radius: 10px;
   padding: 13px 14px;
   font-family: var(--font-mono);
@@ -836,10 +946,59 @@ samp {
   overflow-x: auto;
 }
 .cl-way pre .p {
-  color: #8b8d81;
+  color: var(--text-3);
 }
 .cl-way pre .em {
-  color: #ff8a5c;
+  color: var(--accent);
+}
+
+/* §05 "three ways to run it" — an editorial spec-sheet rather than three filled
+   cards: hairline-divided columns on the bare paper, each code sample shown as a
+   light inset line (the docs code-block treatment), not a heavy black box. This
+   is the de-boxed direction; the pattern can extend to the other card sections. */
+.cl-ways .cl-way {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  padding: 2px 34px;
+  transition: none;
+}
+.cl-ways .cl-way + .cl-way {
+  border-left: 1px solid var(--border);
+}
+.cl-ways .cl-way:first-child {
+  padding-left: 0;
+}
+.cl-ways .cl-way:last-child {
+  padding-right: 0;
+}
+.cl-ways .cl-way:hover {
+  transform: none;
+  box-shadow: none;
+  border-color: var(--border);
+}
+.cl-ways .cl-way pre {
+  background: var(--bg-3);
+  color: var(--terminal-ink);
+  border: 1px solid var(--border);
+}
+.cl-ways .cl-way pre .p {
+  color: var(--text-3);
+}
+.cl-ways .cl-way pre .em {
+  color: var(--accent);
+}
+@media (max-width: 860px) {
+  .cl-ways .cl-way {
+    padding: 26px 0;
+  }
+  .cl-ways .cl-way + .cl-way {
+    border-left: 0;
+    border-top: 1px solid var(--border);
+  }
+  .cl-ways .cl-way:first-child {
+    padding-top: 2px;
+  }
 }
 
 /* §02 integrate — the demoted library-mode aside under the primary card */
@@ -868,7 +1027,7 @@ samp {
 .cl-persist {
   margin-top: 18px;
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 28px;
   background: var(--bg-2);
@@ -908,27 +1067,32 @@ samp {
 }
 .cl-persist pre {
   margin: 0;
-  background: var(--text-1);
-  color: #e9e6db;
+  min-width: 0;
+  max-width: 100%;
+  background: var(--bg-3);
+  color: var(--terminal-ink);
+  border: 1px solid var(--border);
   border-radius: 10px;
   padding: 13px 14px;
   font-family: var(--font-mono);
   font-size: 12.5px;
   line-height: 1.7;
   white-space: nowrap;
+  overflow-x: auto;
 }
 .cl-persist pre .p {
-  color: #8b8d81;
+  color: var(--text-3);
 }
 .cl-persist pre .em {
-  color: #ff8a5c;
+  color: var(--accent);
 }
 @media (max-width: 860px) {
   .cl-persist {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     gap: 18px;
   }
   .cl-persist pre {
+    width: 100%;
     overflow-x: auto;
   }
 }
@@ -939,9 +1103,9 @@ samp {
   display: flex;
   gap: 16px;
   align-items: flex-start;
-  background: color-mix(in srgb, var(--ember) 7%, var(--bg-2));
-  border: 1px solid color-mix(in srgb, var(--ember) 32%, var(--border));
-  border-left: 3px solid var(--ember);
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
   border-radius: 14px;
   padding: 20px 24px;
 }
@@ -1138,7 +1302,7 @@ samp {
   font-family: var(--font-mono);
   font-size: 12px;
   font-weight: 700;
-  color: #17140f;
+  color: var(--text-1);
   background: var(--medal);
   box-shadow: 0 0 0 3px var(--bg);
 }
@@ -1237,9 +1401,7 @@ samp {
   padding: 32px;
   border: 1px solid var(--border);
   border-radius: 22px;
-  background:
-    linear-gradient(160deg, color-mix(in srgb, var(--ember) 7%, transparent), transparent 46%),
-    var(--bg-2);
+  background: var(--bg-2);
   box-shadow: 0 30px 60px -40px rgba(18, 20, 15, 0.35);
 }
 .hr-top {
@@ -1451,7 +1613,7 @@ samp {
   place-items: center;
   border-radius: 50%;
   background: var(--ember);
-  color: #17140f;
+  color: var(--text-1);
   font-family: var(--font-display);
   font-weight: 800;
   font-size: 24px;
@@ -1479,25 +1641,176 @@ samp {
   .viz-node i { animation: none !important; }
 }
 
+/* Below 900px the pinned auto-slide releases into a native horizontal swipe
+   (no scroll-jacking on touch), with an even card peek + slim scrollbar so the
+   horizontal axis is obvious and the next card never reads as a dark drape. */
 @media (max-width: 899px) {
   .hr-sticky {
     position: static;
     height: auto;
-    padding: 24px 0;
+    padding: 8px 0 20px;
+    overflow: visible;
+    display: block;
   }
   .hr-track {
     overflow-x: auto;
+    overflow-y: visible;
     scroll-snap-type: x mandatory;
     -webkit-overflow-scrolling: touch;
-    padding-bottom: 12px;
+    gap: 16px;
+    padding: 4px clamp(20px, 5vw, 40px) 20px;
+    scroll-padding-inline: clamp(20px, 5vw, 40px);
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-2) transparent;
+  }
+  .hr-track::-webkit-scrollbar {
+    height: 4px;
+  }
+  .hr-track::-webkit-scrollbar-thumb {
+    background: var(--border-2);
+    border-radius: 999px;
   }
   .hr-panel {
-    width: min(80vw, 360px);
-    scroll-snap-align: center;
+    width: min(84vw, 340px);
+    scroll-snap-align: start;
   }
   .hr-card {
     height: auto;
-    min-height: 320px;
+    min-height: 300px;
+    box-shadow: 0 12px 28px -20px rgba(18, 20, 15, 0.28);
+  }
+  .hr-hint {
+    margin-top: 18px;
+  }
+}
+
+/* Landing safety net: no element may push the page into horizontal scroll on
+   small screens. `clip` (not `hidden`) avoids creating a scroll container, so
+   the reel's own horizontal scroller and any sticky UI keep working. */
+.cl-landing {
+  overflow-x: clip;
+}
+
+/* ---- §02 SDK-endpoint override — provider toggle ---- */
+.cl-sdk {
+  margin-top: 22px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--bg-2);
+  overflow: hidden;
+}
+.cl-sdk-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+}
+.cl-sdk-tab {
+  position: relative;
+  padding: 14px 22px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: -0.01em;
+  color: var(--text-3);
+  background: transparent;
+  cursor: pointer;
+  transition: color 0.15s var(--ease-out);
+}
+.cl-sdk-tab:hover {
+  color: var(--text-1);
+}
+.cl-sdk-tab.is-active {
+  color: var(--text-1);
+}
+.cl-sdk-tab.is-active::after {
+  content: '';
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: -1px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--accent);
+}
+.cl-sdk-panel {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 24px;
+  align-items: center;
+  padding: 22px 26px;
+}
+@media (max-width: 640px) {
+  .cl-sdk-panel {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+    padding: 18px;
+  }
+}
+
+/* ---- §02 SDK-endpoint override table (legacy, retained styles) ---- */
+.cl-sdk-table {
+  margin-top: 22px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+  background: var(--bg-2);
+}
+.cl-sdk-row {
+  display: grid;
+  grid-template-columns: 200px minmax(0, 1fr);
+  gap: 24px;
+  align-items: center;
+  padding: 20px 26px;
+}
+.cl-sdk-row + .cl-sdk-row {
+  border-top: 1px solid var(--border);
+}
+.cl-sdk-meta b {
+  display: block;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 18px;
+  letter-spacing: -0.01em;
+  color: var(--text-1);
+}
+.cl-sdk-meta .sdk {
+  margin-top: 5px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-3);
+}
+.cl-sdk-meta .port {
+  color: var(--ember);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 1px 8px;
+  font-size: 11px;
+  white-space: nowrap;
+}
+.cl-sdk-code {
+  margin: 0;
+  min-width: 0; /* let the grid track shrink; the pane scrolls, never clips the row */
+  background: var(--bg-3);
+  color: var(--terminal-ink);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 1.6;
+  overflow-x: auto;
+}
+.cl-sdk-code .k {
+  color: var(--accent);
+}
+@media (max-width: 640px) {
+  .cl-sdk-row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+    padding: 18px;
   }
 }
 
@@ -1552,7 +1865,7 @@ samp {
 }
 /* Breadcrumb reads as a manual reference path — "§ Reference › Services". */
 .u-breadcrumb::before {
-  content: '§';
+  content: none;
   margin-right: 7px;
   color: var(--accent) !important;
   font-weight: 700 !important;
