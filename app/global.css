@@ -931,10 +931,11 @@ samp {
 }
 @media (max-width: 860px) {
   .cl-persist {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     gap: 18px;
   }
   .cl-persist pre {
+    width: 100%;
     overflow-x: auto;
   }
 }
@@ -1524,6 +1525,13 @@ samp {
   .hr-hint {
     margin-top: 18px;
   }
+}
+
+/* Landing safety net: no element may push the page into horizontal scroll on
+   small screens. `clip` (not `hidden`) avoids creating a scroll container, so
+   the reel's own horizontal scroller and any sticky UI keep working. */
+.cl-landing {
+  overflow-x: clip;
 }
 
 /* ---- §02 SDK-endpoint override table ---- */

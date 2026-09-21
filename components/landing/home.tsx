@@ -289,7 +289,7 @@ function Foot() {
 
 export function Home() {
   return (
-    <main className="w-full">
+    <main className="cl-landing w-full">
       <ScrollProgress />
       <CollapseHero />
       <Machine />
