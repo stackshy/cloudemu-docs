@@ -16,8 +16,8 @@ export default function BlogPage() {
   });
 
   return (
-    <main className="mx-auto max-w-2xl px-6 py-20">
-      <header className="flex flex-col gap-4 border-b border-line pb-10">
+    <main className="mx-auto max-w-2xl px-6 py-14">
+      <header className="flex flex-col gap-3 border-b border-line pb-7">
         <span className="u-eyebrow">Blog</span>
         <h1 className="font-serif text-[clamp(38px,7vw,64px)] font-extrabold leading-[0.95] tracking-[-0.03em] text-ink">
           The cloudemu blog
@@ -35,7 +35,7 @@ export default function BlogPage() {
             <Link
               key={post.url}
               href={post.url}
-              className="group grid grid-cols-1 items-baseline gap-x-8 gap-y-2 border-b border-line py-7 md:grid-cols-[130px_1fr]"
+              className="group grid grid-cols-1 items-baseline gap-x-8 gap-y-1.5 border-b border-line py-6 md:grid-cols-[120px_1fr]"
             >
               <time className="font-mono text-xs uppercase tracking-widest text-ink-3 tabular-nums">
                 {meta.date}

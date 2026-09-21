@@ -34,7 +34,7 @@ export default async function BlogPostPage(props: {
   const MDX = data.body;
 
   return (
-    <main className="mx-auto max-w-2xl px-6 py-16">
+    <main className="mx-auto max-w-2xl px-6 py-14">
       <JsonLd
         data={blogPostingLd({
           title: data.title,
@@ -45,14 +45,14 @@ export default async function BlogPostPage(props: {
       />
       <Link
         href="/blog"
-        className="mb-10 inline-flex items-center gap-2 font-mono text-xs text-ink-3 transition-colors hover:text-ink"
+        className="mb-8 inline-flex items-center gap-2 font-mono text-xs text-ink-3 transition-colors hover:text-ink"
       >
         <ArrowLeft className="h-3.5 w-3.5" />
         All posts
       </Link>
 
       <article>
-        <header className="mb-10 border-b border-line pb-8">
+        <header className="mb-9 border-b border-line pb-7">
           {data.date && (
             <time className="font-mono text-xs uppercase tracking-widest text-ink-3">
               {data.date}
