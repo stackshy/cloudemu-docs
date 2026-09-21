@@ -42,7 +42,7 @@ export function IsoMemory() {
   // the cloudemu mark sits upright on the block's front vertical edge — straddling
   // the two front faces at the corner, low-middle-front, facing the viewer head-on;
   // every provider wire runs down and plugs into it.
-  const core = v(N, N, 1.4);
+  const core = v(N, N, 1.15);
 
   // gate the SMIL pulses on reduced-motion (SMIL can't read the CSS media query)
   const [motion, setMotion] = useState(false);
@@ -166,22 +166,22 @@ export function IsoMemory() {
           <g className="iso-hub">
             <defs>
               <clipPath id="hub-clip-l">
-                <rect x="-90" y="-48" width="90" height="96" />
+                <rect x="-110" y="-60" width="110" height="120" />
               </clipPath>
               <clipPath id="hub-clip-r">
-                <rect x="0" y="-48" width="90" height="96" />
+                <rect x="0" y="-60" width="110" height="120" />
               </clipPath>
             </defs>
             {/* left half → left face (horizontals slope down-right) */}
             <g transform={`matrix(1,0.5,0,1,${core.x.toFixed(1)},${core.y.toFixed(1)})`}>
               <g clipPath="url(#hub-clip-l)">
-                <Logo x={-41} y={-21} width={82} height={43} />
+                <Logo x={-48} y={-25} width={96} height={50} />
               </g>
             </g>
             {/* right half → right face (horizontals slope up-right) */}
             <g transform={`matrix(1,-0.5,0,1,${core.x.toFixed(1)},${core.y.toFixed(1)})`}>
               <g clipPath="url(#hub-clip-r)">
-                <Logo x={-41} y={-21} width={82} height={43} />
+                <Logo x={-48} y={-25} width={96} height={50} />
               </g>
             </g>
           </g>
