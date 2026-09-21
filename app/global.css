@@ -356,6 +356,26 @@ samp {
   animation-delay: var(--d, 0s);
   will-change: transform;
 }
+.fc-label {
+  fill: var(--text-2);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+/* OCI — still forming: dashed ghost cube, muted label */
+.iso-fcube.is-soon .fc-top,
+.iso-fcube.is-soon .fc-left,
+.iso-fcube.is-soon .fc-right {
+  fill: transparent;
+  stroke: color-mix(in srgb, var(--ember) 55%, transparent);
+  stroke-dasharray: 4 3;
+}
+.iso-fcube.is-soon .fc-label {
+  fill: var(--text-3);
+  font-size: 10.5px;
+}
 @keyframes iso-bob {
   0%, 100% { transform: translateY(3px); }
   50% { transform: translateY(-7px); }
@@ -702,6 +722,54 @@ samp {
 }
 .cl-cell.gc {
   background: var(--viz-gcp);
+}
+.cl-gridlegend {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 14px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--text-3);
+}
+.cl-gridlegend .lg {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.cl-gridlegend .lg::before {
+  content: '';
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  background: var(--bg-3);
+}
+.cl-gridlegend .lg.aws::before {
+  background: var(--viz-aws);
+}
+.cl-gridlegend .lg.az::before {
+  background: var(--viz-azure);
+}
+.cl-gridlegend .lg.gc::before {
+  background: var(--viz-gcp);
+}
+.cl-gridlegend .lg.free::before {
+  background: var(--bg-3);
+  border: 1px solid var(--border-2);
+}
+.cl-gridlegend .lg-note {
+  margin-left: auto;
+  opacity: 0.8;
+}
+@media (max-width: 560px) {
+  .cl-gridlegend {
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .cl-gridlegend .lg-note {
+    display: none;
+  }
 }
 
 /* §02 stats + ticker */
