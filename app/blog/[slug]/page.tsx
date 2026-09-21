@@ -7,6 +7,7 @@ import { blogSource } from '@/lib/source';
 import { CodePre } from '@/components/code/pre';
 import { Callout } from '@/components/docs/callout';
 import { mdxHeadings } from '@/components/docs/heading';
+import { ArchitectureMap } from '@/components/diagrams/architecture-map';
 import { RequestFlow } from '@/components/diagrams/request-flow';
 import { WireProtocols } from '@/components/diagrams/wire-protocols';
 import { PortableFlow } from '@/components/diagrams/portable-flow';
@@ -72,6 +73,7 @@ export default async function BlogPostPage(props: {
               ...mdxHeadings,
               pre: CodePre,
               Callout,
+              ArchitectureMap,
               RequestFlow,
               WireProtocols,
               PortableFlow,
