@@ -4,7 +4,7 @@ import { blogSource } from '@/lib/source';
 
 export const metadata: Metadata = {
   title: 'Blog',
-  description: 'Design notes, wire-protocol traps, and the reasoning behind cloudemu’s internals.',
+  description: 'Architecture deep-dives, design notes, and product updates from the cloudemu team.',
   alternates: { canonical: '/blog' },
 };
 
@@ -20,18 +20,17 @@ export default function BlogPage() {
       <header className="flex flex-col gap-4 border-b border-line pb-10">
         <span className="u-eyebrow">Blog</span>
         <h1 className="font-serif text-[clamp(38px,7vw,64px)] font-extrabold leading-[0.95] tracking-[-0.03em] text-ink">
-          Notes from the build
+          The cloudemu blog
         </h1>
         <p className="max-w-xl text-lg leading-relaxed text-ink-2">
-          Design notes, wire-protocol traps, and the reasoning behind cloudemu&apos;s
-          internals. Sparse on purpose — we write when there&apos;s something worth writing
-          down.
+          Architecture deep-dives, design notes, and product updates from the team
+          building cloudemu.
         </p>
       </header>
 
       <div>
         {posts.map((post) => {
-          const date = (post.data as { date?: string }).date;
+          const meta = post.data as { date?: string; author?: string };
           return (
             <Link
               key={post.url}
@@ -39,13 +38,18 @@ export default function BlogPage() {
               className="group grid grid-cols-1 items-baseline gap-x-8 gap-y-2 border-b border-line py-7 md:grid-cols-[130px_1fr]"
             >
               <time className="font-mono text-xs uppercase tracking-widest text-ink-3 tabular-nums">
-                {date}
+                {meta.date}
               </time>
               <div className="flex flex-col gap-2">
                 <h2 className="font-serif text-2xl font-semibold tracking-[-0.015em] text-ink transition-colors group-hover:text-accent">
                   {post.data.title}
                 </h2>
                 <p className="text-sm leading-relaxed text-ink-2">{post.data.description}</p>
+                {meta.author && (
+                  <span className="mt-1 font-mono text-xs uppercase tracking-widest text-ink-3">
+                    By {meta.author}
+                  </span>
+                )}
               </div>
             </Link>
           );
