@@ -160,15 +160,30 @@ export function IsoMemory() {
             );
           })}
 
-          {/* the cloudemu mark — upright on the front corner, straddling both front
-              faces; drawn last so it stays fully visible, wires plug into it */}
+          {/* the cloudemu mark — a sticker wrapped over the front vertical edge: the
+              left half skewed onto the left face, the right half onto the right face,
+              meeting at the seam. Drawn last; every provider wire plugs into it. */}
           <g className="iso-hub">
-            <Logo
-              x={(core.x - 41).toFixed(1)}
-              y={(core.y - 21).toFixed(1)}
-              width={82}
-              height={43}
-            />
+            <defs>
+              <clipPath id="hub-clip-l">
+                <rect x="-90" y="-48" width="90" height="96" />
+              </clipPath>
+              <clipPath id="hub-clip-r">
+                <rect x="0" y="-48" width="90" height="96" />
+              </clipPath>
+            </defs>
+            {/* left half → left face (horizontals slope down-right) */}
+            <g transform={`matrix(1,0.5,0,1,${core.x.toFixed(1)},${core.y.toFixed(1)})`}>
+              <g clipPath="url(#hub-clip-l)">
+                <Logo x={-41} y={-21} width={82} height={43} />
+              </g>
+            </g>
+            {/* right half → right face (horizontals slope up-right) */}
+            <g transform={`matrix(1,-0.5,0,1,${core.x.toFixed(1)},${core.y.toFixed(1)})`}>
+              <g clipPath="url(#hub-clip-r)">
+                <Logo x={-41} y={-21} width={82} height={43} />
+              </g>
+            </g>
           </g>
         </g>
       </svg>
