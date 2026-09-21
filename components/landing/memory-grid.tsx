@@ -89,7 +89,7 @@ export function MemoryGrid() {
         <span className="lg az">Azure</span>
         <span className="lg gc">GCP</span>
         <span className="lg free">free</span>
-        <span className="lg-note">allocating · freeing — a store under load</span>
+        <span className="cl-gridlive"><i />allocating · freeing</span>
       </div>
     </div>
   );
