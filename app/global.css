@@ -375,36 +375,32 @@ samp {
   fill: var(--ember);
   filter: drop-shadow(0 0 3px color-mix(in srgb, var(--ember) 60%, transparent));
 }
-/* the cloudemu core — breathing glow, expanding ripple, gently bobbing mark */
-.iso-core-glow {
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: core-breathe 3.4s ease-in-out infinite;
+/* the cloudemu core — an ember cell glowing in the socket, breathing in place */
+.iso-core-cell {
+  fill: var(--ember);
+  animation: core-cell 3s ease-in-out infinite;
+  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--ember) 55%, transparent));
 }
-@keyframes core-breathe {
-  0%, 100% { transform: scale(0.85); opacity: 0.55; }
-  50% { transform: scale(1.12); opacity: 0.95; }
+@keyframes core-cell {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
 }
-.iso-core-ripple {
+/* a faint ember outline that expands out of the cell like a heartbeat */
+.iso-core-ring {
   fill: none;
-  stroke: color-mix(in srgb, var(--ember) 55%, transparent);
-  stroke-width: 1.2;
+  stroke: var(--ember);
+  stroke-width: 1.4;
   transform-box: fill-box;
   transform-origin: center;
-  animation: core-ripple 3.4s ease-out infinite;
+  animation: core-ring 3s ease-out infinite;
 }
-@keyframes core-ripple {
-  0% { transform: scale(0.55); opacity: 0.6; }
-  100% { transform: scale(2); opacity: 0; }
-}
-.iso-core-mark {
-  animation: iso-bob 4.6s ease-in-out infinite;
-  filter: drop-shadow(0 8px 16px color-mix(in srgb, var(--text-1) 20%, transparent));
+@keyframes core-ring {
+  0% { transform: scale(1); opacity: 0.5; }
+  70%, 100% { transform: scale(1.8); opacity: 0; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .iso-core-glow,
-  .iso-core-mark { animation: none; }
-  .iso-core-glow { opacity: 0.7; }
+  .iso-core-cell { animation: none; opacity: 0.85; }
+  .iso-core-ring { display: none; }
 }
 /* provider name etched into the cube's top face — skewed onto the iso plane,
    faded so it reads as embossed rather than a sticker */

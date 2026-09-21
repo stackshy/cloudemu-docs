@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Logo } from '@/components/logo';
 
 /**
  * IsoMemory — the "Review Failures" pattern: a solid 3×3×3 isometric memory block
@@ -159,24 +158,11 @@ export function IsoMemory() {
             );
           })}
 
-          {/* the cloudemu core — the mark upright at the block's centre with a
-              breathing glow, an expanding ripple, and a gentle bob. Drawn last so
-              it stays fully visible; every provider wire pulses into it. */}
+          {/* the cloudemu core — a live ember cell glowing in the socket, in the
+              same line-art / ember language as the block; every wire plugs into it */}
           <g className="iso-core">
-            <defs>
-              <radialGradient id="core-glow">
-                <stop offset="0%" stopColor="var(--ember)" stopOpacity="0.5" />
-                <stop offset="65%" stopColor="var(--ember)" stopOpacity="0.12" />
-                <stop offset="100%" stopColor="var(--ember)" stopOpacity="0" />
-              </radialGradient>
-            </defs>
-            <g transform={`translate(${core.x.toFixed(1)},${core.y.toFixed(1)})`}>
-              <circle className="iso-core-glow" r="48" fill="url(#core-glow)" />
-              {motion && <circle className="iso-core-ripple" r="30" />}
-              <g className="iso-core-mark">
-                <Logo x={-38} y={-20} width={76} height={40} />
-              </g>
-            </g>
+            <polygon className="iso-core-cell" points={sock.floor} />
+            <polygon className="iso-core-ring" points={sock.floor} />
           </g>
         </g>
       </svg>
