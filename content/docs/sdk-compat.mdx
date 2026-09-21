@@ -255,6 +255,16 @@ Any operation not in these tables returns `501 Not Implemented` or the provider'
 
 EKS, AKS, and GKE each issue kubeconfigs that point at a single shared in-memory **Kubernetes API server** (`kubernetes.NewAPIServer()`, passed as `K8sAPI` to each provider's `Drivers`). Real `client-go` / `kubectl` drive it end-to-end: **Namespace, Pod, Service, ConfigMap, Secret, ServiceAccount, Deployment** support Create/Get/List/Update/Delete/Patch (JSON-merge) + Watch streaming; **Endpoints** are read-only. API groups `core/v1` and `apps/v1`. See the [Kubernetes service page](/docs/services/kubernetes) for what's intentionally out of scope (no scheduler, controllers, RBAC, or PV/PVC).
 
+## Multi-region isolation (AWS)
+
+The AWS wire server routes every request to a per-region backend, keyed by the region in the caller's SigV4 credential scope (`Credential=AKID/DATE/REGION/SERVICE/aws4_request`). A region's provider is built lazily on its first request and cached from then on; an unsigned request, or one whose scope names the server's default region, routes to the pre-built default backend — so a single-region workload never touches the mux at all.
+
+- **Regional state is isolated per region.** DynamoDB tables, SQS queues, EC2 instances/VPCs, Lambda functions, and every other regional service each get a fresh, independent backend per region.
+- **Global services are shared across every region.** IAM, STS (one session store, so an `ASIA` credential minted in one region verifies in another), Route 53, CloudFront, and Global Accelerator all read and write the *same* underlying state no matter which region's endpoint a request hits — mirroring real AWS, where these services aren't regional. The S3 bucket-name namespace is shared the same way, so bucket names stay globally unique across regions even though each region's S3 backend is otherwise independent.
+- **Cost and Resource Explorer aggregate across every region** that's been touched so far, not just the default one.
+
+The testable behavior: a resource created against a `us-east-1`-scoped request is invisible to a `list` call scoped to `eu-west-1` — and vice versa — while an IAM user, role, or hosted zone created in either region is visible from both.
+
 ## How it works
 
 The server is a tiny core plus a plugin-per-service model. Each service is a self-contained package under `server/`.
@@ -363,7 +373,7 @@ The `Handler` interface is the only contract — no registration is needed in co
 
 ## Limitations
 
-- **Signature validation is off by default.** With no flags, requests are accepted regardless of AWS SigV4 / Azure AAD / GCP OAuth signatures, so local development just works. Opt in with `--enforce-auth`: AWS then verifies SigV4 against registered IAM access keys (403 on failure) and enforces IAM authorization for JSON-RPC services, and Azure validates Bearer JWT claims (audience/expiry/principal, 401 on failure). It's a development aid for exercising auth-failure paths, not a hardened security boundary — STS temporary credentials aren't cryptographically verified and GCP/Azure request signatures aren't checked.
+- **Signature validation is off by default.** With no flags, requests are accepted regardless of AWS SigV4 / Azure AAD / GCP OAuth signatures, so local development just works. Opt in with `--enforce-auth` — see [Auth Enforcement](/docs/security) for exactly what's verified per provider and its non-guarantees.
 - **No AMQP for Azure Service Bus.** The modern `azservicebus` SDK uses AMQP exclusively for data plane. ARM control plane is fully supported via `armservicebus`; tests that need send/receive can use the raw-HTTP REST data plane.
 - **GCS direct-media downloads** assume path-style URLs.
 - **DynamoDB / Cosmos / Firestore** filters and queries support common patterns but are not full DSL parsers.
