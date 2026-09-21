@@ -845,6 +845,55 @@ samp {
   color: #ff8a5c;
 }
 
+/* §05 "three ways to run it" — an editorial spec-sheet rather than three filled
+   cards: hairline-divided columns on the bare paper, each code sample shown as a
+   light inset line (the docs code-block treatment), not a heavy black box. This
+   is the de-boxed direction; the pattern can extend to the other card sections. */
+.cl-ways .cl-way {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  padding: 2px 34px;
+  transition: none;
+}
+.cl-ways .cl-way + .cl-way {
+  border-left: 1px solid var(--border);
+}
+.cl-ways .cl-way:first-child {
+  padding-left: 0;
+}
+.cl-ways .cl-way:last-child {
+  padding-right: 0;
+}
+.cl-ways .cl-way:hover {
+  transform: none;
+  box-shadow: none;
+  border-color: var(--border);
+}
+.cl-ways .cl-way pre {
+  background: var(--bg-3);
+  color: var(--terminal-ink);
+  border: 1px solid var(--border);
+}
+.cl-ways .cl-way pre .p {
+  color: var(--text-3);
+}
+.cl-ways .cl-way pre .em {
+  color: var(--accent);
+}
+@media (max-width: 860px) {
+  .cl-ways .cl-way {
+    padding: 26px 0;
+  }
+  .cl-ways .cl-way + .cl-way {
+    border-left: 0;
+    border-top: 1px solid var(--border);
+  }
+  .cl-ways .cl-way:first-child {
+    padding-top: 2px;
+  }
+}
+
 /* §02 integrate — the demoted library-mode aside under the primary card */
 .cl-aside {
   margin: 14px 2px 0;
