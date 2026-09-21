@@ -85,15 +85,28 @@ export function IsoMemory() {
           {/* detached floating cubes */}
           {FLOATERS.map((f, i) => {
             const fc = faces(f.a, f.b, f.c);
-            const lp = v(f.a + 0.5, f.b + 0.5, f.c + 1);
+            const tc = v(f.a + 0.5, f.b + 0.5, f.c + 1); // top-face centre
             return (
               <g className={`iso-fcube${f.soon ? ' is-soon' : ''}`} key={i} style={{ ['--d' as string]: `${f.delay}s` }}>
                 <polygon className="fc-left" points={fc.left} />
                 <polygon className="fc-right" points={fc.right} />
                 <polygon className="fc-top" points={fc.top} />
-                <text className="fc-label" x={lp.x.toFixed(1)} y={(lp.y - 30).toFixed(1)} textAnchor="middle">
-                  {f.soon ? `${f.label} · soon` : f.label}
-                </text>
+                {f.soon ? (
+                  // ghost cube: label sits above it (no solid face to etch into)
+                  <text className="fc-label" x={tc.x.toFixed(1)} y={(tc.y - 30).toFixed(1)} textAnchor="middle">
+                    {f.label} · soon
+                  </text>
+                ) : (
+                  // etched into the cube's top face: skewed onto the iso plane, faded
+                  <text
+                    className="fc-inlabel"
+                    transform={`matrix(1,0.5,-1,0.5,${tc.x.toFixed(1)},${tc.y.toFixed(1)})`}
+                    textAnchor="middle"
+                    dominantBaseline="middle"
+                  >
+                    {f.label}
+                  </text>
+                )}
               </g>
             );
           })}

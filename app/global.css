@@ -364,6 +364,16 @@ samp {
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
+/* provider name etched into the cube's top face — skewed onto the iso plane,
+   faded so it reads as embossed rather than a sticker */
+.fc-inlabel {
+  fill: var(--accent);
+  opacity: 0.5;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
 /* OCI — still forming: dashed ghost cube, muted label */
 .iso-fcube.is-soon .fc-top,
 .iso-fcube.is-soon .fc-left,
