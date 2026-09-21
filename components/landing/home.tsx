@@ -1,6 +1,7 @@
 import { PRODUCT, STATS } from '@/lib/product';
 import { SITE_URL } from '@/lib/seo';
 import { CopyButton } from '@/components/code/copy-button';
+import { GitHubMark } from '@/components/github-mark';
 import { Reveal } from './reveal';
 import { CollapseHero } from './collapse-hero';
 import { MemoryGrid } from './memory-grid';
@@ -266,7 +267,7 @@ function Colophon() {
         <Reveal delay={0.2}>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <a className="cl-btn-p" href="/docs/quick-start">Quick start →</a>
-            <a className="cl-btn-s" href={PRODUCT.repo} target="_blank" rel="noreferrer">★ GitHub</a>
+            <a className="cl-btn-s" href={PRODUCT.repo} target="_blank" rel="noreferrer"><GitHubMark />GitHub</a>
           </div>
         </Reveal>
       </div>

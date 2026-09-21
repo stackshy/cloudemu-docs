@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { PRODUCT } from '@/lib/product';
+import { GitHubMark } from '@/components/github-mark';
 import { IsoMemory } from './iso-memory';
 
 /**
@@ -71,7 +72,7 @@ export function CollapseHero() {
         </p>
         <div className="cl-cta cl-fade cl-fade-3 mt-8 flex flex-wrap gap-3">
           <Link className="cl-btn-p" href="/docs/quick-start" ref={magRef}>Get started →</Link>
-          <a className="cl-btn-s" href={PRODUCT.repo} target="_blank" rel="noreferrer">★ Star on GitHub</a>
+          <a className="cl-btn-s" href={PRODUCT.repo} target="_blank" rel="noreferrer"><GitHubMark />GitHub</a>
         </div>
       </div>
 

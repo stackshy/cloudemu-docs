@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { PRODUCT } from '@/lib/product';
 import { CONTRIBUTORS, TOTAL_CONTRIBUTIONS } from '@/lib/contributors.generated';
 import { ContributorsBoard } from '@/components/contributors/board';
+import { GitHubMark } from '@/components/github-mark';
 
 export const metadata: Metadata = {
   title: 'Contributors',
@@ -18,7 +19,7 @@ export default function ContributorsPage() {
         <a className="cl-btn-p" href={`${PRODUCT.repo}/blob/master/CONTRIBUTING.md`} target="_blank" rel="noreferrer">
           Add your name →
         </a>
-        <a className="cl-btn-s" href={PRODUCT.repo} target="_blank" rel="noreferrer">★ GitHub</a>
+        <a className="cl-btn-s" href={PRODUCT.repo} target="_blank" rel="noreferrer"><GitHubMark />GitHub</a>
       </div>
     </main>
   );
