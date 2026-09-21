@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { Logo } from '@/components/logo';
 
 /**
  * IsoMemory — the "Review Failures" pattern: a solid 3×3×3 isometric memory block
@@ -132,6 +133,17 @@ export function IsoMemory() {
                 </g>
               );
             })}
+          </g>
+
+          {/* the cloudemu core — the mark every provider wire plugs into */}
+          <g className="iso-hub">
+            <circle className="iso-hub-bg" cx={core.x.toFixed(1)} cy={core.y.toFixed(1)} r="30" />
+            <Logo
+              x={(core.x - 25).toFixed(1)}
+              y={(core.y - 13).toFixed(1)}
+              width={50}
+              height={26}
+            />
           </g>
 
           {/* detached floating cubes */}
