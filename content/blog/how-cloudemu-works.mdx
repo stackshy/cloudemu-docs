@@ -2,6 +2,7 @@
 title: "How cloudemu works: the whole cloud, in memory"
 description: A guided tour of the architecture — real cloud wire protocols on top of a deliberately boring in-memory core, and the design choices that make it fast, honest, and easy to break on purpose.
 date: 2026-09-22
+author: Nitin Kumar Patel
 ---
 
 # How cloudemu works: the whole cloud, in memory
@@ -123,3 +124,7 @@ Two decisions do most of the work:
 Strip away the details and it's four ideas stacked on each other: **real protocols** on top, a **boring driver contract** in the middle, **in-memory stores** at the bottom, and a few **deliberately dangerous tools** bolted onto the same contract. That's what lets the same program be a Terraform target, a Go unit-test dependency, a Docker service, and a chaos lab — without ever being four different codebases.
 
 Want to watch it move? [Bring a cloud up in a couple of minutes](/docs/quick-start), read the [architecture reference](/docs/architecture), or skip straight to the fun and [break something on purpose](/docs/chaos).
+
+---
+
+*Written by **Nitin Kumar Patel**.*

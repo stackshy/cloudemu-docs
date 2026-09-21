@@ -64,6 +64,11 @@ export default async function BlogPostPage(props: {
           {data.description && (
             <p className="mt-3 text-lg leading-relaxed text-ink-2">{data.description}</p>
           )}
+          {data.author && (
+            <p className="mt-5 font-mono text-xs uppercase tracking-widest text-ink-3">
+              By {data.author}
+            </p>
+          )}
         </header>
 
         <div className="prose">
