@@ -172,7 +172,7 @@ function RealWork() {
             opt in — and point real Infrastructure-as-Code straight at it.
           </p>
         </Reveal>
-        <div className="mt-11 grid gap-[18px] md:grid-cols-2">
+        <div className="mt-11 grid grid-cols-1 gap-[18px] md:grid-cols-2">
           <Reveal>
             <div className="cl-way">
               <div className="n">OPT-IN / REAL DATA PLANE</div>
