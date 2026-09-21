@@ -776,7 +776,7 @@ samp {
 /* §03 run-mode cards */
 .cl-ways {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 18px;
   margin-top: 44px;
 }
@@ -789,6 +789,7 @@ samp {
   display: flex;
   flex-direction: column;
   height: 100%;
+  min-width: 0;
   background: var(--bg-2);
   border: 1px solid var(--border);
   border-radius: 16px;
@@ -826,6 +827,8 @@ samp {
 .cl-way pre {
   margin: 0;
   margin-top: auto;
+  min-width: 0;
+  max-width: 100%;
   background: var(--text-1);
   color: #e9e6db;
   border-radius: 10px;
@@ -868,7 +871,7 @@ samp {
 .cl-persist {
   margin-top: 18px;
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 28px;
   background: var(--bg-2);
@@ -908,6 +911,8 @@ samp {
 }
 .cl-persist pre {
   margin: 0;
+  min-width: 0;
+  max-width: 100%;
   background: var(--text-1);
   color: #e9e6db;
   border-radius: 10px;
@@ -916,6 +921,7 @@ samp {
   font-size: 12.5px;
   line-height: 1.7;
   white-space: nowrap;
+  overflow-x: auto;
 }
 .cl-persist pre .p {
   color: #8b8d81;
@@ -1197,28 +1203,47 @@ samp {
 /* ================================================================== */
 .hr-outer {
   position: relative;
-}
-.hr-sticky {
-  position: sticky;
-  top: 0;
-  height: 100vh;
-  overflow: hidden;
-  display: flex;
-  align-items: center;
   border-top: 1px solid var(--border);
+  padding: clamp(44px, 7vh, 88px) 0;
 }
 .hr-track {
   display: flex;
-  gap: 24px;
+  gap: 20px;
   align-items: stretch;
-  padding: 0 clamp(26px, 6vw, 90px);
-  will-change: transform;
+  overflow-x: auto;
+  overflow-y: visible;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  padding: 6px clamp(20px, 6vw, 90px) 22px;
+  scroll-padding-inline: clamp(20px, 6vw, 90px);
+  cursor: grab;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-2) transparent;
+}
+.hr-track.is-dragging {
+  cursor: grabbing;
+  scroll-snap-type: none;
+  user-select: none;
+}
+.hr-track::-webkit-scrollbar {
+  height: 6px;
+}
+.hr-track::-webkit-scrollbar-thumb {
+  background: var(--border-2);
+  border-radius: 999px;
+}
+.hr-track::-webkit-scrollbar-track {
+  background: transparent;
 }
 .hr-panel {
   flex: 0 0 auto;
-  width: clamp(320px, 40vw, 520px);
+  width: min(88vw, 460px);
   display: flex;
   flex-direction: column;
+  justify-content: center;
+  scroll-snap-align: start;
+}
+.hr-intro {
   justify-content: center;
 }
 .hr-hint {
@@ -1230,7 +1255,8 @@ samp {
   color: var(--text-3);
 }
 .hr-card {
-  height: min(50vh, 400px);
+  height: 100%;
+  min-height: 340px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -1240,7 +1266,7 @@ samp {
   background:
     linear-gradient(160deg, color-mix(in srgb, var(--ember) 7%, transparent), transparent 46%),
     var(--bg-2);
-  box-shadow: 0 30px 60px -40px rgba(18, 20, 15, 0.35);
+  box-shadow: 0 16px 34px -24px rgba(18, 20, 15, 0.3);
 }
 .hr-top {
   display: flex;
@@ -1479,49 +1505,21 @@ samp {
   .viz-node i { animation: none !important; }
 }
 
-@media (max-width: 899px) {
-  .hr-sticky {
-    position: static;
-    height: auto;
-    padding: 8px 0 20px;
-    overflow: visible;
-    display: block;
+@media (max-width: 680px) {
+  .hr-outer {
+    padding: 32px 0 40px;
   }
   .hr-track {
-    overflow-x: auto;
-    overflow-y: visible;
-    scroll-snap-type: x mandatory;
-    -webkit-overflow-scrolling: touch;
     gap: 16px;
-    /* Gutter so the first card sits inside the edge and the next card peeks —
-       a deliberate, even sliver that reads as "more →", not a clipped drape. */
-    padding: 4px clamp(20px, 5vw, 40px) 20px;
-    scroll-padding-inline: clamp(20px, 5vw, 40px);
-    /* a slim, on-brand scrollbar makes the horizontal axis obvious */
-    scrollbar-width: thin;
-    scrollbar-color: var(--border-2) transparent;
-  }
-  .hr-track::-webkit-scrollbar {
-    height: 4px;
-  }
-  .hr-track::-webkit-scrollbar-thumb {
-    background: var(--border-2);
-    border-radius: 999px;
+    padding: 4px clamp(18px, 5vw, 40px) 18px;
+    scroll-padding-inline: clamp(18px, 5vw, 40px);
   }
   .hr-panel {
-    width: min(84vw, 340px);
-    scroll-snap-align: start;
-    justify-content: flex-start;
-  }
-  .hr-intro {
-    justify-content: center;
+    width: min(86vw, 340px);
   }
   .hr-card {
-    height: auto;
     min-height: 300px;
-    /* lighter, warmer lift on mobile — the heavy desktop drop-shadow read as a
-       dark blob on the peeking card */
-    box-shadow: 0 12px 28px -20px rgba(18, 20, 15, 0.28);
+    padding: 26px;
   }
   .hr-hint {
     margin-top: 18px;
