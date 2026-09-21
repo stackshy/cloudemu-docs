@@ -3,6 +3,7 @@ import { SITE_URL } from '@/lib/seo';
 import { CopyButton } from '@/components/code/copy-button';
 import { GitHubMark } from '@/components/github-mark';
 import { Reveal } from './reveal';
+import { SdkToggle } from './sdk-toggle';
 import { CollapseHero } from './collapse-hero';
 import { MemoryGrid } from './memory-grid';
 import { HorizontalReel } from './horizontal-reel';
@@ -99,33 +100,7 @@ function Integrate() {
         </Reveal>
 
         <Reveal delay={0.12}>
-          <div className="cl-sdk-table">
-            {[
-              {
-                p: 'AWS', sdk: 'aws-sdk-go-v2 · CLI', port: ':4566',
-                code: <>{'export '}<span className="k">AWS_ENDPOINT_URL</span>{'=http://127.0.0.1:4566'}</>,
-              },
-              {
-                p: 'GCP', sdk: 'cloud.google.com/go', port: ':4569',
-                code: <>{'option.'}<span className="k">WithEndpoint</span>{'("http://127.0.0.1:4569")'}</>,
-              },
-              {
-                p: 'Azure', sdk: 'azure-sdk-for-go · ARM', port: ':4568 · TLS',
-                code: <>{'arm.ClientOptions → '}<span className="k">https://127.0.0.1:4568</span></>,
-              },
-            ].map((r) => (
-              <div key={r.p} className="cl-sdk-row">
-                <div className="cl-sdk-meta">
-                  <b>{r.p}</b>
-                  <div className="sdk">
-                    <span>{r.sdk}</span>
-                    <span className="port">{r.port}</span>
-                  </div>
-                </div>
-                <pre className="cl-sdk-code">{r.code}</pre>
-              </div>
-            ))}
-          </div>
+          <SdkToggle />
         </Reveal>
       </div>
     </section>
