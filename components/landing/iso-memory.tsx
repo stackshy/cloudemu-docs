@@ -39,10 +39,9 @@ const FLOATERS = [
 
 export function IsoMemory() {
   const cx = v(1.5, 1.5, 1.5);
-  // the cloudemu mark sits upright on the block's front vertical edge — straddling
-  // the two front faces at the corner, low-middle-front, facing the viewer head-on;
-  // every provider wire runs down and plugs into it.
-  const core = v(N, N, 1.15);
+  // the cloudemu core sits upright at the centre of the block's top face; every
+  // provider wire pulses into it.
+  const core = v(1.5, 1.5, N);
 
   // gate the SMIL pulses on reduced-motion (SMIL can't read the CSS media query)
   const [motion, setMotion] = useState(false);
@@ -160,30 +159,22 @@ export function IsoMemory() {
             );
           })}
 
-          {/* the cloudemu mark — a sticker wrapped over the front vertical edge: the
-              left half skewed onto the left face, the right half onto the right face,
-              meeting at the seam. Drawn last; every provider wire plugs into it. */}
-          <g className="iso-hub">
+          {/* the cloudemu core — the mark upright at the block's centre with a
+              breathing glow, an expanding ripple, and a gentle bob. Drawn last so
+              it stays fully visible; every provider wire pulses into it. */}
+          <g className="iso-core">
             <defs>
-              <clipPath id="hub-clip-l">
-                <rect x="-110" y="-60" width="110" height="120" />
-              </clipPath>
-              <clipPath id="hub-clip-r">
-                <rect x="0" y="-60" width="110" height="120" />
-              </clipPath>
+              <radialGradient id="core-glow">
+                <stop offset="0%" stopColor="var(--ember)" stopOpacity="0.5" />
+                <stop offset="65%" stopColor="var(--ember)" stopOpacity="0.12" />
+                <stop offset="100%" stopColor="var(--ember)" stopOpacity="0" />
+              </radialGradient>
             </defs>
-            {/* left half → left face (horizontals slope down-right). The logo is
-                shifted left so the cloud straddles the seam — weight splits evenly
-                across the two faces instead of piling on the right. */}
-            <g transform={`matrix(1,0.5,0,1,${core.x.toFixed(1)},${core.y.toFixed(1)})`}>
-              <g clipPath="url(#hub-clip-l)">
-                <Logo x={-66} y={-25} width={96} height={50} />
-              </g>
-            </g>
-            {/* right half → right face (horizontals slope up-right) */}
-            <g transform={`matrix(1,-0.5,0,1,${core.x.toFixed(1)},${core.y.toFixed(1)})`}>
-              <g clipPath="url(#hub-clip-r)">
-                <Logo x={-66} y={-25} width={96} height={50} />
+            <g transform={`translate(${core.x.toFixed(1)},${core.y.toFixed(1)})`}>
+              <circle className="iso-core-glow" r="48" fill="url(#core-glow)" />
+              {motion && <circle className="iso-core-ripple" r="30" />}
+              <g className="iso-core-mark">
+                <Logo x={-38} y={-20} width={76} height={40} />
               </g>
             </g>
           </g>
