@@ -997,9 +997,9 @@ samp {
   display: flex;
   gap: 16px;
   align-items: flex-start;
-  background: color-mix(in srgb, var(--ember) 7%, var(--bg-2));
-  border: 1px solid color-mix(in srgb, var(--ember) 32%, var(--border));
-  border-left: 3px solid var(--ember);
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
   border-radius: 14px;
   padding: 20px 24px;
 }
@@ -1295,9 +1295,7 @@ samp {
   padding: 32px;
   border: 1px solid var(--border);
   border-radius: 22px;
-  background:
-    linear-gradient(160deg, color-mix(in srgb, var(--ember) 7%, transparent), transparent 46%),
-    var(--bg-2);
+  background: var(--bg-2);
   box-shadow: 0 30px 60px -40px rgba(18, 20, 15, 0.35);
 }
 .hr-top {

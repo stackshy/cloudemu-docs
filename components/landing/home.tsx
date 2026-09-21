@@ -73,10 +73,7 @@ function Integrate() {
         </Reveal>
 
         <Reveal>
-          <div
-            className="cl-way mt-11"
-            style={{ borderLeft: '3px solid var(--ember)', background: 'color-mix(in srgb, var(--ember) 5%, var(--bg-2))' }}
-          >
+          <div className="cl-way mt-11">
             <div className="n">SERVER MODE · INTEGRATION / E2E</div>
             <h3>Run it, point real code at it</h3>
             <p>Start the binary or Docker image and aim your already-running app, CLI, or SDK — any language — at the printed endpoints. The real wire path runs end to end, exactly as production would.</p>
