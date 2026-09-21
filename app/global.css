@@ -2675,3 +2675,90 @@ kbd {
 .release-body {
   margin-top: 12px;
 }
+
+/* ------------------------------------------------------------------ */
+/* ArchitectureMap diagram (blog)                                      */
+/* ------------------------------------------------------------------ */
+.am-card rect {
+  fill: var(--bg-2);
+  stroke: var(--border);
+  stroke-width: 1;
+}
+.am-card.is-accent rect {
+  fill: var(--accent-bg);
+  stroke: var(--accent);
+  stroke-width: 1.5;
+}
+.am-kicker {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.12em;
+  fill: var(--accent);
+}
+.am-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 16px;
+  letter-spacing: -0.01em;
+  fill: var(--text-1);
+}
+.am-sub {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  fill: var(--text-3);
+}
+.am-arrow line,
+.am-rail line {
+  stroke: var(--border-2);
+  stroke-width: 1.4;
+}
+.am-arrow path {
+  fill: none;
+  stroke: var(--border-2);
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.am-rail-tick {
+  stroke: var(--border-2);
+  stroke-width: 1.4;
+}
+.am-chip rect {
+  fill: var(--bg-3);
+  stroke: var(--border);
+  stroke-width: 1;
+}
+.am-chip-t {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  fill: var(--text-2);
+}
+.am-rail-note {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  fill: var(--text-3);
+}
+.am-card,
+.am-arrow,
+.am-chip,
+.am-rail {
+  opacity: 0;
+}
+.am-svg.is-in .am-card,
+.am-svg.is-in .am-arrow,
+.am-svg.is-in .am-chip,
+.am-svg.is-in .am-rail {
+  animation: am-in 0.5s var(--ease-out) both;
+  animation-delay: var(--d, 0s);
+}
+@keyframes am-in {
+  from { opacity: 0; transform: translateY(7px); }
+  to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .am-card,
+  .am-arrow,
+  .am-chip,
+  .am-rail { opacity: 1; animation: none; }
+}

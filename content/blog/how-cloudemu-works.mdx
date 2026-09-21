@@ -1,0 +1,130 @@
+---
+title: "How cloudemu works: the whole cloud, in memory"
+description: A guided tour of the architecture — real cloud wire protocols on top of a deliberately boring in-memory core, and the design choices that make it fast, honest, and easy to break on purpose.
+date: 2026-09-22
+author: Nitin Kumar Patel
+---
+
+# How cloudemu works: the whole cloud, in memory
+
+The first time you point the real AWS CLI at cloudemu and watch `aws s3 mb s3://prod` come back in a few milliseconds — no account, no network, no Docker daemon warming up — it feels a little like cheating. There's no bucket anywhere. There's a struct in a Go map that *behaves* exactly like a bucket, answering over the exact wire protocol S3 uses.
+
+That's the whole idea, and this post is the tour: how a single Go program convinces `aws-sdk-go-v2`, `azure-sdk-for-go`, `cloud.google.com/go`, the CLIs, and Terraform that they're talking to a real cloud — while everything lives in RAM.
+
+Let's start with the map, then walk it top to bottom.
+
+<ArchitectureMap />
+
+Read it as a waterfall. Your unmodified code sits at the top. It sends a real request down into the **wire server**, which decodes it and calls a small Go interface — the **driver contract**. That contract is backed by **in-memory provider mocks**. And hanging off the side of that same contract are the sharp tools — chaos, topology, a fake clock, a recorder — that let you do things a real cloud would never let you do on purpose.
+
+Everything interesting about the design is in *where the lines meet*. So let's follow one.
+
+## Follow a single request
+
+<RequestFlow />
+
+Say your code calls `dynamodb:PutItem`. The SDK serializes it as AWS's JSON-RPC (`X-Amz-Target: DynamoDB_20120810.PutItem`, a specific JSON body) and sends it to `http://127.0.0.1:4566`. cloudemu's DynamoDB handler is registered for that target. It decodes the request with the *same* codec the real service uses, calls `driver.PutItem(...)`, which writes a struct into an in-memory table, and then encodes a real DynamoDB response back out.
+
+The SDK unmarshals that response with its normal machinery and returns you a `*dynamodb.PutItemOutput`. From your code's point of view, nothing is different. That round-trip — decode real protocol → call driver → mutate memory → encode real protocol — *is* the product. Everything below exists to keep that trip honest across four clouds and hundreds of services.
+
+## The three layers, and why they're boring on purpose
+
+Under the wire server is a small three-layer core. We fought hard to keep it boring, because boring is what lets one team cover AWS, Azure, GCP, OCI **and** a Kubernetes data plane without the whole thing collapsing into special cases.
+
+### Bottom: provider mocks, backed by one little store
+
+The actual implementations live here. Each provider hands you its services as typed fields:
+
+```go
+// providers/aws/aws.go
+type Provider struct {
+    S3         *s3.Mock
+    EC2        *ec2.Mock
+    DynamoDB   *dynamodb.Mock
+    Lambda     *lambda.Mock
+    CloudWatch *cloudwatch.Mock
+    // … 200+ service implementations across AWS, Azure, GCP and OCI
+}
+```
+
+Every one of those mocks is built on the same primitive: a generic, thread-safe `memstore.Store[V]` — a typed map with a lock. That's the "database." A bucket, an instance, a queue message, a table row: each is a value in one of these stores. No disk, no daemon, no serialization tax on the hot path. That's where the millisecond latency comes from — a call is, quite literally, a function call and a map write.
+
+### Middle: the driver — the one wall that holds everything up
+
+Each service category defines a minimal Go interface that every provider implements:
+
+```go
+// services/compute/driver/driver.go
+type Compute interface {
+    RunInstances(ctx context.Context, cfg InstanceConfig, count int) ([]Instance, error)
+    StopInstances(ctx context.Context, ids []string) error
+    TerminateInstances(ctx context.Context, ids []string) error
+}
+```
+
+This is the load-bearing wall. **Everything above it consumes drivers** — the HTTP server, the in-process Go API, the chaos engine, the topology engine. Which buys us the single best property in the codebase: a behavior you implement once, in a provider mock behind the driver, *automatically shows up in every consumer.* Add FIFO deduplication to the SQS mock, and the standalone server, the in-process tests, and the chaos-wrapped path all get it at once. No plumbing.
+
+<Callout type="info">
+This is the reason cloudemu can be small and still broad. New capability goes in *one* place — the driver's implementation — and the whole surface inherits it.
+</Callout>
+
+### Top: the wire server, the surface you actually point at
+
+The `server/` package wraps drivers with handlers that speak each cloud's real protocol — and there are more of those than people expect:
+
+<WireProtocols />
+
+AWS alone isn't one protocol; it's query→XML (EC2, older services), JSON-RPC (DynamoDB, SQS), and Smithy rpc-v2-CBOR (newer ones). Azure is ARM JSON. GCP is REST with long-running operation polling. Each handler is a self-contained package — `server/aws/s3`, `server/azure/cosmos`, `server/gcp/pubsub` — and adding a service is *one new package and one `Register` call.* The dispatcher matches first-wins; the core never changes.
+
+## Same core, three altitudes
+
+Because it's all just Go underneath, you reach it at whatever height your situation wants:
+
+1. **Standalone server / Docker** — `cloudemu serve`. A long-lived local cloud you aim any app, CLI, SDK (any language), or Terraform config at. This is the recommended way, and it's what CI usually wants.
+2. **In-process, inside your Go tests** — host the exact same server with `httptest.NewServer(...)` and point the client at `ts.URL`. No daemon, no Docker, no teardown script — the server dies with the test. And the wire path is byte-for-byte identical to running it standalone, so you're testing the real thing, not a stub.
+3. **Typed Go API** — skip the wire entirely and call drivers directly, with cross-cutting concerns layered on top:
+
+<PortableFlow />
+
+The Portable API is where recording, metrics, latency simulation, and error injection wrap the driver as opt-in decorators. Same drivers underneath all three altitudes — you're never testing a different implementation, only reaching the same one differently.
+
+## It models behavior, not just storage
+
+A mock that only stores and returns values quietly lies to you — your code's error handling never runs. cloudemu models the *behavior*, and because it lives in the driver layer, every surface inherits it:
+
+- **State machines.** A VM walks `pending → running → stopping → stopped → terminated`. Try to start a terminated instance and you get the real `FailedPrecondition`, not a cheerful `200`.
+- **Auto-metrics.** `RunInstances` pushes CPU / network / disk datapoints into CloudWatch on its own; start/stop/terminate emit lifecycle values. Your dashboards and alarms have something to chew on.
+- **Alarms evaluate** on every `PutMetricData`, flipping between `OK` and `ALARM`.
+- **FIFO dedup windows, dead-letter redrive, TTL expiry, change-feed records, numeric-aware query filters** — all real, all in the driver.
+
+These aren't bolted-on flourishes; they're the difference between a test that passes because your code is correct and one that passes because the mock was too polite to disagree.
+
+## The part we actually built it for: breaking things
+
+Here's the uncomfortable truth about cloud code: the happy path is the easy 90%. Incidents come from the other 10% — the throttle during a deploy, the 700ms of tail latency, the dependency that returned a 500 twice then recovered, the region that blinked. A normal emulator can't reproduce any of that. cloudemu can, because failure is *also* just a driver consumer.
+
+<ChaosTimeline />
+
+- **Chaos engine** — schedule outages, latency spikes, throttling, and probabilistic errors inside real time windows, scoped to a single operation or a whole service, with automatic recovery when the window closes. Your retry/backoff/circuit-breaker code finally executes against something that actually fails.
+- **Network topology** — ask `CanConnect(ec2, rds, 5432)` and get a real answer computed from VPC membership, subnets, security-group rules, ACLs, and peering — plus `TraceRoute` and `Resolve`. When it says *blocked*, it tells you *which rule* blocked it.
+- **Fake clock** — advance time by hand. TTLs expire, dedup windows close, and alarms fire *on command* instead of on wall-clock time. A test for "does this token expire correctly?" runs in a microsecond, deterministically.
+- **Call recorder** — every call's inputs, outputs, and timing captured, asserted against with a fluent API. No spies to wire up.
+
+> Most emulators let you *use* cloud services. cloudemu also lets you **break them on purpose** — which, if we're honest, is where the bugs that page you actually live.
+
+## Why it stays fast and dependency-free
+
+Two decisions do most of the work:
+
+- **In-memory, not containers.** State is a Go map behind a mutex, so there's no engine to boot and no image to pull — a call is a function call. When you genuinely need real-engine fidelity for a specific service, that's available as an *opt-in*, not the default tax everyone pays.
+- **Zero runtime dependencies.** cloudemu's runtime is standard-library only. The official cloud SDKs appear solely in `_test.go` files, where we use them to prove round-trip compatibility. Import cloudemu into your project and you pull in none of them — which is exactly what you want in CI, and increasingly, in AI agents that spin up a clean cloud per run.
+
+## The shape of it
+
+Strip away the details and it's four ideas stacked on each other: **real protocols** on top, a **boring driver contract** in the middle, **in-memory stores** at the bottom, and a few **deliberately dangerous tools** bolted onto the same contract. That's what lets the same program be a Terraform target, a Go unit-test dependency, a Docker service, and a chaos lab — without ever being four different codebases.
+
+Want to watch it move? [Bring a cloud up in a couple of minutes](/docs/quick-start), read the [architecture reference](/docs/architecture), or skip straight to the fun and [break something on purpose](/docs/chaos).
+
+---
+
+*Written by **Nitin Kumar Patel**.*
