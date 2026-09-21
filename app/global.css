@@ -364,6 +364,17 @@ samp {
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
+/* provider → core connector wires + the packet that pulses down each one */
+.iso-wire {
+  stroke: color-mix(in srgb, var(--ember) 32%, transparent);
+  stroke-width: 1.2;
+  stroke-dasharray: 3 4;
+  fill: none;
+}
+.iso-pulse {
+  fill: var(--ember);
+  filter: drop-shadow(0 0 3px color-mix(in srgb, var(--ember) 60%, transparent));
+}
 /* provider name etched into the cube's top face — skewed onto the iso plane,
    faded so it reads as embossed rather than a sticker */
 .fc-inlabel {

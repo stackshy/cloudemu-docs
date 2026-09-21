@@ -1,5 +1,7 @@
 'use client';
 
+import { useEffect, useState } from 'react';
+
 /**
  * IsoMemory — the "Review Failures" pattern: a solid 3×3×3 isometric memory block
  * (subdivided wireframe, ember-tinted per the logo) with dashed iso guides, and
@@ -36,6 +38,14 @@ const FLOATERS = [
 
 export function IsoMemory() {
   const cx = v(1.5, 1.5, 1.5);
+  // centre of the block's top face — where every provider wire lands (the socket)
+  const core = v(1.5, 1.5, N);
+
+  // gate the SMIL pulses on reduced-motion (SMIL can't read the CSS media query)
+  const [motion, setMotion] = useState(false);
+  useEffect(() => {
+    setMotion(!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
+  }, []);
 
   // solid block: subdivided top / left / right faces
   const grid: React.ReactNode[] = [];
@@ -80,6 +90,48 @@ export function IsoMemory() {
             <polygon points={P([v(0, N, 0), v(N, N, 0), v(N, N, N), v(0, N, N)])} />
             <polygon points={P([v(N, 0, 0), v(N, N, 0), v(N, N, N), v(N, 0, N)])} />
             <polygon points={P([v(0, 0, N), v(N, 0, N), v(N, N, N), v(0, N, N)])} />
+          </g>
+
+          {/* connector wires: a pulse travels from each provider cube into the core */}
+          <g className="iso-wires">
+            {FLOATERS.map((f, i) => {
+              const from = v(f.a + 0.5, f.b + 0.5, f.c + 0.5);
+              const path = `M ${from.x.toFixed(1)} ${from.y.toFixed(1)} L ${core.x.toFixed(1)} ${core.y.toFixed(1)}`;
+              const begin = `${(i * 0.6).toFixed(2)}s`;
+              return (
+                <g key={`w${i}`}>
+                  <line
+                    className="iso-wire"
+                    x1={from.x.toFixed(1)}
+                    y1={from.y.toFixed(1)}
+                    x2={core.x.toFixed(1)}
+                    y2={core.y.toFixed(1)}
+                  />
+                  {motion && (
+                    <circle className="iso-pulse" r="3.4">
+                      <animateMotion
+                        dur="2.4s"
+                        begin={begin}
+                        repeatCount="indefinite"
+                        path={path}
+                        calcMode="spline"
+                        keyPoints="0;1"
+                        keyTimes="0;1"
+                        keySplines="0.4 0 0.2 1"
+                      />
+                      <animate
+                        attributeName="opacity"
+                        dur="2.4s"
+                        begin={begin}
+                        repeatCount="indefinite"
+                        values="0;1;1;0"
+                        keyTimes="0;0.12;0.82;1"
+                      />
+                    </circle>
+                  )}
+                </g>
+              );
+            })}
           </g>
 
           {/* detached floating cubes */}
