@@ -73,7 +73,8 @@ client := s3.NewFromConfig(cfg, func(o *s3.Options) {
     command: `go run ./cmd/cloudemu serve
 #   AWS     http://127.0.0.1:4566
 #   Azure   https://127.0.0.1:4568
-#   GCP     http://127.0.0.1:4569`,
+#   GCP     http://127.0.0.1:4569
+#   K8s     https://127.0.0.1:4570`,
   },
   {
     id: 'docker',
@@ -84,7 +85,7 @@ client := s3.NewFromConfig(cfg, func(o *s3.Options) {
     languages: 'Any language',
     lang: 'bash',
     command: `docker run --rm \\
-  -p 4566:4566 -p 4568:4568 -p 4569:4569 \\
+  -p 4566:4566 -p 4568:4568 -p 4569:4569 -p 4570:4570 \\
   ghcr.io/stackshy/cloudemu:latest`,
   },
 ];

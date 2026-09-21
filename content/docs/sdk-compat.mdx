@@ -363,7 +363,7 @@ The `Handler` interface is the only contract — no registration is needed in co
 
 ## Limitations
 
-- **No signature validation.** cloudemu is a local development tool, not a security boundary. Requests are accepted regardless of AWS SigV4 / Azure AAD / GCP OAuth signatures.
+- **Signature validation is off by default.** With no flags, requests are accepted regardless of AWS SigV4 / Azure AAD / GCP OAuth signatures, so local development just works. Opt in with `--enforce-auth`: AWS then verifies SigV4 against registered IAM access keys (403 on failure) and enforces IAM authorization for JSON-RPC services, and Azure validates Bearer JWT claims (audience/expiry/principal, 401 on failure). It's a development aid for exercising auth-failure paths, not a hardened security boundary — STS temporary credentials aren't cryptographically verified and GCP/Azure request signatures aren't checked.
 - **No AMQP for Azure Service Bus.** The modern `azservicebus` SDK uses AMQP exclusively for data plane. ARM control plane is fully supported via `armservicebus`; tests that need send/receive can use the raw-HTTP REST data plane.
 - **GCS direct-media downloads** assume path-style URLs.
 - **DynamoDB / Cosmos / Firestore** filters and queries support common patterns but are not full DSL parsers.

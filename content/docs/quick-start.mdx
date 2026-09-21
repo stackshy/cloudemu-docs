@@ -37,13 +37,13 @@ cloudemu — standalone server
   AWS         http://127.0.0.1:4566
   Azure       https://127.0.0.1:4568   (self-signed TLS)
   GCP         http://127.0.0.1:4569
-  Kubernetes  http://127.0.0.1:4570
+  Kubernetes  https://127.0.0.1:4570  (self-signed TLS)
 ```
 
 Or with Docker, no Go required:
 
 ```bash
-docker run --rm -p 4566:4566 -p 4568:4568 -p 4569:4569 ghcr.io/stackshy/cloudemu:latest
+docker run --rm -p 4566:4566 -p 4568:4568 -p 4569:4569 -p 4570:4570 ghcr.io/stackshy/cloudemu:latest
 ```
 
 ## Point your app at it

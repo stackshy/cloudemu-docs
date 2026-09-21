@@ -30,7 +30,7 @@ cloudemu — standalone server
   AWS         http://127.0.0.1:4566
   Azure       https://127.0.0.1:4568   (self-signed TLS)
   GCP         http://127.0.0.1:4569
-  Kubernetes  http://127.0.0.1:4570
+  Kubernetes  https://127.0.0.1:4570  (self-signed TLS)
 ```
 
 ## Docker
@@ -38,7 +38,7 @@ cloudemu — standalone server
 No Go toolchain needed — pull the published image (it runs `serve --host 0.0.0.0`):
 
 ```bash
-docker run --rm -p 4566:4566 -p 4568:4568 -p 4569:4569 ghcr.io/stackshy/cloudemu:latest
+docker run --rm -p 4566:4566 -p 4568:4568 -p 4569:4569 -p 4570:4570 ghcr.io/stackshy/cloudemu:latest
 ```
 
 Or bring up the whole emulated cloud with the example compose file:
@@ -68,7 +68,7 @@ ctr.Reset(ctx)                      // clean slate between tests
 | AWS        | `4566`  | HTTP     | same port LocalStack uses             |
 | Azure      | `4568`  | HTTPS    | the ARM SDK requires TLS              |
 | GCP        | `4569`  | HTTP     |                                       |
-| Kubernetes | `4570`  | HTTP     | shared data-plane for EKS / AKS / GKE |
+| Kubernetes | `4570`  | HTTPS    | shared data-plane for EKS / AKS / GKE (self-signed TLS) |
 
 Override any of them with `--aws-port`, `--azure-port`, `--gcp-port`, `--k8s-port`. Start a subset with `--providers=aws,gcp`, and bind an interface with `--host 0.0.0.0` (the default `127.0.0.1` keeps it local-only).
 
@@ -179,6 +179,12 @@ aws rds create-db-instance …                    # → a real Postgres you can 
 
 Every engine defaults **off**, so with no flags it's the same in-memory server. See [Real Engines](/docs/real-engines) for the full list and the no-Docker vs Docker split.
 
-## State is in-memory
+## State, persistence & seeding
 
-The server holds all state in memory and starts empty on each run — there's no built-in seeding or persistence across restarts. Your test or app creates the resources it needs after the server starts.
+By default the server holds all state in memory and starts empty on each run — ideal for isolated tests. Persistence and seeding are opt-in:
+
+- **Persist across restarts.** `--persist --state-file ./state.json` saves the whole cloud (across AWS, Azure, GCP and OCI) on shutdown and restores it — identity-preserving — on the next start. Tune *when* it saves with `--persist-strategy` (`scheduled` \| `on-request` \| `on-shutdown` \| `manual`) and `--persist-interval`; `--persist-metadata-only` keeps structure but drops object bodies for a smaller snapshot.
+- **Snapshot on demand.** `cloudemu snapshot save <name>` / `load <name>` / `list` / `delete` freeze and restore named states against a running server.
+- **Seed fixtures on startup.** `--init-dir ./fixtures` applies every `*.json` seed fixture in a directory when the server boots, so an environment comes up pre-populated.
+
+The in-memory default stays ephemeral; nothing is written unless you opt in.
