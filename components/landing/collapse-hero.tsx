@@ -80,7 +80,7 @@ export function CollapseHero() {
       <div className="cl-dock on" aria-label="Run a command">
         {COMMANDS.map((c) => (
           <button key={c.id} className="cl-chip" onClick={() => fireToast(c)}>
-            <span className="p">$</span> {c.cmd}
+            {c.cmd}
           </button>
         ))}
       </div>
