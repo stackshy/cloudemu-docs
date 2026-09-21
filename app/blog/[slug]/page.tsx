@@ -7,6 +7,10 @@ import { blogSource } from '@/lib/source';
 import { CodePre } from '@/components/code/pre';
 import { Callout } from '@/components/docs/callout';
 import { mdxHeadings } from '@/components/docs/heading';
+import { RequestFlow } from '@/components/diagrams/request-flow';
+import { WireProtocols } from '@/components/diagrams/wire-protocols';
+import { PortableFlow } from '@/components/diagrams/portable-flow';
+import { ChaosTimeline } from '@/components/diagrams/chaos-timeline';
 import { JsonLd } from '@/components/seo/json-ld';
 import { blogPostingLd } from '@/lib/seo';
 
@@ -68,6 +72,10 @@ export default async function BlogPostPage(props: {
               ...mdxHeadings,
               pre: CodePre,
               Callout,
+              RequestFlow,
+              WireProtocols,
+              PortableFlow,
+              ChaosTimeline,
             }}
           />
         </div>

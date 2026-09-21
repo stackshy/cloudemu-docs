@@ -1,0 +1,101 @@
+---
+title: "How cloudemu works: the whole cloud, in memory"
+description: A tour of the architecture — real cloud wire protocols on top of a deliberately boring in-memory core.
+date: 2026-09-22
+---
+
+# How cloudemu works: the whole cloud, in memory
+
+Here's the whole trick, up front: **cloudemu is a Go program that speaks the real cloud wire protocols, backed by nothing but in-memory maps.** Your `aws-sdk-go-v2`, `azure-sdk-for-go`, `cloud.google.com/go`, the AWS CLI, Terraform — they all think they're talking to the real thing. They're talking to a struct in RAM that answers in single-digit milliseconds.
+
+No accounts. No Docker daemon required. No network. Just the cloud's behavior, collapsed into memory.
+
+Let's trace a call from the top and see how it holds together.
+
+## Follow a request down
+
+<RequestFlow />
+
+An unmodified SDK client sends a real request — say `s3:PutObject` as AWS's REST-XML, or `dynamodb:PutItem` as JSON-RPC. cloudemu's HTTP server decodes it with the same wire codec the real service uses, calls a small Go interface, mutates an in-memory store, and encodes a real response back. The SDK is none the wiser. That round-trip is the entire product; everything below is how we keep it honest.
+
+## A deliberately boring core
+
+Under the wire server sits a three-layer core. We kept it boring on purpose — boring is what lets it span four clouds without turning into spaghetti.
+
+**Provider mocks (the bottom).** The actual in-memory implementations. Every provider exposes its services as typed fields:
+
+```go
+// providers/aws/aws.go
+type Provider struct {
+    S3         *s3.Mock
+    EC2        *ec2.Mock
+    DynamoDB   *dynamodb.Mock
+    Lambda     *lambda.Mock
+    CloudWatch *cloudwatch.Mock
+    // … 200+ service implementations across AWS, Azure, GCP and OCI
+}
+```
+
+Each mock is backed by a generic, thread-safe `memstore.Store[V]` — a typed key-value map with a lock. That's the "database." A bucket, an instance, a table row: each is a struct in one of these stores.
+
+**Driver interfaces (the contract).** Every service category defines a minimal Go interface that all providers implement:
+
+```go
+// services/compute/driver/driver.go
+type Compute interface {
+    RunInstances(ctx context.Context, cfg InstanceConfig, count int) ([]Instance, error)
+    StopInstances(ctx context.Context, ids []string) error
+    TerminateInstances(ctx context.Context, ids []string) error
+}
+```
+
+This driver layer is the one load-bearing wall. Everything above it — the HTTP server, the in-process API, the chaos engine, the topology engine — consumes drivers. So a behavior you add once in a provider mock **lights up in every consumer at once.** Write it in the driver, and the SDK server, the Go API, and the failure tooling all inherit it for free.
+
+**The wire server (the primary surface).** The `server/` package wraps drivers with handlers that speak each cloud's actual protocol.
+
+<WireProtocols />
+
+That's five real wire formats — AWS query→XML, AWS JSON-RPC, Smithy rpc-v2-CBOR, Azure ARM JSON, GCP REST with operation polling — each a self-contained handler package (`server/aws/s3`, `server/azure/cosmos`, `server/gcp/pubsub`, …). Adding a service is *one new package and one `Register` call*; the core never changes.
+
+## Three ways to run the same thing
+
+Because the core is just Go, you can reach it at whatever altitude your test wants:
+
+1. **Standalone server / Docker** — `cloudemu serve`. A long-lived local cloud you point any app, CLI, or SDK at, in any language. This is the recommended surface.
+2. **In-process, in your Go tests** — host the same server with `httptest.NewServer(...)` and point the client at `ts.URL`. No daemon, no Docker, no cleanup. The wire path is byte-for-byte identical to the standalone server.
+3. **Typed Go API** — skip the wire entirely and call the drivers directly, with cross-cutting concerns (recording, metrics, latency, error injection) layered on:
+
+<PortableFlow />
+
+Same drivers underneath all three. Pick the one that fits the test in front of you.
+
+## It's not just CRUD
+
+A mock that only stores and returns values teaches your code nothing. cloudemu models the *behavior*, all in the driver layer so both surfaces inherit it:
+
+- **State machines** — a VM walks `pending → running → stopping → stopped`. Start a terminated instance and you get a real error, not a shrug.
+- **Auto-metrics** — `RunInstances` pushes CPU / network / disk datapoints into CloudWatch on its own; start/stop/terminate emit lifecycle values.
+- **Alarms** evaluate on every `PutMetricData`, flipping between `OK` and `ALARM`.
+- **FIFO dedup windows, DLQ redrive, TTL expiry, change-feed records, numeric-aware filters** — all real, all in the driver.
+
+## The part we actually love: breaking it
+
+Most production incidents don't come from the happy path — they come from the timeout, the throttle, the half-second of latency, the region that blinked. A normal emulator can't reproduce those. cloudemu can, because failure tooling is *also* just a driver consumer.
+
+<ChaosTimeline />
+
+- **Chaos engine** — schedule outages, latency spikes, throttling and probabilistic errors inside real time windows, scoped to one operation or a whole service, with automatic recovery. Your retry and backoff code finally runs for real.
+- **Network topology** — `CanConnect`, `TraceRoute`, `Resolve` across VPCs, subnets, security groups, ACLs and peering. Ask *why* a connection is blocked and get the rule that blocked it.
+- **Fake clock** — advance time by hand. TTLs expire, dedup windows close, and alarms fire *on command*, not on wall-clock time.
+- **Call recorder** — every call's inputs, outputs and timing recorded, asserted against with a fluent API.
+
+## Why it stays fast (and dependency-free)
+
+Two decisions keep it honest:
+
+- **In-memory, not containers.** State is a Go map behind a mutex. There's no engine to boot, so a call is a function call — single-digit milliseconds. When you *do* want true fidelity for a specific service, real engines are opt-in.
+- **Zero runtime dependencies.** cloudemu's runtime is standard-library only. The official cloud SDKs show up only in `_test.go` files to prove round-trip compatibility — import cloudemu in production and you pull none of them in.
+
+That's the whole shape of it: real protocols on top, a boring driver contract in the middle, in-memory stores at the bottom, and a few sharp tools bolted onto the same contract so you can push the thing until it breaks.
+
+Want to see it move? [Start in a couple of minutes](/docs/quick-start), or read the [full architecture reference](/docs/architecture).
