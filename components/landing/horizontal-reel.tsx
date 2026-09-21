@@ -3,11 +3,11 @@
 import { useEffect, useRef } from 'react';
 
 /**
- * HorizontalReel — a horizontal strip of behavior cards you swipe or scroll
- * through, at every screen size. Native overflow-scroll with scroll-snap keeps
- * it reliable (no scroll-jacking): trackpad/touch swipe directly, a mouse wheel
- * over the strip is translated to horizontal travel, and a drag-to-pan handler
- * makes it tactile with a plain mouse too.
+ * HorizontalReel — a pinned horizontal-scroll section. While the viewport is
+ * inside it, the section sticks and the track glides right-to-left (eased),
+ * mapping vertical scroll → horizontal travel; then it releases and normal
+ * scroll resumes. Below 900px it falls back to a native horizontal swipe (no
+ * scroll-jacking on touch). Reduced motion → direct mapping, no easing.
  */
 
 type Viz = 'chaos' | 'state' | 'err' | 'wave' | 'clock' | 'deps';
@@ -64,79 +64,84 @@ function BehaviorViz({ kind }: { kind: Viz }) {
 }
 
 export function HorizontalReel() {
+  const outerRef = useRef<HTMLElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    const outer = outerRef.current;
     const track = trackRef.current;
-    if (!track) return;
+    if (!outer || !track) return;
+    const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
-    // Translate a vertical mouse wheel into horizontal travel while the pointer
-    // is over the strip, so wheel users can move through it without shift.
-    const onWheel = (e: WheelEvent) => {
-      if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return; // already horizontal
-      const max = track.scrollWidth - track.clientWidth;
-      if (max <= 0) return;
-      const atStart = track.scrollLeft <= 0;
-      const atEnd = track.scrollLeft >= max - 1;
-      // only capture when there is room to travel in the wheel's direction
-      if ((e.deltaY < 0 && atStart) || (e.deltaY > 0 && atEnd)) return;
-      e.preventDefault();
-      track.scrollLeft += e.deltaY;
-    };
+    let raf = 0;
+    let targetX = 0;
+    let curX = 0;
+    const desktop = () => window.innerWidth >= 900;
 
-    // Drag-to-pan for a plain mouse.
-    let down = false;
-    let startX = 0;
-    let startLeft = 0;
-    const onDown = (e: PointerEvent) => {
-      if (e.pointerType === 'touch') return; // native touch handles itself
-      down = true;
-      startX = e.clientX;
-      startLeft = track.scrollLeft;
-      track.classList.add('is-dragging');
-    };
-    const onMove = (e: PointerEvent) => {
-      if (!down) return;
-      track.scrollLeft = startLeft - (e.clientX - startX);
-    };
-    const onUp = () => { down = false; track.classList.remove('is-dragging'); };
+    function distance() {
+      return Math.max(0, track!.scrollWidth - window.innerWidth);
+    }
+    function layout() {
+      if (!desktop()) {
+        outer!.style.height = '';
+        track!.style.transform = '';
+        return;
+      }
+      // vertical room == horizontal travel, so 1px scroll = 1px slide
+      outer!.style.height = window.innerHeight + distance() + 'px';
+      onScroll();
+    }
+    function onScroll() {
+      if (!desktop()) return;
+      const total = outer!.offsetHeight - window.innerHeight;
+      const prog = total > 0 ? Math.min(1, Math.max(0, -outer!.getBoundingClientRect().top / total)) : 0;
+      targetX = -prog * distance();
+      if (reduce) { curX = targetX; track!.style.transform = `translateX(${curX}px)`; }
+    }
+    function tick() {
+      curX += (targetX - curX) * 0.12;
+      track!.style.transform = `translateX(${curX}px)`;
+      raf = requestAnimationFrame(tick);
+    }
 
-    track.addEventListener('wheel', onWheel, { passive: false });
-    track.addEventListener('pointerdown', onDown);
-    window.addEventListener('pointermove', onMove);
-    window.addEventListener('pointerup', onUp);
+    layout();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', layout);
+    if (!reduce) raf = requestAnimationFrame(tick);
+
     return () => {
-      track.removeEventListener('wheel', onWheel);
-      track.removeEventListener('pointerdown', onDown);
-      window.removeEventListener('pointermove', onMove);
-      window.removeEventListener('pointerup', onUp);
+      cancelAnimationFrame(raf);
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', layout);
     };
   }, []);
 
   return (
-    <section className="hr-outer">
-      <div className="hr-track" ref={trackRef}>
-        <div className="hr-panel hr-intro">
-          <div className="cl-k">02 — behaviors</div>
-          <h2 className="cl-h2 mt-3.5">Not a mock. A cloud you can <span className="em">push until it breaks</span>.</h2>
-          <p className="cl-lead">It enforces lifecycle, throttles under load, injects outages and bends time — the failure paths your retries otherwise never run.</p>
-          <div className="hr-hint">drag / scroll →</div>
-        </div>
-        {PANELS.map((p) => (
-          <div className="hr-panel" key={p.n}>
-            <div className="hr-card">
-              <div className="hr-top">
-                <span className="hr-n">{p.n}</span>
-                <span className="hr-tag">{p.tag}</span>
-              </div>
-              <div className="hr-viz-wrap" aria-hidden="true"><BehaviorViz kind={p.viz} /></div>
-              <div className="hr-foot">
-                <h3 className="hr-name">{p.name}</h3>
-                <p className="hr-desc">{p.desc}</p>
+    <section className="hr-outer" ref={outerRef}>
+      <div className="hr-sticky">
+        <div className="hr-track" ref={trackRef}>
+          <div className="hr-panel hr-intro">
+            <div className="cl-k">02 — behaviors</div>
+            <h2 className="cl-h2 mt-3.5">Not a mock. A cloud you can <span className="em">push until it breaks</span>.</h2>
+            <p className="cl-lead">It enforces lifecycle, throttles under load, injects outages and bends time — the failure paths your retries otherwise never run.</p>
+            <div className="hr-hint">drag / scroll →</div>
+          </div>
+          {PANELS.map((p) => (
+            <div className="hr-panel" key={p.n}>
+              <div className="hr-card">
+                <div className="hr-top">
+                  <span className="hr-n">{p.n}</span>
+                  <span className="hr-tag">{p.tag}</span>
+                </div>
+                <div className="hr-viz-wrap" aria-hidden="true"><BehaviorViz kind={p.viz} /></div>
+                <div className="hr-foot">
+                  <h3 className="hr-name">{p.name}</h3>
+                  <p className="hr-desc">{p.desc}</p>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     </section>
   );
