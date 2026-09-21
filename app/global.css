@@ -829,8 +829,9 @@ samp {
   margin-top: auto;
   min-width: 0;
   max-width: 100%;
-  background: var(--text-1);
-  color: #e9e6db;
+  background: var(--bg-3);
+  color: var(--terminal-ink);
+  border: 1px solid var(--border);
   border-radius: 10px;
   padding: 13px 14px;
   font-family: var(--font-mono);
@@ -839,10 +840,10 @@ samp {
   overflow-x: auto;
 }
 .cl-way pre .p {
-  color: #8b8d81;
+  color: var(--text-3);
 }
 .cl-way pre .em {
-  color: #ff8a5c;
+  color: var(--accent);
 }
 
 /* §05 "three ways to run it" — an editorial spec-sheet rather than three filled
@@ -962,8 +963,9 @@ samp {
   margin: 0;
   min-width: 0;
   max-width: 100%;
-  background: var(--text-1);
-  color: #e9e6db;
+  background: var(--bg-3);
+  color: var(--terminal-ink);
+  border: 1px solid var(--border);
   border-radius: 10px;
   padding: 13px 14px;
   font-family: var(--font-mono);
@@ -973,10 +975,10 @@ samp {
   overflow-x: auto;
 }
 .cl-persist pre .p {
-  color: #8b8d81;
+  color: var(--text-3);
 }
 .cl-persist pre .em {
-  color: #ff8a5c;
+  color: var(--accent);
 }
 @media (max-width: 860px) {
   .cl-persist {
@@ -1632,8 +1634,9 @@ samp {
 .cl-sdk-code {
   margin: 0;
   min-width: 0; /* let the grid track shrink; the pane scrolls, never clips the row */
-  background: var(--text-1);
-  color: #e9e6db;
+  background: var(--bg-3);
+  color: var(--terminal-ink);
+  border: 1px solid var(--border);
   border-radius: 10px;
   padding: 12px 14px;
   font-family: var(--font-mono);
@@ -1642,7 +1645,7 @@ samp {
   overflow-x: auto;
 }
 .cl-sdk-code .k {
-  color: #ff8a5c;
+  color: var(--accent);
 }
 @media (max-width: 640px) {
   .cl-sdk-row {
