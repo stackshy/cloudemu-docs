@@ -30,7 +30,7 @@ cloudemu — standalone server
   AWS         http://127.0.0.1:4566
   Azure       https://127.0.0.1:4568   (self-signed TLS)
   GCP         http://127.0.0.1:4569
-  Kubernetes  http://127.0.0.1:4570
+  Kubernetes  https://127.0.0.1:4570  (self-signed TLS)
 ```
 
 ## Docker
@@ -38,7 +38,7 @@ cloudemu — standalone server
 No Go toolchain needed — pull the published image (it runs `serve --host 0.0.0.0`):
 
 ```bash
-docker run --rm -p 4566:4566 -p 4568:4568 -p 4569:4569 ghcr.io/stackshy/cloudemu:latest
+docker run --rm -p 4566:4566 -p 4568:4568 -p 4569:4569 -p 4570:4570 ghcr.io/stackshy/cloudemu:latest
 ```
 
 Or bring up the whole emulated cloud with the example compose file:
@@ -68,7 +68,7 @@ ctr.Reset(ctx)                      // clean slate between tests
 | AWS        | `4566`  | HTTP     | same port LocalStack uses             |
 | Azure      | `4568`  | HTTPS    | the ARM SDK requires TLS              |
 | GCP        | `4569`  | HTTP     |                                       |
-| Kubernetes | `4570`  | HTTP     | shared data-plane for EKS / AKS / GKE |
+| Kubernetes | `4570`  | HTTPS    | shared data-plane for EKS / AKS / GKE (self-signed TLS) |
 
 Override any of them with `--aws-port`, `--azure-port`, `--gcp-port`, `--k8s-port`. Start a subset with `--providers=aws,gcp`, and bind an interface with `--host 0.0.0.0` (the default `127.0.0.1` keeps it local-only).
 
@@ -126,22 +126,34 @@ Bring your own cert with `--tls-cert` / `--tls-key`, or add SAN hosts to the gen
 
 | Flag                                                    | Default          | Purpose                                        |
 | ------------------------------------------------------- | ---------------- | ---------------------------------------------- |
-| `--providers`                                           | `aws,azure,gcp`  | which providers to start                       |
+| `--providers`                                           | `aws,azure,gcp`  | which providers to start (`oci` is opt-in — add it explicitly) |
 | `--host`                                                | `127.0.0.1`      | bind interface (`0.0.0.0` to expose)           |
+| `--advertise-host`                                      | `--host` (or `127.0.0.1` if binding `0.0.0.0`) | host/IP the Kubernetes data-plane endpoint and its TLS cert advertise — set a routable address when binding `0.0.0.0` or running under Docker |
 | `--account-id` / `--region` / `--project-id`            | defaults         | identity reported by the emulator              |
+| `--oci-port`                                            | `4571`           | port for the OCI endpoint (HTTP); only bound when `oci` is in `--providers` |
+| `--gcp-grpc-port`                                       | off              | port for a GCP gRPC transport (health + reflection); point `BIGTABLE_EMULATOR_HOST` / `PUBSUB_EMULATOR_HOST` clients here |
 | `--latency`                                             | `0`              | artificial per-call latency (e.g. `20ms`)      |
+| `--tls-cert` / `--tls-key`                              | self-signed      | bring your own cert for the HTTPS endpoints (must be given together) |
+| `--tls-host`                                            | —                | extra SAN host/IP for the generated self-signed cert (repeatable) |
 | `--endpoints-file`                                      | —                | write the resolved endpoints as JSON           |
 | `--admin`                                               | `true`           | mount the `/_cloudemu` control plane           |
-| `--shutdown-timeout`                                    | default          | grace period for in-flight requests on exit    |
+| `--init-dir`                                            | —                | apply every `*.json` seed fixture in this directory on startup |
+| `--persist` / `--state-file` / `--persist-strategy` / `--persist-interval` / `--persist-metadata-only` | off | save/restore state across restarts — see [State, persistence & seeding](#state-persistence--seeding) |
+| `--vcr` / `--vcr-cassette` / `--vcr-strict`              | off              | record or replay the wire protocol — see [VCR record/replay](#vcr-recordreplay) |
+| `--shutdown-timeout`                                    | `10s`            | grace period for in-flight requests on exit    |
 | `--log-requests` / `--quiet`                            | off              | request logging / suppress the banner          |
+| `--enforce-auth`                                        | off              | require authentication on each request — see [Auth Enforcement](/docs/security) |
 
-`--endpoints-file cloudemu.json` writes a machine-readable bundle so an app can be wired at the whole emulated cloud at once:
+`--endpoints-file cloudemu.json` writes a machine-readable bundle so an app can be wired at the whole emulated cloud at once. Providers you didn't start are simply omitted:
 
 ```json
 {
   "aws": "http://127.0.0.1:4566",
   "azure": "https://127.0.0.1:4568",
-  "gcp": "http://127.0.0.1:4569"
+  "gcp": "http://127.0.0.1:4569",
+  "gcp_grpc": "127.0.0.1:4572",
+  "oci": "http://127.0.0.1:4571",
+  "kubernetes": "https://127.0.0.1:4570"
 }
 ```
 
@@ -179,6 +191,28 @@ aws rds create-db-instance …                    # → a real Postgres you can 
 
 Every engine defaults **off**, so with no flags it's the same in-memory server. See [Real Engines](/docs/real-engines) for the full list and the no-Docker vs Docker split.
 
-## State is in-memory
+## State, persistence & seeding
 
-The server holds all state in memory and starts empty on each run — there's no built-in seeding or persistence across restarts. Your test or app creates the resources it needs after the server starts.
+By default the server holds all state in memory and starts empty on each run — ideal for isolated tests. Persistence and seeding are opt-in:
+
+- **Persist across restarts.** `--persist --state-file ./state.json` saves the whole cloud (across AWS, Azure, GCP and OCI) on shutdown and restores it — identity-preserving — on the next start. Tune *when* it saves with `--persist-strategy` (`scheduled` \| `on-request` \| `on-shutdown` \| `manual`) and `--persist-interval`; `--persist-metadata-only` keeps structure but drops object bodies for a smaller snapshot.
+- **Snapshot on demand.** [`cloudemu snapshot save <name>` / `load <name>` / `list` / `delete`](/docs/cli#snapshot-flow) freeze and restore named states against a running server.
+- **Seed fixtures on startup.** `--init-dir ./fixtures` applies every `*.json` seed fixture in a directory when the server boots, so an environment comes up pre-populated.
+
+The in-memory default stays ephemeral; nothing is written unless you opt in.
+
+## VCR record/replay
+
+`--vcr record --vcr-cassette ./calls.json` captures every request/response the server handles into a JSON cassette file, written on shutdown. `--vcr replay --vcr-cassette ./calls.json` serves those recorded responses back verbatim instead of running the real handlers — useful for a deterministic fixture of a third-party integration, or for replaying a captured session without the original backend state.
+
+A cassette entry is matched by provider, HTTP method, path, query, and request body. By default (`--vcr-strict=true`) an unmatched request during replay fails with `501` and a diagnostic body naming the unmatched request; pass `--vcr-strict=false` to fall through to the real in-memory handler instead of failing.
+
+```bash
+# Record a session
+cloudemu serve --vcr record --vcr-cassette ./calls.json
+
+# Replay it later — same responses, no live backend needed
+cloudemu serve --vcr replay --vcr-cassette ./calls.json
+```
+
+`--vcr-cassette` is required whenever `--vcr` is set.

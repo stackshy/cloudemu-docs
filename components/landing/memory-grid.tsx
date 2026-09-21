@@ -76,13 +76,20 @@ export function MemoryGrid() {
   return (
     <div className="cl-gridwrap" ref={ref}>
       <div className="cl-gridhead">
-        <span>memory · <b>region us-mem-1</b></span>
-        <span>{count} cells</span>
+        <span>live in memory · <b>region us-mem-1</b></span>
+        <span>{count} resources</span>
       </div>
       <div className="cl-mgrid" aria-hidden="true">
         {Array.from({ length: CELLS }).map((_, i) => (
           <div key={i} className={`cl-cell${lit[i] ? ' on ' + lit[i] : ''}`} />
         ))}
+      </div>
+      <div className="cl-gridlegend">
+        <span className="lg aws">AWS</span>
+        <span className="lg az">Azure</span>
+        <span className="lg gc">GCP</span>
+        <span className="lg free">free</span>
+        <span className="cl-gridlive"><i />allocating · freeing</span>
       </div>
     </div>
   );

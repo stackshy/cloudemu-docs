@@ -12,7 +12,7 @@ export default function ChangelogPage() {
     <main className="mx-auto w-full max-w-[1080px] px-5 pb-24 sm:px-10">
       <header className="border-b border-line pb-10 pt-16">
         <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-ink-3">
-          <span className="text-accent">§</span> Release Ledger
+          Release Ledger
         </span>
         <h1 className="font-serif mt-4 text-[clamp(38px,7vw,64px)] font-extrabold leading-[0.95] tracking-[-0.03em] text-ink">
           Changelog

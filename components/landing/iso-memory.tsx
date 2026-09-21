@@ -1,5 +1,7 @@
 'use client';
 
+import { useEffect, useState } from 'react';
+
 /**
  * IsoMemory — the "Review Failures" pattern: a solid 3×3×3 isometric memory block
  * (subdivided wireframe, ember-tinted per the logo) with dashed iso guides, and
@@ -25,15 +27,25 @@ function faces(a: number, b: number, c: number) {
   };
 }
 
-// detached cubes, positioned like LocalStack's card: one above, two to the sides
+// detached cubes surfacing from memory — the clouds cloudemu emulates. Three are
+// live (AWS/Azure/GCP); OCI is a dashed "on the way" ghost, still forming.
 const FLOATERS = [
-  { a: 1, b: 1, c: 3.5, delay: 0 },     // above the top
-  { a: -1.7, b: 1, c: 0.4, delay: 1.3 }, // lower-left
-  { a: 1, b: -1.7, c: 0.4, delay: 2.6 }, // lower-right
+  { a: 1, b: 1, c: 3.5, delay: 0, label: 'AWS' },     // above the top
+  { a: -1.7, b: 1, c: 0.4, delay: 1.3, label: 'Azure' }, // lower-left
+  { a: 1, b: -1.7, c: 0.4, delay: 2.6, label: 'GCP' }, // lower-right
+  { a: 2.7, b: -1.1, c: -0.9, delay: 1.9, label: 'OCI', soon: true }, // forming, lower-right
 ];
 
 export function IsoMemory() {
   const cx = v(1.5, 1.5, 1.5);
+  // the point every provider wire converges on — the block's top-centre socket
+  const core = v(1.5, 1.5, N);
+
+  // gate the SMIL pulses on reduced-motion (SMIL can't read the CSS media query)
+  const [motion, setMotion] = useState(false);
+  useEffect(() => {
+    setMotion(!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
+  }, []);
 
   // solid block: subdivided top / left / right faces
   const grid: React.ReactNode[] = [];
@@ -80,17 +92,71 @@ export function IsoMemory() {
             <polygon points={P([v(0, 0, N), v(N, 0, N), v(N, N, N), v(0, N, N)])} />
           </g>
 
+          {/* connector wires: a pulse travels from each provider cube into the core */}
+          <g className="iso-wires">
+            {FLOATERS.map((f, i) => {
+              const from = v(f.a + 0.5, f.b + 0.5, f.c + 0.5);
+              const path = `M ${from.x.toFixed(1)} ${from.y.toFixed(1)} L ${core.x.toFixed(1)} ${core.y.toFixed(1)}`;
+              const begin = `${(i * 0.6).toFixed(2)}s`;
+              return (
+                <g key={`w${i}`}>
+                  <line
+                    className="iso-wire"
+                    x1={from.x.toFixed(1)}
+                    y1={from.y.toFixed(1)}
+                    x2={core.x.toFixed(1)}
+                    y2={core.y.toFixed(1)}
+                  />
+                  {motion && (
+                    <circle className="iso-pulse" r="3.4">
+                      <animateMotion
+                        dur="2.4s"
+                        begin={begin}
+                        repeatCount="indefinite"
+                        path={path}
+                        calcMode="spline"
+                        keyPoints="0;1"
+                        keyTimes="0;1"
+                        keySplines="0.4 0 0.2 1"
+                      />
+                      <animate
+                        attributeName="opacity"
+                        dur="2.4s"
+                        begin={begin}
+                        repeatCount="indefinite"
+                        values="0;1;1;0"
+                        keyTimes="0;0.12;0.82;1"
+                      />
+                    </circle>
+                  )}
+                </g>
+              );
+            })}
+          </g>
+
           {/* detached floating cubes */}
           {FLOATERS.map((f, i) => {
             const fc = faces(f.a, f.b, f.c);
+            const tc = v(f.a + 0.5, f.b + 0.5, f.c + 1); // top-face centre
             return (
-              <g className="iso-fcube" key={i} style={{ ['--d' as string]: `${f.delay}s` }}>
+              <g className={`iso-fcube${f.soon ? ' is-soon' : ''}`} key={i} style={{ ['--d' as string]: `${f.delay}s` }}>
                 <polygon className="fc-left" points={fc.left} />
                 <polygon className="fc-right" points={fc.right} />
                 <polygon className="fc-top" points={fc.top} />
+                {/* etched into the cube's top face: skewed onto the iso plane, faded.
+                    OCI's cube is the dashed ghost, so its label reads fainter still. */}
+                <text
+                  className="fc-inlabel"
+                  transform={`matrix(1,0.5,-1,0.5,${tc.x.toFixed(1)},${tc.y.toFixed(1)})`}
+                  textAnchor="middle"
+                  dominantBaseline="middle"
+                >
+                  {f.label}
+                </text>
               </g>
             );
           })}
+
         </g>
       </svg>
     </div>

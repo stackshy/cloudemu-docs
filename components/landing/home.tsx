@@ -1,7 +1,9 @@
 import { PRODUCT, STATS } from '@/lib/product';
 import { SITE_URL } from '@/lib/seo';
 import { CopyButton } from '@/components/code/copy-button';
+import { GitHubMark } from '@/components/github-mark';
 import { Reveal } from './reveal';
+import { SdkToggle } from './sdk-toggle';
 import { CollapseHero } from './collapse-hero';
 import { MemoryGrid } from './memory-grid';
 import { HorizontalReel } from './horizontal-reel';
@@ -36,7 +38,7 @@ function Machine() {
       <div className="mx-auto max-w-[1180px]">
         <div className="cl-machine">
           <div>
-            <Reveal><div className="cl-k">§ 01 — the machine</div></Reveal>
+            <Reveal><div className="cl-k">01 — the machine</div></Reveal>
             <Reveal delay={0.05}>
               <h2 className="cl-h2 mt-3.5">Every resource is <span className="em">live in RAM</span>, on the real wire.</h2>
             </Reveal>
@@ -59,7 +61,7 @@ function Integrate() {
   return (
     <section className="cl-sec">
       <div className="mx-auto max-w-[1180px]">
-        <Reveal><div className="cl-k">§ 02 — integrate</div></Reveal>
+        <Reveal><div className="cl-k">02 — integrate</div></Reveal>
         <Reveal delay={0.05}>
           <h2 className="cl-h2 mt-3.5">Wire it into a <span className="em">running app</span>. One endpoint override.</h2>
         </Reveal>
@@ -72,10 +74,7 @@ function Integrate() {
         </Reveal>
 
         <Reveal>
-          <div
-            className="cl-way mt-11"
-            style={{ borderLeft: '3px solid var(--ember)', background: 'color-mix(in srgb, var(--ember) 5%, var(--bg-2))' }}
-          >
+          <div className="cl-way mt-11">
             <div className="n">SERVER MODE · INTEGRATION / E2E</div>
             <h3>Run it, point real code at it</h3>
             <p>Start the binary or Docker image and aim your already-running app, CLI, or SDK — any language — at the printed endpoints. The real wire path runs end to end, exactly as production would.</p>
@@ -101,43 +100,7 @@ function Integrate() {
         </Reveal>
 
         <Reveal delay={0.12}>
-          <div style={{ marginTop: 22, border: '1px solid var(--border)', borderRadius: 16, overflow: 'hidden', background: 'var(--bg-2)' }}>
-            {[
-              {
-                p: 'AWS', sdk: 'aws-sdk-go-v2 · CLI', port: ':4566',
-                code: <>{'export '}<span style={{ color: '#ff8a5c' }}>AWS_ENDPOINT_URL</span>{'=http://127.0.0.1:4566'}</>,
-              },
-              {
-                p: 'GCP', sdk: 'cloud.google.com/go', port: ':4569',
-                code: <>{'option.'}<span style={{ color: '#ff8a5c' }}>WithEndpoint</span>{'("http://127.0.0.1:4569")'}</>,
-              },
-              {
-                p: 'Azure', sdk: 'azure-sdk-for-go · ARM', port: ':4568 · TLS',
-                code: <>{'arm.ClientOptions → '}<span style={{ color: '#ff8a5c' }}>https://127.0.0.1:4568</span></>,
-              },
-            ].map((r, i) => (
-              <div
-                key={r.p}
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: '200px 1fr',
-                  gap: 24,
-                  alignItems: 'center',
-                  padding: '20px 26px',
-                  borderTop: i ? '1px solid var(--border)' : 'none',
-                }}
-              >
-                <div>
-                  <b style={{ display: 'block', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 18, letterSpacing: '-0.01em', color: 'var(--text-1)' }}>{r.p}</b>
-                  <div style={{ marginTop: 4, fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--text-3)' }}>
-                    {r.sdk}
-                    <span style={{ marginLeft: 8, color: 'var(--ember)', border: '1px solid var(--border)', borderRadius: 999, padding: '1px 8px', fontSize: 11, whiteSpace: 'nowrap' }}>{r.port}</span>
-                  </div>
-                </div>
-                <pre style={{ margin: 0, background: 'var(--text-1)', color: '#e9e6db', borderRadius: 10, padding: '12px 14px', fontFamily: 'var(--font-mono)', fontSize: 12.5, lineHeight: 1.6, overflowX: 'auto' }}>{r.code}</pre>
-              </div>
-            ))}
-          </div>
+          <SdkToggle />
         </Reveal>
       </div>
     </section>
@@ -148,7 +111,7 @@ function Coverage() {
   return (
     <section className="cl-sec">
       <div className="mx-auto max-w-[1180px]">
-        <Reveal><div className="cl-k">§ 03 — coverage</div></Reveal>
+        <Reveal><div className="cl-k">03 — coverage</div></Reveal>
         <Reveal delay={0.05}><h2 className="cl-h2 mt-3.5">One binary. <span className="em">Three clouds.</span></h2></Reveal>
         <div className="cl-stats">
           <Reveal><div className="cl-stat"><div className="v"><CountUp to={STATS.sdkCompatServices} className="em" /></div><div className="l">services emulated</div></div></Reveal>
@@ -174,7 +137,7 @@ function RealWork() {
   return (
     <section className="cl-sec">
       <div className="mx-auto max-w-[1180px]">
-        <Reveal><div className="cl-k">§ 04 — real work</div></Reveal>
+        <Reveal><div className="cl-k">04 — real work</div></Reveal>
         <Reveal delay={0.05}><h2 className="cl-h2 mt-3.5">Not just mocks. <span className="em">Real backends.</span></h2></Reveal>
         <Reveal delay={0.1}>
           <p className="cl-lead">
@@ -182,7 +145,7 @@ function RealWork() {
             opt in — and point real Infrastructure-as-Code straight at it.
           </p>
         </Reveal>
-        <div className="mt-11 grid gap-[18px] md:grid-cols-2">
+        <div className="mt-11 grid grid-cols-1 gap-[18px] md:grid-cols-2">
           <Reveal>
             <div className="cl-way">
               <div className="n">OPT-IN / REAL DATA PLANE</div>
@@ -223,7 +186,7 @@ function Ways() {
   return (
     <section className="cl-sec">
       <div className="mx-auto max-w-[1180px]">
-        <Reveal><div className="cl-k">§ 05 — three ways to run it</div></Reveal>
+        <Reveal><div className="cl-k">05 — three ways to run it</div></Reveal>
         <Reveal delay={0.05}><h2 className="cl-h2 mt-3.5">Point <span className="em">real code</span> at it.</h2></Reveal>
         <div className="cl-ways">
           {PRODUCT_WAYS.map((w, i) => {
@@ -256,7 +219,7 @@ function Colophon() {
   return (
     <section className="cl-sec">
       <div className="mx-auto max-w-[1180px] text-center">
-        <Reveal><div className="cl-k">§ 06 — power on</div></Reveal>
+        <Reveal><div className="cl-k">06 — power on</div></Reveal>
         <Reveal delay={0.05}>
           <h2 className="cl-h2 mx-auto mt-3.5 max-w-[18ch] text-center">Bring a cloud up in <span className="em">one line</span>.</h2>
         </Reveal>
@@ -276,7 +239,7 @@ function Colophon() {
         <Reveal delay={0.2}>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <a className="cl-btn-p" href="/docs/quick-start">Quick start →</a>
-            <a className="cl-btn-s" href={PRODUCT.repo} target="_blank" rel="noreferrer">★ GitHub</a>
+            <a className="cl-btn-s" href={PRODUCT.repo} target="_blank" rel="noreferrer"><GitHubMark />GitHub</a>
           </div>
         </Reveal>
       </div>
@@ -299,7 +262,7 @@ function Foot() {
 
 export function Home() {
   return (
-    <main className="w-full">
+    <main className="cl-landing w-full">
       <ScrollProgress />
       <CollapseHero />
       <Machine />

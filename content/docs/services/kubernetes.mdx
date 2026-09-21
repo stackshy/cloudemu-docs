@@ -96,7 +96,9 @@ The data plane is an in-memory Kubernetes API server — one per EKS/AKS/GKE clu
 
 **Custom resources (CRDs)** are fully dynamic: a created `CustomResourceDefinition` is served, discoverable, and marked `Established` immediately, and deleting it cascade-deletes its custom resources.
 
-**Emulation boundaries** (deliberate, not gaps): there is no real kubelet — Pods are driven Running, `pods/log` is synthetic, and `exec`/`attach`/`portforward` return `501`; no scheduling beyond the single synthetic node; RBAC and NetworkPolicy are queryable rather than request-time-enforced; CronJobs advance only when you call `TickCronJobs()`; and rollouts converge instantly.
+**Emulation boundaries** (deliberate, not gaps): there is no real kubelet — `pods/log` is synthetic and `exec`/`attach`/`portforward` return `501`; RBAC and NetworkPolicy are queryable rather than request-time-enforced; and CronJobs advance only when you call `TickCronJobs()`.
+
+**Configurable data-plane realism:** by default Pods are driven straight to `Running` on a single synthetic node. Opt into a more lifelike data plane with `--k8s-progression` (Pods start `Pending` and advance to `Running` on a ticker, KWOK-style) and `--k8s-nodes=N` (seeds a tainted control-plane node plus workers and enables a first-fit scheduler that honors `nodeSelector`, taints and resource requests).
 
 ## SDK-compat — Live
 

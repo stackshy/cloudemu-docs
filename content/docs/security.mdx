@@ -1,0 +1,34 @@
+---
+title: Auth Enforcement
+description: Opt-in request authentication for the standalone server — what --enforce-auth verifies per provider, and what it deliberately does not
+---
+
+By default the wire server accepts any credentials — SigV4 signatures, Azure bearer tokens, and GCP OAuth headers are parsed but never verified, so pointing a real SDK at cloudemu just works with dummy values. `--enforce-auth` (`config.WithEnforceAuth()` in the library) turns on request authentication so you can exercise your app's auth-failure paths against the emulator. It's a development aid, not a hardened security boundary — read the non-guarantees below before relying on it for anything more.
+
+```bash
+cloudemu serve --enforce-auth
+```
+
+## What's verified per provider
+
+| Provider | What's checked | Failure mode |
+|---|---|---|
+| **AWS** | SigV4 signature on each request, verified against a *registered* IAM access key | `403` on a bad or missing signature |
+| **AWS** | IAM authorization — the caller's policies are evaluated before dispatch | `403` (JSON-RPC services only — see below) |
+| **Azure** | `Authorization: Bearer <jwt>` is present and well-formed (three parts); claims checked: accepted audience, un-expired `exp`, a principal claim (`oid`, `appid`/`azp`, or `sub`) | `401 InvalidAuthenticationToken` on missing/malformed/expired/wrong-audience |
+| **GCP** | Not enforced — OAuth headers are still accepted unchecked | — |
+
+## Non-guarantees — read before relying on this
+
+- **Off by default.** With no flags, every request is accepted regardless of credentials. This is what makes local development frictionless; it also means production-like auth checks only happen when you explicitly opt in.
+- **STS temporary credentials aren't cryptographically verified.** Long-term AWS access keys (`AKIA...`) get real signature verification against a registered IAM user/role. Temporary credentials minted by `AssumeRole`/`GetSessionToken` (`ASIA...`) are accepted without signature verification for now.
+- **AWS request timestamps aren't checked for expiry.** A captured SigV4 signature isn't rejected as stale.
+- **AWS authorization is JSON-RPC-only.** IAM policy checks run for services dispatched via `X-Amz-Target` (DynamoDB, KMS, SQS, …), where the operation is known before dispatch. Query-protocol and REST services (EC2, S3, …) are authenticated but not authorized — their operation can't be soundly determined before the handler runs, so action+resource authorization for them is a follow-up. Authorization is action-level only (resource is always `"*"`).
+- **A policy-less AWS principal is unrestricted.** A valid IAM user or role with no attached policies is left unrestricted (real AWS implicit-denies a policy-less principal); the account-admin/root identity and the ASIA bootstrap identity are always allowed.
+- **Azure token signatures aren't verified.** Real Azure AD tokens are signed by a private key the emulator doesn't hold, so `--enforce-auth` validates token *structure and claims* only — not the cryptographic signature. This is claims-based authentication, not real token verification.
+- **Azure RBAC (role-assignment) authorization isn't enforced.** A structurally valid, unexpired token with the right audience is accepted regardless of what roles are assigned to the principal.
+- **GCP isn't covered.** `--enforce-auth` has no effect on the GCP endpoint today.
+
+<Callout type="warn">
+Use `--enforce-auth` to prove your app *handles* a 403/401 correctly — not as a stand-in for a real cloud's IAM/RBAC engine. It has no bearing on the network-level trust model either: see the [admin control plane](/docs/standalone-server#admin-control-plane) for the separate `/_cloudemu/reset` exposure warning when binding a non-loopback host.
+</Callout>

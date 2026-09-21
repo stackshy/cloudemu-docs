@@ -1,0 +1,72 @@
+---
+title: CLI Reference
+description: Every cloudemu subcommand — the background daemon, snapshots, network queries, cost, and preflight checks
+---
+
+The `cloudemu` binary wraps the [standalone server](/docs/standalone-server) with a background-daemon lifecycle, named state snapshots, network/cost queries, and a preflight check. `cloudemu serve` runs in the foreground; everything else in this page manages a `serve` process for you.
+
+<Callout type="info">
+`start`, `stop`, `status`, `logs`, `delete`, `snapshot`, `net`, and `cost` all operate on the background daemon's run directory and are Unix/macOS only. `serve`, `env`, `doctor`, and `version` work on every platform — on Windows, run the server in the foreground with `cloudemu serve`.
+</Callout>
+
+## Commands
+
+| Command | What it does | Example |
+|---|---|---|
+| `serve [flags]` | Run the server in the foreground. See [Standalone Server](/docs/standalone-server) for every flag. | `cloudemu serve` |
+| `start [flags]` | Start the emulator detached in the background, accepting the same flags as `serve`; blocks until every endpoint is reachable. | `cloudemu start --providers=aws,gcp` |
+| `stop` | Stop the background emulator (SIGTERM, then SIGKILL after 12s). | `cloudemu stop` |
+| `status` | Show whether the daemon is running and print its endpoints. | `cloudemu status` |
+| `logs [-f]` | Print the daemon's log; `-f` follows new output. | `cloudemu logs -f` |
+| `delete` | Stop the daemon and remove cloudemu's own files from the run directory. | `cloudemu delete` |
+| `snapshot save <name>` | Freeze the running server's full state to a named local file. | `cloudemu snapshot save baseline` |
+| `snapshot load <name>` | Restore a named snapshot into the running server. | `cloudemu snapshot load baseline` |
+| `snapshot list` | List saved snapshots (name, created, providers, size). | `cloudemu snapshot list` |
+| `snapshot delete <name>` | Delete a saved snapshot file. | `cloudemu snapshot delete baseline` |
+| `net can-connect <A> <B>` | Ask the topology engine whether A can reach B. | `cloudemu net can-connect i-abc i-def --port 443` |
+| `net trace <A> <destIP>` | Print the route hops from A to a destination IP. | `cloudemu net trace i-abc 10.0.1.5` |
+| `cost` | Estimate the monthly cost of always-on resources in the running server. | `cloudemu cost` |
+| `env` | Print shell exports that point the AWS CLI/SDK at a running server. | `eval "$(cloudemu env)"` |
+| `doctor` | Preflight check: build version, default ports free, Docker on PATH. | `cloudemu doctor` |
+| `version` | Print the build version, commit, and build date. | `cloudemu version` |
+| `help` | Show the top-level usage message. | `cloudemu help` |
+
+Every lifecycle and query command accepts `--home <dir>` to point at a run directory other than the default `~/.cloudemu`.
+
+## Daemon lifecycle
+
+`start` forks `cloudemu serve` as a detached child process (a new session, so it survives the parent shell exiting), passing through any flags you give it. It owns `--endpoints-file`, `--quiet`, and `--state-file` itself — a user-supplied copy of any of those three is stripped from the forwarded flags so `start`'s own readiness handshake can't be redirected.
+
+Startup sequence: `start` writes the endpoints file into the run directory, waits (up to 15s) for `serve` to write it, then TCP-probes every endpoint it lists until each one accepts a connection. Only then does it record `state.json` (pid, endpoints, start time, the flags you passed) — the file `status`, `stop`, and `delete` all read. If readiness fails, `start` kills the child and points you at the log.
+
+Two conveniences layer on top of plain `serve`:
+
+- Passing `--persist` or `--persist-metadata-only` to `start` implies `--persist` and points `--state-file` at `<home>/snapshot.json` automatically — you don't pick the path yourself.
+- If `<home>/init.d` exists and you didn't pass `--init-dir`, `start` points `serve` at it automatically (Docker-entrypoint.d style drop-in fixtures).
+
+`stop` reads `state.json`, sends SIGTERM, waits up to 12s, then escalates to SIGKILL. If the recorded pid is dead or its endpoints no longer answer (a reused pid from an unrelated process), `stop` treats the state as stale and cleans it up without signaling anything. `delete` calls `stop` and then removes only cloudemu's own files (`state.json`, `cloudemu.log`, `endpoints.json`, `snapshot.json`) — never a blanket removal of a user-supplied `--home`.
+
+## Snapshot flow
+
+`snapshot save/load/list/delete` are a CLI front end for the server's `/_cloudemu/snapshot` admin endpoint (the same one [persistence](/docs/standalone-server#state-persistence--seeding) uses), storing named snapshots under `<home>/snapshots/<name>.json`.
+
+- **save** `GET`s the full snapshot from the running server, stamps it with a `Meta` header (name, created-at, cloudemu version, the providers captured), and writes it locally. It refuses to overwrite an existing file unless you pass `--force`.
+- **load** reads the local file and `POST`s it back to the server, restoring identity-preserving state.
+- **list** prints `NAME · CREATED · PROVIDERS · SIZE`, preferring the `Meta` header when present.
+- **delete** removes the local file only — it never touches the running server's state.
+
+Snapshot names must match `[A-Za-z0-9._-]{1,64}` (and can't be `.` or `..`). `save`/`load` need a running daemon with a plain-HTTP AWS or GCP endpoint (Azure and Kubernetes are HTTPS-only, so they're not used for the admin call) and fail with a clear error if the daemon isn't running or was started with `--admin=false`.
+
+## Network and cost queries
+
+`net can-connect` and `net trace` call the running server's `/_cloudemu/net/*` endpoints, backed by the [topology engine](/docs/topology). `can-connect` takes `--port` and `--protocol` (default `tcp`); both accept `--json` for machine-readable output, otherwise they print a YES/NO verdict (or route hops for `trace`) with each hop's type, resource ID, and detail.
+
+`cost` calls `/_cloudemu/cost` and prints a per-service estimated-monthly table plus a total for always-on resources; usage-based services (storage operations, DB throughput) aren't priced. `--json` prints the raw response.
+
+## doctor
+
+`cloudemu doctor` runs before you start the server: it prints the build version, checks that the AWS/Azure/GCP/Kubernetes ports are free (a busy required port is a failure; a busy OCI port is only a warning, since OCI is opt-in), reports whether `docker` is on `PATH` (only needed for the `:engines` image), and reminds you that real engines aren't compiled into the lean binary. It exits non-zero only when a required port is in use — the port check is point-in-time, so a port can still be taken before `serve` actually binds it.
+
+## env
+
+`cloudemu env` prints `export` lines for `AWS_ENDPOINT_URL`, dummy `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY`, and the region, so `eval "$(cloudemu env)"` points the AWS CLI and SDKs at a running server with zero code change. It also prints the GCP and Azure on-ramps as comments — those SDKs take an endpoint option rather than a single environment variable, so there's nothing to `export` for them.
