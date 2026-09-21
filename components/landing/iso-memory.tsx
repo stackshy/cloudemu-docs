@@ -39,8 +39,9 @@ const FLOATERS = [
 
 export function IsoMemory() {
   const cx = v(1.5, 1.5, 1.5);
-  // centre of the block's top face — where every provider wire lands (the socket)
-  const core = v(1.5, 1.5, N);
+  // the cloudemu core sits just in front of the block's top-front corner, so it
+  // reads as a badge on the front of the box; every provider wire lands on it.
+  const core = v(N, N, N - 0.6);
 
   // gate the SMIL pulses on reduced-motion (SMIL can't read the CSS media query)
   const [motion, setMotion] = useState(false);
@@ -137,12 +138,12 @@ export function IsoMemory() {
 
           {/* the cloudemu core — the mark every provider wire plugs into */}
           <g className="iso-hub">
-            <circle className="iso-hub-bg" cx={core.x.toFixed(1)} cy={core.y.toFixed(1)} r="30" />
+            <circle className="iso-hub-bg" cx={core.x.toFixed(1)} cy={core.y.toFixed(1)} r="34" />
             <Logo
-              x={(core.x - 25).toFixed(1)}
-              y={(core.y - 13).toFixed(1)}
-              width={50}
-              height={26}
+              x={(core.x - 28).toFixed(1)}
+              y={(core.y - 14.5).toFixed(1)}
+              width={56}
+              height={29}
             />
           </g>
 
