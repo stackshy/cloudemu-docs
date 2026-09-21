@@ -1,0 +1,65 @@
+---
+title: "LocalStack vs floci vs cloudemu: where each one fits"
+description: An honest map of the local-cloud emulators — what each is built for, and when to reach for which.
+date: 2026-09-21
+---
+
+# LocalStack vs floci vs cloudemu: where each one fits
+
+Three tools, one rough problem: **run your cloud code without a cloud account.** But they make very different bets on *how*. This is an honest map — what each is built for, and when to reach for which. No "we win everything" — just where each one is strong.
+
+<Callout type="info">
+Details on LocalStack and floci are summarized from their public docs and repos and may change — check their sites for specifics. Every cloudemu figure here comes straight from this codebase.
+</Callout>
+
+## The one-line version
+
+- **LocalStack** — the established standard for **local AWS**. A Docker container you point the AWS SDK/CLI at. Deep AWS coverage; freemium (open-source core, paid Pro for advanced services and features).
+- **floci** — a newer **multi-cloud** emulator (AWS · Azure · GCP · OCI) that runs **real Docker-backed engines** for the heavy services (a real Postgres for RDS, a real Kafka-compatible broker for MSK, k3s for EKS…) plus lightweight mocks for the rest. Strong distribution and a LocalStack-compatible on-ramp.
+- **cloudemu** — a **pure in-memory** emulator for AWS · Azure · GCP · OCI **and a Kubernetes data plane**. No Docker required, single-digit-millisecond calls, and it runs three ways — as a standalone server, in Docker, or **in-process inside your Go tests**. MIT, fully free, no accounts, no telemetry. Its wedge: it's the one you can **break on purpose**.
+
+## Side by side
+
+| | LocalStack | floci | cloudemu |
+|---|---|---|---|
+| Clouds | AWS (deep) | AWS · Azure · GCP · OCI | AWS · Azure · GCP · OCI · **+ Kubernetes** |
+| Runtime model | Docker container | Docker + **real engines** for heavy services | **Pure in-memory** (no Docker) |
+| Speed profile | container start-up | mixed (containers spin up per engine) | **~single-digit ms per call** |
+| In-process (Go) mode | — | — | **Yes** — `httptest`, no daemon, no Docker |
+| Real-engine fidelity | some (Pro) | **strong** — real DB / broker / registry | **opt-in** for select services |
+| Failure & chaos tooling | — | — | **chaos · network topology · fake clock · call recorder** |
+| IaC | widely used with Terraform/CDK | tested compat suites | **Terraform / OpenTofu proven in CI** |
+| Cost / license | freemium (Community free · Pro paid) | open source | **MIT · free · no accounts/telemetry** |
+
+## When to reach for which
+
+**Reach for LocalStack** when you're AWS-only and want the most battle-tested, widely-documented local AWS surface — and you're fine running (and paying for, at the Pro tier) a Docker service.
+
+**Reach for floci** when you need **real engine behavior** — an actual SQL planner, real Kafka wire semantics, a real container registry — across multiple clouds, and you're happy to let Docker spin those engines up.
+
+**Reach for cloudemu** when you want tests that are **fast, cheap, and hostile**:
+
+- **In-process Go.** Wire the emulator straight into your test with `httptest` — no daemon, no Docker-in-Docker, no cleanup. Calls come back in milliseconds. Nothing else on this list does this.
+- **Break it on purpose.** cloudemu ships a **chaos engine** (time-bounded outages, latency spikes, throttling, probabilistic errors, auto-recovery — scoped per operation or service), **network-topology simulation** (`CanConnect` / `TraceRoute` / `Resolve` over VPCs, subnets, security groups, ACLs, peering), a **fake clock** (advance time by hand so TTLs, dedup windows and alarms fire on command), and a **call recorder** (assert on exactly what your code sent). This is the failure-path tooling the others don't have — the retry/backoff/timeout code that never runs against a happy-path mock.
+- **It's the whole cloud, in RAM.** ~210 service implementations across four providers plus a Kubernetes data plane, speaking each cloud's real wire protocol — so the same SDKs, CLIs, and **Terraform/OpenTofu** you'd point at production point here instead. Snapshot the entire state to a file and restore it identity-preserving; opt into **real engines** for the handful of services where you want true fidelity.
+
+> Emulators let you *use* cloud services. cloudemu also lets you **break them on purpose** — which is where most production incidents actually come from.
+
+## Where cloudemu is still catching up
+
+Being honest keeps this useful:
+
+- **Raw AWS breadth** — LocalStack has years of head start on sheer AWS service count.
+- **Real-engine fidelity** — floci's default is real Docker engines; cloudemu's is in-memory, with real engines as opt-in for select services. If you *need* a real query planner everywhere, that's floci's lane today.
+- **A web console** — cloudemu has no resource-browser UI yet.
+
+If those are your hard requirements, use the right tool — that's the point of this post.
+
+## Try it
+
+```bash
+go install github.com/stackshy/cloudemu/v2/cmd/cloudemu@latest
+cloudemu serve
+```
+
+Then point any SDK, CLI, or Terraform config at the printed endpoints. The [Quick Start](/docs/quick-start) has you running in a couple of minutes — and when you're ready, go [break something on purpose](/docs/chaos).
