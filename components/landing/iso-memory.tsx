@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { Logo } from '@/components/logo';
 
 /**
  * IsoMemory — the "Review Failures" pattern: a solid 3×3×3 isometric memory block
@@ -38,9 +39,9 @@ const FLOATERS = [
 
 export function IsoMemory() {
   const cx = v(1.5, 1.5, 1.5);
-  // the cloudemu core sits upright at the centre of the block's top face; every
-  // provider wire pulses into it.
-  const core = v(1.5, 1.5, N);
+  // the cloudemu logo sits upright on the front-centre of the block's top face
+  // (clear of the AWS cube over the back socket); every provider wire lands on it.
+  const core = v(2.0, 2.0, N);
 
   // gate the SMIL pulses on reduced-motion (SMIL can't read the CSS media query)
   const [motion, setMotion] = useState(false);
@@ -158,11 +159,15 @@ export function IsoMemory() {
             );
           })}
 
-          {/* the cloudemu core — a live ember cell glowing in the socket, in the
-              same line-art / ember language as the block; every wire plugs into it */}
+          {/* the cloudemu logo — upright at the core, with a paper-coloured halo so
+              it reads crisply over the grid lines. Drawn last; wires plug into it. */}
           <g className="iso-core">
-            <polygon className="iso-core-cell" points={sock.floor} />
-            <polygon className="iso-core-ring" points={sock.floor} />
+            <Logo
+              x={(core.x - 45).toFixed(1)}
+              y={(core.y - 23.5).toFixed(1)}
+              width={90}
+              height={47}
+            />
           </g>
         </g>
       </svg>

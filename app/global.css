@@ -375,32 +375,16 @@ samp {
   fill: var(--ember);
   filter: drop-shadow(0 0 3px color-mix(in srgb, var(--ember) 60%, transparent));
 }
-/* the cloudemu core — an ember cell glowing in the socket, breathing in place */
-.iso-core-cell {
-  fill: var(--ember);
-  animation: core-cell 3s ease-in-out infinite;
-  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--ember) 55%, transparent));
-}
-@keyframes core-cell {
-  0%, 100% { opacity: 0.55; }
-  50% { opacity: 1; }
-}
-/* a faint ember outline that expands out of the cell like a heartbeat */
-.iso-core-ring {
-  fill: none;
-  stroke: var(--ember);
-  stroke-width: 1.4;
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: core-ring 3s ease-out infinite;
-}
-@keyframes core-ring {
-  0% { transform: scale(1); opacity: 0.5; }
-  70%, 100% { transform: scale(1.8); opacity: 0; }
+/* the cloudemu logo core — a paper-coloured halo knocks out the grid lines behind
+   the mark so it reads cleanly, plus a soft depth shadow; a gentle bob keeps it alive */
+.iso-core {
+  animation: iso-bob 4.6s ease-in-out infinite;
+  filter:
+    drop-shadow(0 0 5px var(--bg)) drop-shadow(0 0 5px var(--bg))
+    drop-shadow(0 0 4px var(--bg)) drop-shadow(0 7px 14px color-mix(in srgb, var(--text-1) 16%, transparent));
 }
 @media (prefers-reduced-motion: reduce) {
-  .iso-core-cell { animation: none; opacity: 0.85; }
-  .iso-core-ring { display: none; }
+  .iso-core { animation: none; }
 }
 /* provider name etched into the cube's top face — skewed onto the iso plane,
    faded so it reads as embossed rather than a sticker */
