@@ -57,7 +57,7 @@ export function CodePre({
       <figure className="u-terminal not-prose group relative my-4 overflow-hidden rounded-lg border border-line bg-inset">
         <CopyButton
           target={text}
-          className="absolute right-2 top-2 z-10 text-ink-inset-muted hover:bg-white/10 hover:text-ink-inset"
+          className="absolute right-2 top-2 z-10 text-ink-inset-muted hover:bg-raised hover:text-ink-inset"
         />
         <pre
           ref={preRef}

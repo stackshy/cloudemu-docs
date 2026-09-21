@@ -48,7 +48,7 @@ export function Logo({ style, ...rest }: SVGProps<SVGSVGElement>) {
         strokeLinejoin="round"
         fill="none"
       />
-      <rect x="105" y="51.5" width="17" height="6" rx="3" fill="#FF6B2C" />
+      <rect x="105" y="51.5" width="17" height="6" rx="3" fill="var(--ember, #FF6B2C)" />
     </svg>
   );
 }

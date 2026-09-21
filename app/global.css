@@ -1196,7 +1196,7 @@ samp {
   font-family: var(--font-mono);
   font-size: 12px;
   font-weight: 700;
-  color: #17140f;
+  color: var(--text-1);
   background: var(--medal);
   box-shadow: 0 0 0 3px var(--bg);
 }
@@ -1507,7 +1507,7 @@ samp {
   place-items: center;
   border-radius: 50%;
   background: var(--ember);
-  color: #17140f;
+  color: var(--text-1);
   font-family: var(--font-display);
   font-weight: 800;
   font-size: 24px;
