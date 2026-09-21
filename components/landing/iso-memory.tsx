@@ -39,9 +39,10 @@ const FLOATERS = [
 
 export function IsoMemory() {
   const cx = v(1.5, 1.5, 1.5);
-  // the cloudemu mark is printed flat on the front-centre of the block's top face
-  // (clear of the AWS cube that floats over the back socket); wires plug into it.
-  const core = v(2.0, 2.0, N);
+  // the cloudemu mark sits upright on the block's front vertical edge — straddling
+  // the two front faces at the corner, low-middle-front, facing the viewer head-on;
+  // every provider wire runs down and plugs into it.
+  const core = v(N, N, 1.4);
 
   // gate the SMIL pulses on reduced-motion (SMIL can't read the CSS media query)
   const [motion, setMotion] = useState(false);
@@ -159,14 +160,15 @@ export function IsoMemory() {
             );
           })}
 
-          {/* the cloudemu mark — printed flat on the top face (skewed onto the iso
-              plane) like a sticker on the core cube; drawn last so it stays fully
-              visible, and every provider wire plugs into it */}
-          <g
-            className="iso-hub"
-            transform={`matrix(1,0.5,-1,0.5,${core.x.toFixed(1)},${core.y.toFixed(1)})`}
-          >
-            <Logo x={-42} y={-22} width={84} height={44} />
+          {/* the cloudemu mark — upright on the front corner, straddling both front
+              faces; drawn last so it stays fully visible, wires plug into it */}
+          <g className="iso-hub">
+            <Logo
+              x={(core.x - 41).toFixed(1)}
+              y={(core.y - 21).toFixed(1)}
+              width={82}
+              height={43}
+            />
           </g>
         </g>
       </svg>
