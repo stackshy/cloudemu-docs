@@ -378,9 +378,9 @@ samp {
 /* the cloudemu core hub the wires plug into */
 .iso-hub-bg {
   fill: var(--bg-2);
-  stroke: var(--ember);
-  stroke-width: 2;
-  filter: drop-shadow(0 6px 14px color-mix(in srgb, var(--text-1) 14%, transparent));
+  stroke: color-mix(in srgb, var(--ember) 70%, transparent);
+  stroke-width: 1.4;
+  filter: drop-shadow(0 6px 16px color-mix(in srgb, var(--text-1) 13%, transparent));
 }
 /* provider name etched into the cube's top face — skewed onto the iso plane,
    faded so it reads as embossed rather than a sticker */

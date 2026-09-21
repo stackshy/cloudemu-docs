@@ -138,12 +138,12 @@ export function IsoMemory() {
 
           {/* the cloudemu core — the mark every provider wire plugs into */}
           <g className="iso-hub">
-            <circle className="iso-hub-bg" cx={core.x.toFixed(1)} cy={core.y.toFixed(1)} r="34" />
+            <circle className="iso-hub-bg" cx={core.x.toFixed(1)} cy={core.y.toFixed(1)} r="33" />
             <Logo
-              x={(core.x - 28).toFixed(1)}
-              y={(core.y - 14.5).toFixed(1)}
-              width={56}
-              height={29}
+              x={(core.x - 23).toFixed(1)}
+              y={(core.y - 12).toFixed(1)}
+              width={46}
+              height={24}
             />
           </g>
 
