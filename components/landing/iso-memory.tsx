@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
  * IsoMemory — the "Review Failures" pattern: a solid 3×3×3 isometric memory block
  * (subdivided wireframe, ember-tinted per the logo) with dashed iso guides, and
  * four cubes detached + gently floating out of it — one above, two to the sides,
- * one below the front corner.
+ * one surfacing at the front corner.
  * The block stays assembled; only the surfaced cubes drift. Pure SVG + CSS, so it
  * is calm and cheap; reduced-motion holds it still.
  */
@@ -33,7 +33,7 @@ const FLOATERS = [
   { a: 1, b: 1, c: 3.5, delay: 0, label: 'AWS' },     // above the top
   { a: -1.7, b: 1, c: 0.4, delay: 1.3, label: 'Azure' }, // lower-left
   { a: 1, b: -1.7, c: 0.4, delay: 2.6, label: 'GCP' }, // lower-right
-  { a: 3.5, b: 3.5, c: -0.8, delay: 1.9, label: 'OCI' }, // below the front corner
+  { a: 2.7, b: 2.7, c: 0.05, delay: 1.9, label: 'OCI' }, // surfacing at the front corner
 ];
 
 export function IsoMemory() {
