@@ -12,13 +12,14 @@ import { IsoMemory } from './iso-memory';
  * A run-a-command dock fires a ✓ ms toast; the primary CTA is magnetic.
  */
 
-type CmdColor = 'aws' | 'az' | 'gc';
+type CmdColor = 'aws' | 'az' | 'gc' | 'oci';
 const COMMANDS: { id: string; cmd: string; color: CmdColor; label: string }[] = [
   { id: 's3', cmd: 'aws s3 mb s3://prod', color: 'aws', label: 'make_bucket: prod' },
   { id: 'ec2', cmd: 'aws ec2 run-instances', color: 'aws', label: 'i-0a1b run-instances → running' },
   { id: 'ddb', cmd: 'aws dynamodb create-table', color: 'aws', label: 'CREATING → ACTIVE  prod-table' },
   { id: 'az', cmd: 'az group create', color: 'az', label: 'group "prod" created (eastus)' },
   { id: 'gcp', cmd: 'gcloud storage buckets create', color: 'gc', label: 'bucket gs://prod created' },
+  { id: 'oci', cmd: 'oci os bucket create', color: 'oci', label: 'bucket "prod" created (us-ashburn-1)' },
 ];
 
 export function CollapseHero() {
