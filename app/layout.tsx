@@ -30,7 +30,7 @@ const display = Bricolage_Grotesque({
 });
 
 const description =
-  'A real emulator of AWS, Azure, and GCP that lives in memory. Point real code, SDKs, or CLIs at it — any language, ~10 ms a call, no cloud accounts, no bills.';
+  'A real emulator of AWS, Azure, GCP, and OCI that lives in memory. Point real code, SDKs, or CLIs at it — any language, ~10 ms a call, no cloud accounts, no bills.';
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://cloudemu.info'),
@@ -45,6 +45,7 @@ export const metadata: Metadata = {
     'AWS emulator',
     'Azure emulator',
     'GCP emulator',
+    'OCI emulator',
     'LocalStack alternative',
     'in-memory cloud',
     'Go',

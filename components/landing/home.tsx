@@ -23,6 +23,7 @@ const TICKER = [
   'Data Factory', 'Front Door', 'Azure Firewall', 'SignalR',
   'GCS', 'Firestore', 'Pub/Sub', 'GKE', 'Cloud Run', 'BigQuery',
   'Spanner', 'Dataproc', 'Cloud Composer', 'Bigtable',
+  'OCI Object Storage', 'VCN', 'OCI NoSQL', 'OCI Vault', 'OCI Notifications',
 ];
 
 /* Compact one-liners per run mode for the §05 cards. */
@@ -78,7 +79,7 @@ function Integrate() {
             <div className="n">SERVER MODE · INTEGRATION / E2E</div>
             <h3>Run it, point real code at it</h3>
             <p>Start the binary or Docker image and aim your already-running app, CLI, or SDK — any language — at the printed endpoints. The real wire path runs end to end, exactly as production would.</p>
-            <pre><span className="p">$ </span>docker run -p 4566:4566 -p 4568:4568 -p 4569:4569 ghcr.io/stackshy/<span className="em">cloudemu</span></pre>
+            <pre><span className="p">$ </span>docker run -p 4566:4566 -p 4568:4568 -p 4569:4569 -p 4571:4571 ghcr.io/stackshy/<span className="em">cloudemu</span></pre>
           </div>
         </Reveal>
 
@@ -112,10 +113,10 @@ function Coverage() {
     <section className="cl-sec">
       <div className="mx-auto max-w-[1180px]">
         <Reveal><div className="cl-k">03 — coverage</div></Reveal>
-        <Reveal delay={0.05}><h2 className="cl-h2 mt-3.5">One binary. <span className="em">Three clouds.</span></h2></Reveal>
+        <Reveal delay={0.05}><h2 className="cl-h2 mt-3.5">One binary. <span className="em">Four clouds.</span></h2></Reveal>
         <div className="cl-stats">
           <Reveal><div className="cl-stat"><div className="v"><CountUp to={STATS.sdkCompatServices} className="em" /></div><div className="l">services emulated</div></div></Reveal>
-          <Reveal delay={0.05}><div className="cl-stat"><div className="v"><CountUp to={STATS.clouds} /></div><div className="l">clouds · AWS Azure GCP</div></div></Reveal>
+          <Reveal delay={0.05}><div className="cl-stat"><div className="v"><CountUp to={STATS.clouds} /></div><div className="l">clouds · {PRODUCT.providers.join(' ')}</div></div></Reveal>
           <Reveal delay={0.1}><div className="cl-stat"><div className="v"><CountUp to={10} prefix="~" className="em" /></div><div className="l">ms per call</div></div></Reveal>
           <Reveal delay={0.15}><div className="cl-stat"><div className="v"><CountUp to={0} /></div><div className="l">accounts · bills · setup</div></div></Reveal>
         </div>
@@ -248,12 +249,12 @@ function Colophon() {
 }
 
 function Foot() {
-  const { aws, azure, gcp, kubernetes } = PRODUCT.ports;
+  const { aws, azure, gcp, oci, kubernetes } = PRODUCT.ports;
   return (
     <footer className="border-t border-line">
       <div className="mx-auto flex max-w-[1180px] flex-wrap items-center justify-between gap-3 px-[clamp(26px,6vw,90px)] py-8 font-mono text-[11px] tracking-[0.04em] text-ink-3">
         <span>cloudemu — the cloud, in memory</span>
-        <span className="hidden md:inline">AWS :{aws} · AZURE :{azure} · GCP :{gcp} · K8S :{kubernetes}</span>
+        <span className="hidden md:inline">AWS :{aws} · AZURE :{azure} · GCP :{gcp} · OCI :{oci} · K8S :{kubernetes}</span>
         <span>{PRODUCT.license} · {SITE_URL.replace(/^https?:\/\//, '')}</span>
       </div>
     </footer>

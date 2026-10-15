@@ -63,3 +63,7 @@ A green suite proves only what its fixtures exercise. Today the suite asserts `a
 - **The wrapper** — the same flow through `cloudemu-tf` with only an empty provider block
 
 AWS is the most exercised surface today. GCP accepts a per-service `*_custom_endpoint` and works, though it isn't yet suite-covered; Azure's `azurerm` endpoint wiring varies by provider version, so there's no drop-in recipe yet. Contributions of fixtures for either are welcome.
+
+## OCI
+
+The `oracle/oci` provider builds HTTPS endpoints from the region and realm and has no per-service endpoint override, so it can't be pointed at cloudemu's plain-HTTP OCI listener today. Drive OCI resources through the `oci-go-sdk` (or another OCI SDK) with the client's endpoint set to cloudemu instead — see [Integrating cloudemu](/docs/integration).

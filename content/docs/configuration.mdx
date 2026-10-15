@@ -1,8 +1,8 @@
 ---
 title: Configuration
-description: Configure cloudemu providers with regions, clocks, latency, and more
+description: Configure cloudemu providers with regions, clocks, latency, OCI tenancy and compartments, and more
 ---
-Set region, account, project ID, latency, and clock — the same functional options work on all three providers.
+Set region, account, project ID, latency, and clock — the same functional options work on all four providers (AWS, Azure, GCP, OCI).
 
 ```go
 import "github.com/stackshy/cloudemu/v2/config"
@@ -37,6 +37,36 @@ Set the GCP project ID. Defaults to `"mock-project"`.
 ```go
 gcp := cloudemu.NewGCP(
     config.WithProjectID("my-project-123"),
+)
+```
+
+### WithTenancyOCID
+
+Set the OCI tenancy OCID. The tenancy is also the root compartment. Defaults to `"ocid1.tenancy.oc1..aaaaaaaacloudemulocaltenancy"`.
+
+```go
+oci := cloudemu.NewOCI(
+    config.WithTenancyOCID("ocid1.tenancy.oc1..aaaaaaaamytenancy"),
+)
+```
+
+### WithCompartmentID
+
+Set the OCI compartment new resources default to. Defaults to the tenancy (the root compartment).
+
+```go
+oci := cloudemu.NewOCI(
+    config.WithCompartmentID("ocid1.compartment.oc1..aaaaaaaateam"),
+)
+```
+
+### WithRealm
+
+Set the OCI realm embedded in generated OCIDs. Defaults to `"oc1"`.
+
+```go
+oci := cloudemu.NewOCI(
+    config.WithRealm("oc2"),
 )
 ```
 
@@ -102,5 +132,8 @@ azure := cloudemu.NewAzure(
 | Region | `"us-east-1"` |
 | AccountID | `"123456789012"` |
 | ProjectID | `"mock-project"` |
+| TenancyOCID (OCI) | `"ocid1.tenancy.oc1..aaaaaaaacloudemulocaltenancy"` |
+| CompartmentID (OCI) | the tenancy OCID (root compartment) |
+| Realm (OCI) | `"oc1"` |
 | Clock | `RealClock{}` (system time) |
 | Latency | `0` (no delay) |

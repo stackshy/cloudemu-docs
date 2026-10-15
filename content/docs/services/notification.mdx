@@ -1,9 +1,10 @@
 ---
 title: Notification
-description: Pub/sub topics with fan-out to multiple subscribers and attribute filtering, modelled on SNS, Notification Hubs, and FCM
+description: Pub/sub topics with fan-out to multiple subscribers and attribute filtering, modelled on SNS, Notification Hubs, FCM, and OCI Notifications
 aws: SNS
 azure: Notification Hubs
 gcp: FCM
+oci: Notifications
 ---
 
 Emulates a managed pub/sub notification service — the topic you publish one message to and have it fanned out to every subscriber at once. You create a topic, attach subscriptions that each point at an endpoint (an email address, an HTTP webhook, an SQS queue), then publish; the message is delivered to all matching subscriptions.
@@ -15,6 +16,7 @@ Reach for it when your code announces an event to several independent consumers 
 | AWS | SNS | ✓ Live | `aws.SNS` |
 | Azure | Notification Hubs | ✓ Live | `azure.NotificationHubs` |
 | GCP | FCM | ✓ Live | `gcp.FCM` |
+| OCI | Notifications (topics, subscriptions, message publishing) | ✓ Live | `oci.Notifications` |
 
 ## Create a topic and subscribe endpoints
 

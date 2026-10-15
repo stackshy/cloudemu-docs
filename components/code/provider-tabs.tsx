@@ -9,7 +9,7 @@ import {
   type Provider,
 } from '@/components/ui';
 
-const ORDER: Provider[] = ['aws', 'azure', 'gcp'];
+const ORDER: Provider[] = ['aws', 'azure', 'gcp', 'oci'];
 
 /**
  * Globally-synced provider tab group. Selecting AWS here switches every

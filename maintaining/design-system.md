@@ -14,7 +14,7 @@ personality. **One theme only** (no light/dark toggle).
   - `--accent` — **Ember Deep** (`#c2440d`), holds AA on Bone for links + small text
   - `--ember` — **Ember Bright** (`#ff5a1f`), large display words + decorative heat only
   - `--viz-aws / --viz-azure / --viz-gcp` — decorative canvas + memory grid (never text)
-  - `--aws / --azure / --gcp`, `--ok / --warn / --danger`
+  - `--aws / --azure / --gcp / --oci`, `--ok / --warn / --danger`
   - `--code-*` — syntax colors (keep in sync with `lib/shiki-themes.ts`, below)
 - **Contrast rule:** any text token must hit **WCAG AA (4.5:1)** on its surface.
   Use `--accent` (deep) for text; `--ember` (bright) only for large display or

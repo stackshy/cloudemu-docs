@@ -1,9 +1,10 @@
 ---
 title: IAM
-description: Emulated identity, roles, and JSON policy evaluation with wildcard matching, modelled on AWS IAM, Azure RBAC, and GCP IAM
+description: Emulated identity, roles, and JSON policy evaluation with wildcard matching, modelled on AWS IAM, Azure RBAC, GCP IAM, and OCI Identity
 aws: IAM
 azure: RBAC
 gcp: IAM
+oci: Identity
 ---
 
 Emulates managed identity and access control — the users, roles, and policies you attach to principals, plus the evaluator that decides whether a given action on a given resource is allowed. You create identities, attach JSON policy documents, then ask "can this principal do this?" and get the same allow/deny answer real IAM would give.
@@ -15,6 +16,7 @@ Reach for it when your code provisions principals, wires up policies, or gates b
 | AWS | IAM (users, groups, roles, policies, access keys, instance profiles) | ✓ Live | `aws.IAM` |
 | Azure | RBAC (`Microsoft.Authorization` role assignments + definitions) | ✓ Live | `azure.IAM` |
 | GCP | IAM (service accounts, roles, policy bindings) | ✓ Live | `gcp.IAM` |
+| OCI | Identity (compartments, users, groups, group memberships, policies) | ✓ Live | `oci.Identity` |
 
 ## Create users and roles
 

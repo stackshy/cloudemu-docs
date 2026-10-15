@@ -64,7 +64,7 @@ All wrappers support the same set of `With*` options.
 
 ## Cross-provider testing
 
-The portable API lets one test body run against all three providers:
+The portable API lets one test body run against every provider:
 
 ```go
 func testStorage(t *testing.T, bucket *storage.Bucket) {
@@ -87,5 +87,9 @@ func TestAzure(t *testing.T) {
 
 func TestGCP(t *testing.T) {
     testStorage(t, storage.NewBucket(cloudemu.NewGCP().GCS))
+}
+
+func TestOCI(t *testing.T) {
+    testStorage(t, storage.NewBucket(cloudemu.NewOCI().ObjectStorage))
 }
 ```

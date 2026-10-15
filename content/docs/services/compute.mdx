@@ -1,9 +1,10 @@
 ---
 title: Compute
-description: Run, stop, and terminate VMs on EC2, Azure Virtual Machines, and Compute Engine, driven with the real cloud SDKs
+description: Run, stop, and terminate VMs on EC2, Azure Virtual Machines, Compute Engine, and OCI Compute, driven with the real cloud SDKs
 aws: EC2
 azure: Virtual Machines
 gcp: Compute Engine
+oci: Compute
 ---
 
 Emulates managed virtual machines — the EC2 instance, Azure VM, or Compute Engine instance you'd launch to run a workload. You run instances from an image, then start, stop, reboot, and terminate them; the full VPC networking stack (subnets, security groups, gateways, volumes) is available alongside so instances have somewhere to live.
@@ -15,6 +16,7 @@ Reach for it when your code provisions capacity, waits on instance state, or rea
 | AWS | EC2 + full VPC stack | ✓ Live | `aws.EC2` |
 | Azure | Virtual Machines + Disks/Snapshots/Images/SSH Keys | ✓ Live | `azure.VirtualMachines` |
 | GCP | Compute Engine + Disks/Snapshots/Images | ✓ Live | `gcp.GCE` |
+| OCI | Compute + Block Volume (instances, shapes, images, volumes, attachments, backups, instance pools) | ✓ Live | `oci.Compute` |
 
 ## Run and manage instances
 
@@ -93,12 +95,13 @@ aws.EC2.TerminateInstances(ctx, []string{instances[0].ID})
 
 ## SDK-compat — Live
 
-Real `ec2`, `armcompute`, and `compute/apiv1` clients drive the emulator end-to-end:
+Real `ec2`, `armcompute`, `compute/apiv1`, and `oci-go-sdk` `core` clients drive the emulator end-to-end:
 
 | Provider | Coverage |
 |----------|----------|
 | AWS EC2 | Instance lifecycle, filtered describe, attribute modify, and the full VPC stack |
 | Azure VMs | Virtual machines, power actions, disks, snapshots, images, SSH keys |
 | GCP Compute Engine | Instances, disks, snapshots, and images with LRO envelopes |
+| OCI Compute | Instances (launch, actions, update, terminate), shapes, images, block and boot volumes, attachments, backups, volume groups, instance configurations and pools |
 
 See [SDK-Compat](/docs/sdk-compat) for the full per-operation list.

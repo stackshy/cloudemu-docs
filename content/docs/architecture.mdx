@@ -5,7 +5,7 @@ description: How cloudemu serves real cloud SDKs from an in-memory backend
 Trace a request from an unmodified SDK client down to the in-memory store — and see where to plug in. The primary surface is the **SDK-compatible HTTP server**, which speaks each cloud's real wire protocol; underneath sits a small, deliberately boring three-layer core.
 
 ```
-SDK-Compat HTTP Server   ←  the primary surface (real aws-sdk-go-v2 / azure-sdk-for-go / cloud.google.com/go)
+SDK-Compat HTTP Server   ←  the primary surface (real aws-sdk-go-v2 / azure-sdk-for-go / cloud.google.com/go / oci-go-sdk)
    │
    ▼  speaks AWS query, JSON-RPC, ARM, REST, Smithy CBOR
    │
@@ -15,14 +15,14 @@ Portable Go API          ←  alternative entrypoint for in-process tests + supp
 Driver Interface         ←  minimal Go interfaces per service
    │
    ▼
-Provider Mocks           ←  in-memory backends (AWS/Azure/GCP) using generic memstore
+Provider Mocks           ←  in-memory backends (AWS/Azure/GCP/OCI) using generic memstore
 ```
 
 The driver layer is the load-bearing contract. The HTTP server, Portable API, Chaos engine, and Topology engine all wrap or consume drivers — so a new feature lights up across every consumer at once.
 
 ## Layer 1: provider mocks
 
-The bottom layer contains the actual in-memory implementations for each cloud provider. Each provider (AWS, Azure, GCP) exposes its services as typed fields.
+The bottom layer contains the actual in-memory implementations for each cloud provider. Each provider (AWS, Azure, GCP, OCI) exposes its services as typed fields.
 
 ```go
 // providers/aws/aws.go
@@ -75,6 +75,15 @@ client.PutObject(ctx, &s3.PutObjectInput{ /* real production code */ })
 Go test suites can host the same server in-process with `httptest.NewServer(awsserver.New(...))` and point the client at `ts.URL` instead — the wire path is identical.
 
 Each handler is a self-contained package (`server/aws/s3`, `server/azure/cosmos`, `server/gcp/pubsub`, …). Adding a new service is one new package + one `Register` call — the core never changes. See [SDK-Compatible Server](/docs/sdk-compat) for the full coverage matrix and quick starts.
+
+## OCI, the fourth provider
+
+AWS, Azure, GCP and OCI are all supported. OCI (`providers/oci/`) has the same three-layer shape: a `memstore`-backed mock per service that implements the shared driver, plus a `server/oci/<service>/` handler. Underneath sit OCID generation, compartment scoping, the `ocirest` wire helpers, and an async work-request envelope.
+
+It serves Identity, VCN, Compute and Block Volume, Object Storage, NoSQL, Vault, Logging, Monitoring and Notifications, all on one listener (`--oci-port`, default `4571`), and it starts with the other providers by default. It differs from the other three in two ways:
+
+- **It covers fewer services.** `providers/oci.Provider` declares each service as a bare driver interface, so a service OCI doesn't emulate yet is `nil` rather than a compile error. The generated [capability coverage](https://github.com/stackshy/cloudemu/blob/development/docs/coverage/README.md) is the source of truth for what exists.
+- **Resource discovery has no OCI branch.** The ARN/ID formatters in `services/resourcediscovery` fall through to a default for OCI, so discovery doesn't return native OCIDs yet.
 
 ## Alternative: portable Go API
 

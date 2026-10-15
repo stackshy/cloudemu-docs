@@ -3,12 +3,12 @@ title: Quick Start
 description: Run cloudemu as a server and point your real app at it in 5 minutes
 ---
 
-cloudemu is a real cloud emulator: it speaks the actual AWS, Azure, and GCP wire protocols, so you point real SDK clients, CLIs, and apps at it and run production code unchanged.
+cloudemu is a real cloud emulator: it speaks the actual AWS, Azure, GCP, and OCI wire protocols, so you point real SDK clients, CLIs, and apps at it and run production code unchanged.
 
 **The fastest way to integrate it is server mode:** run the binary (or Docker image) and set your SDK's endpoint at the printed address. Your already-running app now talks to an in-memory cloud over the real wire — the same code path it uses in production. This is the default for integration and end-to-end work.
 
 <Callout type="warn">
-To integrate cloudemu with an existing app, run it in **server mode** and set your SDK's endpoint (`AWS_ENDPOINT_URL` / `BaseEndpoint`, `option.WithEndpoint`, or the Azure ARM override), then point your already-running app at it — its real code path runs against cloudemu end-to-end. The in-process library path (further down) is for unit tests written inside Go code that already imports cloudemu.
+To integrate cloudemu with an existing app, run it in **server mode** and set your SDK's endpoint (`AWS_ENDPOINT_URL` / `BaseEndpoint`, `option.WithEndpoint`, the Azure ARM override, or the OCI client's `Host`), then point your already-running app at it — its real code path runs against cloudemu end-to-end. The in-process library path (further down) is for unit tests written inside Go code that already imports cloudemu.
 </Callout>
 
 No mocks. No cloud accounts. No bills — just a running endpoint your code already knows how to talk to.
@@ -38,12 +38,13 @@ cloudemu — standalone server
   Azure       https://127.0.0.1:4568   (self-signed TLS)
   GCP         http://127.0.0.1:4569
   Kubernetes  https://127.0.0.1:4570  (self-signed TLS)
+  OCI         http://127.0.0.1:4571
 ```
 
 Or with Docker, no Go required:
 
 ```bash
-docker run --rm -p 4566:4566 -p 4568:4568 -p 4569:4569 -p 4570:4570 ghcr.io/stackshy/cloudemu:latest
+docker run --rm -p 4566:4566 -p 4568:4568 -p 4569:4569 -p 4570:4570 -p 4571:4571 ghcr.io/stackshy/cloudemu:latest
 ```
 
 ## Point your app at it
@@ -121,6 +122,19 @@ opts := &arm.ClientOptions{ClientOptions: azcore.ClientOptions{Cloud: cloudCfg}}
 ```
 
 </ProviderTab>
+<ProviderTab value="oci">
+
+```go title="oci"
+// Every OCI service is on one port. Signatures aren't verified, so any key works.
+cp := common.NewRawConfigurationProvider(
+    "ocid1.tenancy.oc1..aaaaaaaacloudemulocaltenancy", // default tenancy, also the root compartment
+    "ocid1.user.oc1..local", "us-ashburn-1", "aa:bb", privateKeyPEM, nil)
+
+client, _ := objectstorage.NewObjectStorageClientWithConfigurationProvider(cp)
+client.Host = "http://127.0.0.1:4571"
+```
+
+</ProviderTab>
 </ProviderTabs>
 
 See [Standalone Server](/docs/standalone-server) for ports, flags, `cloudemu env`, Testcontainers, and the `/_cloudemu/reset` control plane; and [Integrating cloudemu](/docs/integration) to make the endpoint injectable so the same code hits real cloud in prod and cloudemu in tests.
@@ -147,29 +161,29 @@ The [Portable Go API](/docs/portable-api) goes one step further — call the in-
 
 ## SDK-compat coverage
 
-Every domain ships HTTP wire-format handlers across all 3 providers:
+Every domain ships HTTP wire-format handlers across AWS, Azure, and GCP. OCI covers a smaller set — a dash means OCI doesn't emulate that domain yet:
 
-| Domain | AWS | Azure | GCP |
-|--------|-----|-------|-----|
-| Storage | S3 | Blob | GCS |
-| Compute | EC2 + full VPC stack | Virtual Machines + Disks/Snapshots/Images | Compute Engine + Disks/Snapshots/Images |
-| Database (NoSQL) | DynamoDB | Cosmos DB | Firestore |
-| Relational DB | RDS + Redshift | SQL + Postgres/MySQL Flex | Cloud SQL |
-| Networking | (in EC2) | VNet | VPC + Firewalls |
-| Monitoring | CloudWatch | Azure Monitor | Cloud Monitoring |
-| Serverless | Lambda | Functions | Cloud Functions |
-| Kubernetes | EKS | AKS | GKE |
-| Message Queue | SQS | Service Bus | Pub/Sub |
-| Logging | CloudWatch Logs | Log Analytics | Cloud Logging |
-| DNS | Route 53 | Azure DNS | Cloud DNS |
-| Load Balancer | ELBv2 | Load Balancer | Cloud Load Balancing |
-| Cache | ElastiCache | Azure Cache | Memorystore |
-| Secrets | Secrets Manager | Key Vault | Secret Manager |
-| Notification | SNS | Notification Hubs | FCM |
-| Event Bus | EventBridge | Event Grid | Eventarc |
-| IAM | IAM | IAM | IAM |
-| Container Registry | ECR | ACR | Artifact Registry |
-| Resource Discovery | Resource Explorer + Tagging | Resource Graph | Cloud Asset Inventory |
+| Domain | AWS | Azure | GCP | OCI |
+|--------|-----|-------|-----|-----|
+| Storage | S3 | Blob | GCS | Object Storage |
+| Compute | EC2 + full VPC stack | Virtual Machines + Disks/Snapshots/Images | Compute Engine + Disks/Snapshots/Images | Compute + Block Volume |
+| Database (NoSQL) | DynamoDB | Cosmos DB | Firestore | NoSQL |
+| Relational DB | RDS + Redshift | SQL + Postgres/MySQL Flex | Cloud SQL | — |
+| Networking | (in EC2) | VNet | VPC + Firewalls | VCN |
+| Monitoring | CloudWatch | Azure Monitor | Cloud Monitoring | Monitoring |
+| Serverless | Lambda | Functions | Cloud Functions | — |
+| Kubernetes | EKS | AKS | GKE | — |
+| Message Queue | SQS | Service Bus | Pub/Sub | — |
+| Logging | CloudWatch Logs | Log Analytics | Cloud Logging | Logging |
+| DNS | Route 53 | Azure DNS | Cloud DNS | — |
+| Load Balancer | ELBv2 | Load Balancer | Cloud Load Balancing | — |
+| Cache | ElastiCache | Azure Cache | Memorystore | — |
+| Secrets | Secrets Manager | Key Vault | Secret Manager | Vault |
+| Notification | SNS | Notification Hubs | FCM | Notifications |
+| Event Bus | EventBridge | Event Grid | Eventarc | — |
+| IAM | IAM | IAM | IAM | Identity |
+| Container Registry | ECR | ACR | Artifact Registry | — |
+| Resource Discovery | Resource Explorer + Tagging | Resource Graph | Cloud Asset Inventory | — |
 
 Plus provider-specific **Generative AI** (Bedrock + SageMaker on AWS, Vertex AI on GCP) and **Databricks** (Azure). Kubernetes also ships a shared in-memory data plane that `client-go` / `kubectl` drive end-to-end.
 

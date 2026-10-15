@@ -1,9 +1,10 @@
 ---
 title: Storage
-description: In-memory object storage modelled on S3, Azure Blob Storage, and GCS, driven with the real cloud SDKs
+description: In-memory object storage modelled on S3, Azure Blob Storage, GCS, and OCI Object Storage, driven with the real cloud SDKs
 aws: S3
 azure: Blob Storage
 gcp: GCS
+oci: Object Storage
 ---
 
 Emulates managed object storage — the S3/Blob/GCS bucket where your app keeps uploads, exports, and config blobs. You create named buckets, then put, get, list, and copy objects as byte payloads with a content type and metadata. Everything lives in memory, so a test run starts from an empty store and leaves nothing behind.
@@ -15,6 +16,7 @@ Reach for it whenever your code writes a file to a bucket and reads it back, pag
 | AWS | S3 | ✓ Live | `aws.S3` |
 | Azure | Blob Storage | ✓ Live | `azure.BlobStorage` |
 | GCP | GCS | ✓ Live | `gcp.GCS` |
+| OCI | Object Storage | ✓ Live | `oci.ObjectStorage` |
 
 ## Drive it with the real SDK
 

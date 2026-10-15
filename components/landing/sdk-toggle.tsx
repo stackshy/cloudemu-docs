@@ -4,7 +4,7 @@ import { useState } from 'react';
 
 /**
  * SdkToggle — the §02 "one endpoint override" surface as a provider toggle:
- * pick AWS / GCP / Azure and see the single line that repoints that SDK at
+ * pick AWS / GCP / Azure / OCI and see the single line that repoints that SDK at
  * cloudemu. One seam per SDK, nothing else changes.
  */
 const SDKS = [
@@ -43,6 +43,19 @@ const SDKS = [
       <>
         {'arm.ClientOptions → '}
         <span className="k">https://127.0.0.1:4568</span>
+      </>
+    ),
+  },
+  {
+    id: 'oci',
+    p: 'OCI',
+    sdk: 'oci-go-sdk',
+    port: ':4571',
+    code: (
+      <>
+        {'client.'}
+        <span className="k">Host</span>
+        {' = "http://127.0.0.1:4571"'}
       </>
     ),
   },

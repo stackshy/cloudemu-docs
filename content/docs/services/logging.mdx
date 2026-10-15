@@ -1,9 +1,10 @@
 ---
 title: Logging
-description: Log groups, streams, and event queries, modelled on CloudWatch Logs, Log Analytics, and Cloud Logging
+description: Log groups, streams, and event queries, modelled on CloudWatch Logs, Log Analytics, Cloud Logging, and OCI Logging
 aws: CloudWatch Logs
 azure: Log Analytics
 gcp: Cloud Logging
+oci: Logging
 ---
 
 Emulates a managed log store — the CloudWatch Logs pipeline your app writes events into and you later query. You create a log group, open a stream within it, put events onto the stream, then read them back by time range.
@@ -15,6 +16,7 @@ Reach for it when your code emits log events, sets retention, or queries a windo
 | AWS | CloudWatch Logs | ✓ Live | `aws.CloudWatchLogs` |
 | Azure | Log Analytics | ✓ Live | `azure.LogAnalytics` |
 | GCP | Cloud Logging | ✓ Live | `gcp.CloudLogging` |
+| OCI | Logging (log groups, logs, ingestion, search) | ✓ Live | `oci.Logging` |
 
 ## Create groups and streams, then write events
 

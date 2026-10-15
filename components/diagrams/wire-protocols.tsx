@@ -3,30 +3,31 @@
 import { useInView } from './use-in-view';
 
 /**
- * SDK-compat — three real SDKs speaking their own wire protocols into one
+ * SDK-compat — four real SDKs speaking their own wire protocols into one
  * server. Provider-tinted packets travel each lane on a staggered beat;
  * protocol names ride above the wires.
  */
 
 const W = 640;
-const H = 190;
+const H = 245;
 
 const LANES = [
   { y: 40, sdk: 'aws-sdk-go-v2', proto: 'Query · JSON · Smithy CBOR', color: 'var(--aws)' },
   { y: 95, sdk: 'azure-sdk-for-go', proto: 'ARM JSON', color: 'var(--azure)' },
   { y: 150, sdk: 'cloud.google.com/go', proto: 'REST', color: 'var(--gcp)' },
+  { y: 205, sdk: 'oci-go-sdk', proto: 'OCI REST', color: 'var(--oci)' },
 ];
 
 export function WireProtocols() {
   const [ref, on] = useInView<HTMLDivElement>();
   return (
     <div ref={ref} className="not-prose my-7">
-      <p className="u-eyebrow mb-2">one server, three wire protocols</p>
+      <p className="u-eyebrow mb-2">one server, four wire protocols</p>
       <svg
         viewBox={`0 0 ${W} ${H}`}
         className="h-auto w-full max-w-[640px]"
         role="img"
-        aria-label="AWS, Azure, and GCP SDKs each speak their own wire protocol to the same cloudemu server"
+        aria-label="AWS, Azure, GCP, and OCI SDKs each speak their own wire protocol to the same cloudemu server"
       >
         {LANES.map((l, i) => (
           <g key={l.sdk}>
@@ -56,11 +57,11 @@ export function WireProtocols() {
           </g>
         ))}
         {/* server */}
-        <rect x={490} y={16} width={142} height={158} rx={8} fill="var(--bg-2)" stroke="var(--border-2)" strokeWidth="1" />
-        <text x={561} y={92} textAnchor="middle" fontSize="12" fontWeight="600" fill="var(--text-1)">
+        <rect x={490} y={16} width={142} height={213} rx={8} fill="var(--bg-2)" stroke="var(--border-2)" strokeWidth="1" />
+        <text x={561} y={119} textAnchor="middle" fontSize="12" fontWeight="600" fill="var(--text-1)">
           cloudemu
         </text>
-        <text x={561} y={110} textAnchor="middle" fontSize="9" fontFamily="var(--font-mono)" fill="var(--text-3)">
+        <text x={561} y={137} textAnchor="middle" fontSize="9" fontFamily="var(--font-mono)" fill="var(--text-3)">
           serve · :4566
         </text>
       </svg>

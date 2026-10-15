@@ -15,7 +15,7 @@ providers/<cloud>/<service>/     # in-memory mock for one cloud
 server/<cloud>/<service>/        # SDK-compat wire handler for one cloud
 ```
 
-`<cloud>` is one of `aws`, `azure`, `gcp`. Not every service has all three layers — a product-specific mock (e.g. `bedrock`) may have no cross-cloud `services/` abstraction, and some services have no wire handler yet. The naming rules below apply to whichever layers exist.
+`<cloud>` is one of `aws`, `azure`, `gcp`, `oci`. Not every service has all three layers — a product-specific mock (e.g. `bedrock`) may have no cross-cloud `services/` abstraction, and some services have no wire handler yet. The naming rules below apply to whichever layers exist.
 
 ## Naming
 

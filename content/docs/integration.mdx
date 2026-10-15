@@ -8,7 +8,7 @@ Integrating cloudemu means your app's **real code path** runs against it: you po
 The pattern: **run cloudemu in server mode and point your app's *existing* cloud client at it** by overriding one endpoint. Your real code runs, unchanged, against an in-memory cloud — no mocks. This is how you wire cloudemu into an existing service, and it exercises the real request path end to end.
 
 <Callout type="info">
-**The rule:** to integrate cloudemu with an existing app, run it in server mode and set your SDK's endpoint (`AWS_ENDPOINT_URL` / `BaseEndpoint`, `option.WithEndpoint`, or the Azure ARM override), then point your already-running app at it. The in-process library path is for Go unit tests written inside cloudemu-aware code.
+**The rule:** to integrate cloudemu with an existing app, run it in server mode and set your SDK's endpoint (`AWS_ENDPOINT_URL` / `BaseEndpoint`, `option.WithEndpoint`, the Azure ARM override, or the OCI client's `Host`), then point your already-running app at it. The in-process library path is for Go unit tests written inside cloudemu-aware code.
 </Callout>
 
 ## 1. Run cloudemu in server mode
@@ -17,7 +17,7 @@ The pattern: **run cloudemu in server mode and point your app's *existing* cloud
 cloudemu serve      # or: docker run --rm -p 4566:4566 ghcr.io/stackshy/cloudemu:latest
 ```
 
-It prints the live endpoints — AWS `http://127.0.0.1:4566`, Azure `https://127.0.0.1:4568`, GCP `http://127.0.0.1:4569`. See [Standalone Server](/docs/standalone-server) for ports, flags, and `cloudemu env`.
+It prints the live endpoints — AWS `http://127.0.0.1:4566`, Azure `https://127.0.0.1:4568`, GCP `http://127.0.0.1:4569`, OCI `http://127.0.0.1:4571`. See [Standalone Server](/docs/standalone-server) for ports, flags, and `cloudemu env`.
 
 ## 2. Make the endpoint injectable
 
@@ -48,7 +48,19 @@ Every SDK exposes a way to override the service endpoint. That override is the *
 | AWS — `aws-sdk-go-v2` | `AWS_ENDPOINT_URL`, or `o.BaseEndpoint` (and `o.UsePathStyle` for S3) |
 | GCP — `cloud.google.com/go` | `option.WithEndpoint(...)` + `option.WithoutAuthentication()` |
 | Azure — `azure-sdk-for-go` | `arm.ClientOptions` cloud endpoint |
+| OCI — `oci-go-sdk` | `client.Host` (any configuration provider; signatures aren't verified) |
 | Databricks — `databricks-sdk-go` | `Config.Host` |
+
+For OCI, every service is on the one port, so each client gets the same `Host`. The default tenancy OCID is also the root compartment:
+
+```go
+cp := common.NewRawConfigurationProvider(
+    "ocid1.tenancy.oc1..aaaaaaaacloudemulocaltenancy", // default tenancy, also the root compartment
+    "ocid1.user.oc1..local", "us-ashburn-1", "aa:bb", privateKeyPEM, nil)
+
+vcn, _ := core.NewVirtualNetworkClientWithConfigurationProvider(cp)
+vcn.Host = "http://127.0.0.1:4571"
+```
 
 Not writing Go? The [standalone server](/docs/standalone-server) speaks the same wire protocols — set `AWS_ENDPOINT_URL` (or `--endpoint-url` on the CLI) and any SDK in any language points at it.
 
@@ -74,11 +86,11 @@ Wiring cloudemu into an existing service with an assistant? Paste this into your
 ```markdown
 cloudemu (github.com/stackshy/cloudemu/v2) is a standalone, in-memory cloud emulator.
 To integrate it with THIS service: run it as a server
-(`docker run -p 4566:4566 -p 4568:4568 -p 4569:4569 ghcr.io/stackshy/cloudemu`, or
+(`docker run -p 4566:4566 -p 4568:4568 -p 4569:4569 -p 4571:4571 ghcr.io/stackshy/cloudemu`, or
 `cloudemu serve`) and point the RUNNING service's SDK at its endpoint. Override the
 endpoint however this codebase configures its clients: AWS AWS_ENDPOINT_URL env or
 o.BaseEndpoint, GCP option.WithEndpoint(...) + option.WithoutAuthentication(), Azure
-ARM endpoint/host override, Databricks Config.Host. Your real code path then hits
+ARM endpoint/host override, OCI client.Host (http://127.0.0.1:4571), Databricks Config.Host. Your real code path then hits
 cloudemu end-to-end; production points at the real cloud with the same code. cloudemu
 is a dev/test dependency, used only outside production.
 ```

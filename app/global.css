@@ -385,17 +385,6 @@ samp {
   font-weight: 700;
   letter-spacing: 0.04em;
 }
-/* OCI — still forming: dashed ghost cube, muted label */
-.iso-fcube.is-soon .fc-top,
-.iso-fcube.is-soon .fc-left,
-.iso-fcube.is-soon .fc-right {
-  fill: transparent;
-  stroke: color-mix(in srgb, var(--ember) 55%, transparent);
-  stroke-dasharray: 4 3;
-}
-.iso-fcube.is-soon .fc-inlabel {
-  opacity: 0.4;
-}
 @keyframes iso-bob {
   0%, 100% { transform: translateY(3px); }
   50% { transform: translateY(-7px); }

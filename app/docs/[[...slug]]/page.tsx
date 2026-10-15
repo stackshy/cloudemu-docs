@@ -107,7 +107,7 @@ export default async function Page(props: {
             {data.description}
           </DocsDescription>
         )}
-        {(data.aws || data.azure || data.gcp) && (
+        {(data.aws || data.azure || data.gcp || data.oci) && (
           <p className="mt-4 flex flex-wrap gap-x-5 gap-y-1 font-mono text-xs text-ink-2">
             {data.aws && (
               <span>
@@ -122,6 +122,11 @@ export default async function Page(props: {
             {data.gcp && (
               <span>
                 <span style={{ color: 'var(--gcp)' }}>gcp</span> {data.gcp}
+              </span>
+            )}
+            {data.oci && (
+              <span>
+                <span style={{ color: 'var(--oci)' }}>oci</span> {data.oci}
               </span>
             )}
           </p>

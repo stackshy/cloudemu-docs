@@ -51,7 +51,7 @@ export function ogCard(eyebrow: string) {
             <span style={{ color: ink }}>.</span>
           </div>
           <div style={{ display: 'flex', fontSize: 32, color: ink2, marginTop: 30, maxWidth: 960, lineHeight: 1.3 }}>
-            A real emulator of AWS, Azure &amp; GCP you point real code at — answers straight from RAM.
+            A real emulator of AWS, Azure, GCP &amp; OCI you point real code at — answers straight from RAM.
           </div>
         </div>
 

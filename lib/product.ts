@@ -4,9 +4,9 @@
  * Every stat, count, provider name, run mode, and command shown on the
  * marketing surfaces MUST come from here. No hard-coded numbers in
  * components. Numbers are derived from the product repo (github.com/stackshy/cloudemu):
- *   - providers: cloudemu.go exports NewAWS / NewAzure / NewGCP (exactly 3).
- *   - sdkCompatServices: total provider service implementations (AWS 76 + Azure 75 + GCP 55 + OCI 4 = 210).
- *   - serviceDomains: distinct service interfaces in docs/coverage/coverage.json (173, spanning 3,700+ operations).
+ *   - providers: cloudemu.go exports NewAWS / NewAzure / NewGCP / NewOCI (exactly 4).
+ *   - sdkCompatServices: total provider service implementations (AWS 76 + Azure 77 + GCP 57 + OCI 10 = 220).
+ *   - serviceDomains: distinct service interfaces in docs/coverage/coverage.json (177, spanning 4,000+ operations).
  *   - ports/reset: docs/standalone-server.md.
  * When the product adds services, update the counts here and nowhere else.
  */
@@ -21,16 +21,16 @@ export const PRODUCT = {
   repo: 'https://github.com/stackshy/cloudemu',
   license: 'MIT',
 
-  providers: ['AWS', 'Azure', 'GCP'] as const,
+  providers: ['AWS', 'Azure', 'GCP', 'OCI'] as const,
 
-  ports: { aws: 4566, azure: 4568, gcp: 4569, kubernetes: 4570 } as const,
+  ports: { aws: 4566, azure: 4568, gcp: 4569, kubernetes: 4570, oci: 4571 } as const,
   resetEndpoint: '/_cloudemu/reset',
 } as const;
 
 export const STATS = {
-  clouds: 3, // AWS, Azure, GCP
-  serviceDomains: 173, // distinct service interfaces (coverage.json)
-  sdkCompatServices: 210, // provider impls: AWS 76 + Azure 75 + GCP 55 + OCI 4
+  clouds: 4, // AWS, Azure, GCP, OCI
+  serviceDomains: 177, // distinct service interfaces (coverage.json)
+  sdkCompatServices: 220, // provider impls: AWS 76 + Azure 77 + GCP 57 + OCI 10
   runModes: 3,
   latency: '~10 ms', // in-process, per call
 } as const;
@@ -74,7 +74,8 @@ client := s3.NewFromConfig(cfg, func(o *s3.Options) {
 #   AWS     http://127.0.0.1:4566
 #   Azure   https://127.0.0.1:4568
 #   GCP     http://127.0.0.1:4569
-#   K8s     https://127.0.0.1:4570`,
+#   K8s     https://127.0.0.1:4570
+#   OCI     http://127.0.0.1:4571`,
   },
   {
     id: 'docker',
@@ -85,7 +86,7 @@ client := s3.NewFromConfig(cfg, func(o *s3.Options) {
     languages: 'Any language',
     lang: 'bash',
     command: `docker run --rm \\
-  -p 4566:4566 -p 4568:4568 -p 4569:4569 -p 4570:4570 \\
+  -p 4566:4566 -p 4568:4568 -p 4569:4569 -p 4570:4570 -p 4571:4571 \\
   ghcr.io/stackshy/cloudemu:latest`,
   },
 ];

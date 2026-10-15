@@ -22,7 +22,7 @@ You want a new page under `/docs/**`, or to edit an existing one.
    ```
    - `title` and `description` are **required** (description also becomes the SEO
      meta description — aim for ~120–160 characters, benefit-led).
-   - **Service pages** may add provider chips: `aws:`, `azure:`, `gcp:` frontmatter
+   - **Service pages** may add provider chips: `aws:`, `azure:`, `gcp:`, `oci:` frontmatter
      (rendered under the title).
 2. Add the page id to the nav in `content/docs/meta.json` in the order you want.
    Use `"---Group name---"` separators to start a new sidebar group.

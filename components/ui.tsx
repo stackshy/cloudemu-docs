@@ -11,12 +11,13 @@ export function Eyebrow({
   return <p className={`u-eyebrow ${className}`}>{children}</p>;
 }
 
-export type Provider = 'aws' | 'azure' | 'gcp';
+export type Provider = 'aws' | 'azure' | 'gcp' | 'oci';
 
 export const PROVIDER_LABEL: Record<Provider, string> = {
   aws: 'AWS',
   azure: 'Azure',
   gcp: 'GCP',
+  oci: 'OCI',
 };
 
 /** Text color + vivid rail/dot color per provider — always via tokens. */
@@ -24,16 +25,19 @@ export const PROVIDER_TEXT: Record<Provider, string> = {
   aws: 'var(--aws)',
   azure: 'var(--azure)',
   gcp: 'var(--gcp)',
+  oci: 'var(--oci)',
 };
 export const PROVIDER_VIVID: Record<Provider, string> = {
   aws: 'var(--aws-vivid)',
   azure: 'var(--azure-vivid)',
   gcp: 'var(--gcp-vivid)',
+  oci: 'var(--oci-vivid)',
 };
 export const PROVIDER_DIM: Record<Provider, string> = {
   aws: 'var(--aws-dim)',
   azure: 'var(--azure-dim)',
   gcp: 'var(--gcp-dim)',
+  oci: 'var(--oci-dim)',
 };
 
 /** Small mono chip; optionally provider-tinted. */

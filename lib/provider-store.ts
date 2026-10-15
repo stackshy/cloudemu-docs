@@ -17,7 +17,7 @@ function read(): Provider {
   if (current) return current;
   if (typeof window !== 'undefined') {
     const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored === 'aws' || stored === 'azure' || stored === 'gcp') {
+    if (stored === 'aws' || stored === 'azure' || stored === 'gcp' || stored === 'oci') {
       current = stored;
       return stored;
     }

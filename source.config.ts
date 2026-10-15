@@ -15,6 +15,7 @@ export const { docs, meta } = defineDocs({
       aws: z.string().optional(),
       azure: z.string().optional(),
       gcp: z.string().optional(),
+      oci: z.string().optional(),
     }),
   },
 });

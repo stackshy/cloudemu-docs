@@ -18,12 +18,12 @@ export function GET() {
 
   const body = `# cloudemu
 
-> A real emulator of AWS, Azure, and GCP that lives in memory. Point real code, SDKs, or CLIs at it — any language, ~10 ms a call, no cloud accounts, no bills.
+> A real emulator of AWS, Azure, GCP, and OCI that lives in memory. Point real code, SDKs, or CLIs at it — any language, ~10 ms a call, no cloud accounts, no bills.
 
 cloudemu speaks the real cloud wire protocols, so unmodified apps, SDKs (any language), and CLIs run against an in-memory backend — in-process, as a standalone server, or in Docker.
 
 ## Integrating cloudemu into an existing app
-Run it in server mode and point your running app's SDK endpoint at it. Start the server (\`docker run -p 4566:4566 -p 4568:4568 -p 4569:4569 -p 4570:4570 ghcr.io/stackshy/cloudemu\`, or \`cloudemu serve\`), then override the endpoint: AWS \`AWS_ENDPOINT_URL\` env or \`o.BaseEndpoint\`; GCP \`option.WithEndpoint(...)\` + \`option.WithoutAuthentication()\`; Azure ARM endpoint/host override. Your real code path then exercises cloudemu end-to-end; production points at the real cloud, code unchanged. The in-process httptest path is for Go unit tests written inside cloudemu-aware code.
+Run it in server mode and point your running app's SDK endpoint at it. Start the server (\`docker run -p 4566:4566 -p 4568:4568 -p 4569:4569 -p 4570:4570 -p 4571:4571 ghcr.io/stackshy/cloudemu\`, or \`cloudemu serve\`), then override the endpoint: AWS \`AWS_ENDPOINT_URL\` env or \`o.BaseEndpoint\`; GCP \`option.WithEndpoint(...)\` + \`option.WithoutAuthentication()\`; Azure ARM endpoint/host override; OCI the client's \`Host\` (\`http://127.0.0.1:4571\`). Your real code path then exercises cloudemu end-to-end; production points at the real cloud, code unchanged. The in-process httptest path is for Go unit tests written inside cloudemu-aware code.
 
 ## Documentation
 ${docLines}

@@ -1,9 +1,10 @@
 ---
 title: Networking
-description: Virtual networks for AWS VPC, Azure Virtual Network, and GCP VPC — subnets, security groups, peering, IPAM, Transit Gateway, and connectivity queries
+description: Virtual networks for AWS VPC, Azure Virtual Network, GCP VPC, and OCI VCN — subnets, security groups, peering, IPAM, Transit Gateway, and connectivity queries
 aws: VPC
 azure: Virtual Network
 gcp: VPC
+oci: VCN
 ---
 
 Emulates cloud virtual networks — the VPC, VNet, subnets, and security groups you wire up so instances can (or can't) talk to each other. You build the topology with the real SDKs, then the drivers hold the same relationships real clouds track: which subnet sits in which VPC, which rules a security group carries, which peerings are active.
@@ -15,6 +16,7 @@ Reach for it when your code provisions network scaffolding, or when you want to 
 | AWS | VPC (+ Transit Gateway, VPN, IPAM, PrivateLink, …) | ✓ Live | `aws.VPC` |
 | Azure | Virtual Network | ✓ Live | `azure.VNet` |
 | GCP | VPC, Subnetworks, Firewalls, Routes | ✓ Live | `gcp.VPC` |
+| OCI | VCN (subnets, security lists, NSGs, route tables, gateways, DRGs, peering) | ✓ Live | `oci.VCN` |
 
 ## Drive it with the real SDK
 
@@ -78,7 +80,7 @@ subnet, _ := aws.VPC.CreateSubnet(ctx, netdriver.SubnetConfig{
 })
 ```
 
-The core driver covers all three clouds — VPCs, subnets, security groups, peering, NAT gateways, flow logs, route tables, network ACLs, and internet gateways — plus elastic IPs, VPC endpoints, VPC attributes, route-table associations, and network interfaces. Two behaviors are worth calling out:
+The core driver covers AWS, Azure, and GCP — VPCs, subnets, security groups, peering, NAT gateways, flow logs, route tables, network ACLs, and internet gateways — plus elastic IPs, VPC endpoints, VPC attributes, route-table associations, and network interfaces. Two behaviors are worth calling out:
 
 - **Main route table.** Every VPC is born with one; a subnet with no explicit association is governed by it, and `DescribeRouteTables` is the only way to discover an association ID.
 - **ENI drain.** An attached network interface can't be deleted — a NAT gateway holds one for its whole life, so a caller draining a VPC learns from the failure that the drain isn't finished.
@@ -128,12 +130,13 @@ fmt.Println(result.Allowed, result.Reason)
 
 ## SDK-compat — Live
 
-Real `ec2`, `armnetwork`, and `compute/apiv1` clients drive the emulator end-to-end:
+Real `ec2`, `armnetwork`, `compute/apiv1`, and `oci-go-sdk` `core` clients drive the emulator end-to-end:
 
 | Provider | Coverage |
 |----------|----------|
 | AWS VPC | Core VPC surface plus the AWS-specific families above |
 | Azure VNet | Virtual networks and subnets via ARM |
 | GCP VPC | Networks, subnetworks, firewalls, and routes via REST |
+| OCI VCN | VCNs, subnets, security lists, NSGs and rules, route tables, DHCP options, internet/NAT/service gateways, DRGs, local and remote peering, VNICs, private and public IPs |
 
 See [SDK-Compat](/docs/sdk-compat) for the full per-operation list.

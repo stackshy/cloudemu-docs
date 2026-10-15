@@ -1,9 +1,10 @@
 ---
 title: Database
-description: In-memory NoSQL document/key-value store modelled on DynamoDB, Cosmos DB, and Firestore, driven with the real cloud SDKs
+description: In-memory NoSQL document/key-value store modelled on DynamoDB, Cosmos DB, Firestore, and OCI NoSQL, driven with the real cloud SDKs
 aws: DynamoDB
 azure: Cosmos DB
 gcp: Firestore
+oci: NoSQL
 ---
 
 Emulates a managed NoSQL store — the DynamoDB/Cosmos/Firestore table your app writes items to and queries by key. You create a table with a partition key (and optional sort key), then put, get, update, query, and scan schemaless items. Each item is just a map of attributes; the table indexes them by their key so lookups and range queries stay fast.
@@ -15,6 +16,7 @@ Reach for it when your code puts an item and reads it back by key, runs a query 
 | AWS | DynamoDB | ✓ Live | `aws.DynamoDB` |
 | Azure | Cosmos DB | ✓ Live | `azure.CosmosDB` |
 | GCP | Firestore | ✓ Live | `gcp.Firestore` |
+| OCI | NoSQL | ✓ Live | `oci.NoSQL` |
 
 ## Drive it with the real SDK
 

@@ -65,7 +65,7 @@ Snapshot names must match `[A-Za-z0-9._-]{1,64}` (and can't be `.` or `..`). `sa
 
 ## doctor
 
-`cloudemu doctor` runs before you start the server: it prints the build version, checks that the AWS/Azure/GCP/Kubernetes ports are free (a busy required port is a failure; a busy OCI port is only a warning, since OCI is opt-in), reports whether `docker` is on `PATH` (only needed for the `:engines` image), and reminds you that real engines aren't compiled into the lean binary. It exits non-zero only when a required port is in use — the port check is point-in-time, so a port can still be taken before `serve` actually binds it.
+`cloudemu doctor` runs before you start the server: it prints the build version, checks that the AWS/Azure/GCP/Kubernetes/OCI ports `serve` binds by default are free (a busy one is a failure; a port for a provider you've left out of `--providers` is only a warning), reports whether `docker` is on `PATH` (only needed for the `:engines` image), and reminds you that real engines aren't compiled into the lean binary. It exits non-zero only when a required port is in use — the port check is point-in-time, so a port can still be taken before `serve` actually binds it.
 
 ## env
 

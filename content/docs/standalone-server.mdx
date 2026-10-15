@@ -31,6 +31,7 @@ cloudemu — standalone server
   Azure       https://127.0.0.1:4568   (self-signed TLS)
   GCP         http://127.0.0.1:4569
   Kubernetes  https://127.0.0.1:4570  (self-signed TLS)
+  OCI         http://127.0.0.1:4571
 ```
 
 ## Docker
@@ -38,7 +39,7 @@ cloudemu — standalone server
 No Go toolchain needed — pull the published image (it runs `serve --host 0.0.0.0`):
 
 ```bash
-docker run --rm -p 4566:4566 -p 4568:4568 -p 4569:4569 -p 4570:4570 ghcr.io/stackshy/cloudemu:latest
+docker run --rm -p 4566:4566 -p 4568:4568 -p 4569:4569 -p 4570:4570 -p 4571:4571 ghcr.io/stackshy/cloudemu:latest
 ```
 
 Or bring up the whole emulated cloud with the example compose file:
@@ -69,8 +70,9 @@ ctr.Reset(ctx)                      // clean slate between tests
 | Azure      | `4568`  | HTTPS    | the ARM SDK requires TLS              |
 | GCP        | `4569`  | HTTP     |                                       |
 | Kubernetes | `4570`  | HTTPS    | shared data-plane for EKS / AKS / GKE (self-signed TLS) |
+| OCI        | `4571`  | HTTP     | every OCI service on one listener     |
 
-Override any of them with `--aws-port`, `--azure-port`, `--gcp-port`, `--k8s-port`. Start a subset with `--providers=aws,gcp`, and bind an interface with `--host 0.0.0.0` (the default `127.0.0.1` keeps it local-only).
+Override any of them with `--aws-port`, `--azure-port`, `--gcp-port`, `--k8s-port`, `--oci-port`. All four providers start by default; start a subset with `--providers=aws,gcp`, and bind an interface with `--host 0.0.0.0` (the default `127.0.0.1` keeps it local-only).
 
 ## Point your SDK at it
 
@@ -122,15 +124,31 @@ opts := &arm.ClientOptions{ClientOptions: azcore.ClientOptions{Cloud: cloudCfg}}
 Bring your own cert with `--tls-cert` / `--tls-key`, or add SAN hosts to the generated one with `--tls-host myhost.local`.
 </Callout>
 
+### OCI
+
+Every OCI service is served on one port, so each client's `Host` is the same address. Any configuration provider works, because cloudemu doesn't verify request signatures — a raw provider with a throwaway RSA key is enough:
+
+```go
+cp := common.NewRawConfigurationProvider(
+    "ocid1.tenancy.oc1..aaaaaaaacloudemulocaltenancy", // the default --oci-tenancy
+    "ocid1.user.oc1..local", "us-ashburn-1", "aa:bb", privateKeyPEM, nil)
+
+objects, _ := objectstorage.NewObjectStorageClientWithConfigurationProvider(cp)
+objects.Host = "http://127.0.0.1:4571"
+```
+
+The tenancy OCID is also the root compartment, so it works as `compartmentId` straight away. Other languages: point the client's service endpoint at the same address (Python `service_endpoint=`, Java `setEndpoint`).
+
 ## Common flags
 
 | Flag                                                    | Default          | Purpose                                        |
 | ------------------------------------------------------- | ---------------- | ---------------------------------------------- |
-| `--providers`                                           | `aws,azure,gcp`  | which providers to start (`oci` is opt-in — add it explicitly) |
+| `--providers`                                           | `aws,azure,gcp,oci` | which providers to start                    |
 | `--host`                                                | `127.0.0.1`      | bind interface (`0.0.0.0` to expose)           |
 | `--advertise-host`                                      | `--host` (or `127.0.0.1` if binding `0.0.0.0`) | host/IP the Kubernetes data-plane endpoint and its TLS cert advertise — set a routable address when binding `0.0.0.0` or running under Docker |
 | `--account-id` / `--region` / `--project-id`            | defaults         | identity reported by the emulator              |
-| `--oci-port`                                            | `4571`           | port for the OCI endpoint (HTTP); only bound when `oci` is in `--providers` |
+| `--oci-port`                                            | `4571`           | port for the OCI endpoint (HTTP)               |
+| `--oci-tenancy`                                         | `ocid1.tenancy.oc1..aaaaaaaacloudemulocaltenancy` | OCI tenancy OCID; also the root compartment, and the Object Storage namespace is derived from it |
 | `--gcp-grpc-port`                                       | off              | port for a GCP gRPC transport (health + reflection); point `BIGTABLE_EMULATOR_HOST` / `PUBSUB_EMULATOR_HOST` clients here |
 | `--latency`                                             | `0`              | artificial per-call latency (e.g. `20ms`)      |
 | `--tls-cert` / `--tls-key`                              | self-signed      | bring your own cert for the HTTPS endpoints (must be given together) |

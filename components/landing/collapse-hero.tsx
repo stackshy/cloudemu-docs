@@ -60,14 +60,14 @@ export function CollapseHero() {
 
       <div className="cl-hero">
         <div className="cl-fade cl-fade-1 font-mono text-[12.5px] uppercase tracking-[0.16em] text-ink-2 flex items-center gap-2.5">
-          <span className="inline-block h-[7px] w-[7px] rounded-[2px] bg-ember" /> A real emulator · AWS · Azure · GCP
+          <span className="inline-block h-[7px] w-[7px] rounded-[2px] bg-ember" /> A real emulator · AWS · Azure · GCP · OCI
         </div>
         <h1 className="cl-h1">
           <span className="cl-line"><span>The whole cloud,</span></span>
           <span className="cl-line"><span>collapsed into <span className="em">memory</span>.</span></span>
         </h1>
         <p className="cl-fade cl-fade-2 mt-6 max-w-[46ch] text-[clamp(16px,1.5vw,20px)] leading-[1.5] text-ink-2">
-          Point real SDKs and CLIs at AWS, Azure &amp; GCP running entirely on your machine. No accounts,
+          Point real SDKs and CLIs at AWS, Azure, GCP &amp; OCI running entirely on your machine. No accounts,
           no bills, no network — answers straight from RAM.
         </p>
         <div className="cl-cta cl-fade cl-fade-3 mt-8 flex flex-wrap gap-3">

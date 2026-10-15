@@ -12,7 +12,7 @@
 
 ---
 
-The docs, guides, and landing page for **[cloudemu](https://cloudemu.info/)** — a real, in-memory cloud emulator for AWS, Azure, and GCP. Point your real SDKs, CLIs, or apps at it, in any language.
+The docs, guides, and landing page for **[cloudemu](https://cloudemu.info/)** — a real, in-memory cloud emulator for AWS, Azure, GCP, and OCI. Point your real SDKs, CLIs, or apps at it, in any language.
 
 Built with **Next.js**, **Fumadocs**, and **Tailwind CSS**.
 

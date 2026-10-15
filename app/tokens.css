@@ -38,6 +38,7 @@
   --aws: #97620b;
   --azure: #2c48c2; /* deep indigo — never confusable with --accent */
   --gcp: #1f7a45;
+  --oci: #7a2e78; /* plum — clear of --accent and --azure */
 
   /* ---- status semantics ---- */
   --ok: #1f7a45;
@@ -93,9 +94,11 @@
   --aws-vivid: var(--aws);
   --azure-vivid: var(--azure);
   --gcp-vivid: var(--gcp);
+  --oci-vivid: var(--oci);
   --aws-dim: color-mix(in srgb, var(--aws) 10%, transparent);
   --azure-dim: color-mix(in srgb, var(--azure) 10%, transparent);
   --gcp-dim: color-mix(in srgb, var(--gcp) 10%, transparent);
+  --oci-dim: color-mix(in srgb, var(--oci) 10%, transparent);
   --ok-dim: color-mix(in srgb, var(--ok) 9%, transparent);
   --warn-dim: color-mix(in srgb, var(--warn) 9%, transparent);
   --error-dim: color-mix(in srgb, var(--danger) 9%, transparent);

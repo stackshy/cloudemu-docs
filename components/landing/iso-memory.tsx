@@ -5,7 +5,8 @@ import { useEffect, useState } from 'react';
 /**
  * IsoMemory — the "Review Failures" pattern: a solid 3×3×3 isometric memory block
  * (subdivided wireframe, ember-tinted per the logo) with dashed iso guides, and
- * three cubes detached + gently floating out of it — one above, two to the sides.
+ * four cubes detached + gently floating out of it — one above, two to the sides,
+ * one below the front corner.
  * The block stays assembled; only the surfaced cubes drift. Pure SVG + CSS, so it
  * is calm and cheap; reduced-motion holds it still.
  */
@@ -27,13 +28,12 @@ function faces(a: number, b: number, c: number) {
   };
 }
 
-// detached cubes surfacing from memory — the clouds cloudemu emulates. Three are
-// live (AWS/Azure/GCP); OCI is a dashed "on the way" ghost, still forming.
+// detached cubes surfacing from memory — the four clouds cloudemu emulates.
 const FLOATERS = [
   { a: 1, b: 1, c: 3.5, delay: 0, label: 'AWS' },     // above the top
   { a: -1.7, b: 1, c: 0.4, delay: 1.3, label: 'Azure' }, // lower-left
   { a: 1, b: -1.7, c: 0.4, delay: 2.6, label: 'GCP' }, // lower-right
-  { a: 2.7, b: -1.1, c: -0.9, delay: 1.9, label: 'OCI', soon: true }, // forming, lower-right
+  { a: 3.5, b: 3.5, c: -0.8, delay: 1.9, label: 'OCI' }, // below the front corner
 ];
 
 export function IsoMemory() {
@@ -139,12 +139,11 @@ export function IsoMemory() {
             const fc = faces(f.a, f.b, f.c);
             const tc = v(f.a + 0.5, f.b + 0.5, f.c + 1); // top-face centre
             return (
-              <g className={`iso-fcube${f.soon ? ' is-soon' : ''}`} key={i} style={{ ['--d' as string]: `${f.delay}s` }}>
+              <g className="iso-fcube" key={i} style={{ ['--d' as string]: `${f.delay}s` }}>
                 <polygon className="fc-left" points={fc.left} />
                 <polygon className="fc-right" points={fc.right} />
                 <polygon className="fc-top" points={fc.top} />
-                {/* etched into the cube's top face: skewed onto the iso plane, faded.
-                    OCI's cube is the dashed ghost, so its label reads fainter still. */}
+                {/* etched into the cube's top face: skewed onto the iso plane, faded */}
                 <text
                   className="fc-inlabel"
                   transform={`matrix(1,0.5,-1,0.5,${tc.x.toFixed(1)},${tc.y.toFixed(1)})`}

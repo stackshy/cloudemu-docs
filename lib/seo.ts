@@ -4,7 +4,7 @@ import { RELEASES } from './changelog.generated';
 export const SITE_URL = 'https://cloudemu.info';
 
 const DESCRIPTION =
-  'A real emulator of AWS, Azure, and GCP that lives in memory. Point real code, SDKs, or CLIs at it — any language, ~10 ms a call, no cloud accounts.';
+  'A real emulator of AWS, Azure, GCP, and OCI that lives in memory. Point real code, SDKs, or CLIs at it — any language, ~10 ms a call, no cloud accounts.';
 
 type Ld = Record<string, unknown>;
 

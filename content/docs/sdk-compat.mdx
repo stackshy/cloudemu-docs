@@ -1,8 +1,8 @@
 ---
 title: SDK-Compatible Server
-description: Point real aws-sdk-go-v2, azure-sdk-for-go, and Google Cloud SDKs at cloudemu without changing your application code
+description: Point real aws-sdk-go-v2, azure-sdk-for-go, Google Cloud, and oci-go-sdk clients at cloudemu without changing your application code
 ---
-Point a real `aws-sdk-go-v2`, `azure-sdk-for-go`, or `cloud.google.com/go` client at cloudemu and run production code unchanged. The HTTP servers speak each provider's actual wire protocol; the custom endpoint is the only change.
+Point a real `aws-sdk-go-v2`, `azure-sdk-for-go`, `cloud.google.com/go`, or `oci-go-sdk` client at cloudemu and run production code unchanged. The HTTP servers speak each provider's actual wire protocol; the custom endpoint is the only change.
 
 <WireProtocols />
 
@@ -147,6 +147,29 @@ opts := []option.ClientOption{
 client, _ := gcpcompute.NewInstancesRESTClient(ctx, opts...)
 ```
 
+## Quick start (OCI)
+
+```go
+import (
+    "github.com/oracle/oci-go-sdk/v65/common"
+    "github.com/oracle/oci-go-sdk/v65/objectstorage"
+    "github.com/stackshy/cloudemu/v2"
+    ociserver "github.com/stackshy/cloudemu/v2/server/oci"
+)
+
+ts := httptest.NewServer(ociserver.New(ociserver.DriversFrom(cloudemu.NewOCI())))
+
+// Signatures aren't checked, so any key works.
+cp := common.NewRawConfigurationProvider(
+    "ocid1.tenancy.oc1..aaaaaaaacloudemulocaltenancy", "ocid1.user.oc1..test",
+    "us-ashburn-1", "aa:bb", privateKeyPEM, nil)
+
+client, _ := objectstorage.NewObjectStorageClientWithConfigurationProvider(cp)
+client.Host = ts.URL
+```
+
+Every OCI service is on the one server, so each client's `Host` is the same URL. The tenancy OCID is also the root compartment. Mutations OCI runs asynchronously answer with an `opc-work-request-id` that the SDK's work request client can poll.
+
 ## Currently supported
 
 ### AWS handlers
@@ -249,6 +272,25 @@ All speak REST + JSON.
 | **AlloyDB** | Clusters + instances — create (LRO)/get/list/delete |
 | **Bigtable** | Instances, clusters, tables — admin create/get/list/delete |
 
+### OCI handlers
+
+All speak OCI's REST + JSON, with `opc-request-id` on every response and `opc-next-page` paging.
+
+| Service | Operations |
+|---------|-----------|
+| **Identity** | Compartments (with subtree listing and moves), users, groups, group memberships, policies |
+| **VCN** | VCNs, subnets, security lists, network security groups and rules, route tables, DHCP options, internet/NAT/service gateways, DRGs and attachments, local and remote peering, VNICs, private and public IPs |
+| **Compute and Block Volume** | Instances (launch, actions, update, terminate), shapes, images, block and boot volumes, attachments, backups, volume groups, instance configurations and pools |
+| **Object Storage** | Namespaces, buckets, objects (multipart, versioning, copy), pre-authenticated requests, retention rules, lifecycle policies |
+| **NoSQL** | Tables from DDL, indexes, rows with conditional writes and TTL, SQL queries |
+| **Vault** | Vaults, keys and key versions, secrets and versions, the secret-bundle data plane |
+| **Logging** | Log groups, logs, ingestion, search |
+| **Monitoring** | Metric ingestion, listing and summaries, alarms |
+| **Notifications** | Topics, subscriptions, message publishing |
+| **Work requests** | Polling for every asynchronous mutation above |
+
+Vault's KMS crypto operations (encrypt, decrypt, sign and so on) return `501` for now.
+
 Any operation not in these tables returns `501 Not Implemented` or the provider's native error code (`UnknownOperation`, `NotImplemented`, `NOT_FOUND`).
 
 ### Kubernetes data plane (shared across providers)
@@ -276,7 +318,8 @@ server/
 │   ├── wire.go                  # shared XML/JSON helpers
 │   ├── awsquery/                # AWS query-protocol decoder + XML envelope
 │   ├── azurearm/                # ARM URL parser + JSON helpers + error envelope
-│   └── gcprest/                 # GCP REST URL parser + Operation LRO helpers
+│   ├── gcprest/                 # GCP REST URL parser + Operation LRO helpers
+│   └── ocirest/                 # OCI REST helpers: opc-request-id, paging, errors
 ├── aws/
 │   ├── aws.go                   # awsserver.New(Drivers{...})
 │   ├── s3/  ec2/  dynamodb/  lambda/  sqs/  cloudwatch/  rds/  redshift/
@@ -299,6 +342,10 @@ server/
     ├── cloudfunctions/  pubsub/  cloudsql/  gke/  iam/  alloydb/  bigtable/
     ├── clouddns/  loadbalancer/  memorystore/  secretmanager/  cloudlogging/  fcm/  eventarc/
     └── artifactregistry/  vertexai/  cloudasset/
+└── oci/
+    ├── oci.go                   # ociserver.New(ociserver.DriversFrom(cloudemu.NewOCI()))
+    ├── identity/  vcn/  compute/  objectstorage/  nosql/  vault/
+    └── logging/  monitoring/  notifications/  workrequest/
 ```
 
 Each handler implements a two-method interface:
@@ -347,8 +394,9 @@ Registration order matters when handlers share a path prefix — the provider fa
 | AWS | Storage, Compute (full VPC stack), Database (+ Keyspaces/MemoryDB), Relational DB (RDS/Aurora/Redshift), Serverless, Kubernetes (EKS + data plane), Container Orchestration (ECS), Message Queue, Monitoring, Logging, DNS, Load Balancer, Cache, Secrets, Notification, Event Bus, IAM/STS, Parameter Store (SSM), Container Registry, Network Firewall, Resource Discovery, Bedrock, SageMaker |
 | Azure | Storage (+ Table Storage), Compute (+ Disks/Snapshots/Images/SSHKeys), Database (+ Managed Cassandra), Relational DB (SQL + Postgres/MySQL Flex + Cosmos-for-PostgreSQL), Serverless, Kubernetes (AKS + data plane), Message Queue (ARM + REST data plane), Networking, Monitoring, Logging, DNS, Load Balancer, Cache, Secrets (Key Vault), Notification, Event Bus, IAM, Container Registry, Resource Discovery, Azure AI, Azure AI Search, Databricks |
 | GCP | Storage, Compute (+ Disks/Snapshots/Images), Database (+ Bigtable), Relational DB (Cloud SQL + AlloyDB), Serverless, Kubernetes (GKE + data plane), Message Queue, Networking, Monitoring, Logging, DNS, Load Balancer, Cache, Secrets, Notification, Event Bus, IAM, Container Registry, Resource Discovery, Vertex AI |
+| OCI | Storage (Object Storage), Compute (+ Block Volume), Database (NoSQL), Networking (VCN), Monitoring, Logging, Secrets (Vault), Notification, IAM (Identity), Work Requests |
 
-Every core service domain now ships an SDK-compat handler across all three providers — including DNS, Load Balancer, Cache, Secrets, Logging, Notification, and Event Bus, which were the last cross-cloud domains to land. New services continue to drop in as self-contained handler packages without touching the core.
+Every core service domain now ships an SDK-compat handler across AWS, Azure, and GCP — including DNS, Load Balancer, Cache, Secrets, Logging, Notification, and Event Bus, which were the last cross-cloud domains to land. OCI covers a smaller set; a service it doesn't emulate yet (Functions, Queue, Load Balancer, DNS, Container Registry, Cache, Events, MySQL/PostgreSQL, OKE) has no handler. New services continue to drop in as self-contained handler packages without touching the core.
 
 ## Writing your own handler
 

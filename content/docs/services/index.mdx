@@ -1,41 +1,43 @@
 ---
 title: Services Overview
-description: Every emulated service across AWS, Azure, and GCP, and which ones speak the real SDK wire protocol
+description: Every emulated service across AWS, Azure, GCP, and OCI, and which ones speak the real SDK wire protocol
 ---
 
-Find any emulated service across **AWS, Azure, and GCP**, and whether it speaks the real SDK wire format. cloudemu emulates **173 service interfaces spanning 3,700+ operations** — **76 AWS · 75 Azure · 55 GCP** service implementations (plus a foundational OCI set). Most core categories are implemented for all three providers; the rest are provider-specific, matching where the real service exists (ECS, MemoryDB, and Keyspaces on AWS; Managed Cassandra and Azure AI on Azure; Bigtable and Vertex AI on GCP; and so on).
+Find any emulated service across **AWS, Azure, GCP, and OCI**, and whether it speaks the real SDK wire format. cloudemu emulates **177 service interfaces spanning 4,000+ operations** — **76 AWS · 77 Azure · 57 GCP · 10 OCI** service implementations. Most core categories are implemented for AWS, Azure, and GCP, and OCI covers the core set marked below; the rest are provider-specific, matching where the real service exists (ECS, MemoryDB, and Keyspaces on AWS; Managed Cassandra and Azure AI on Azure; Bigtable and Vertex AI on GCP; and so on).
 
-The **SDK-compat** column shows whether a category has an HTTP wire-format handler that real cloud SDKs (`aws-sdk-go-v2`, `azure-sdk-for-go`, `cloud.google.com/go`, `databricks-sdk-go`) can talk to with only an endpoint change. See the [SDK-Compatible Server](/docs/sdk-compat) page for the full operation tables. Every service below speaks its cloud's real wire protocol.
+The **SDK-compat** column shows whether a category has an HTTP wire-format handler that real cloud SDKs (`aws-sdk-go-v2`, `azure-sdk-for-go`, `cloud.google.com/go`, `oci-go-sdk`, `databricks-sdk-go`) can talk to with only an endpoint change. See the [SDK-Compatible Server](/docs/sdk-compat) page for the full operation tables. Every service below speaks its cloud's real wire protocol.
 
 <Callout title="The authoritative, always-current list">
 This page is a curated map. The exhaustive, machine-generated list of every service and operation — produced from the driver interfaces so it cannot drift — lives in the product repo under [`docs/coverage`](https://github.com/stackshy/cloudemu/tree/development/docs/coverage) (and as [`coverage.json`](https://github.com/stackshy/cloudemu/blob/development/docs/coverage/coverage.json), machine-readable).
 </Callout>
 
-## Core services — all three providers
+## Core services — across providers
 
-| Category | AWS | Azure | GCP | SDK-compat |
-|----------|-----|-------|-----|:----------:|
-| [Compute](/docs/services/compute) | EC2 | VirtualMachines | GCE | ✓ |
-| [Storage](/docs/services/storage) | S3 | BlobStorage | GCS | ✓ |
-| [Database (NoSQL)](/docs/services/database) | DynamoDB | CosmosDB | Firestore | ✓ |
-| [Relational DB](/docs/services/relationaldb) | RDS + Redshift | SQL + Postgres/MySQL Flex | Cloud SQL + AlloyDB | ✓ |
-| [Serverless](/docs/services/serverless) | Lambda | Functions | CloudFunctions | ✓ |
-| [Kubernetes](/docs/services/kubernetes) | EKS | AKS | GKE | ✓ |
-| [Networking](/docs/services/networking) | VPC | VNet | VPC | ✓ |
-| [Monitoring](/docs/services/monitoring) | CloudWatch | Monitor | CloudMonitoring | ✓ |
-| [Message Queue](/docs/services/messagequeue) | SQS | ServiceBus | PubSub | ✓ |
-| [IAM](/docs/services/iam) | IAM | IAM | IAM | ✓ |
-| [Container Registry](/docs/services/containerregistry) | ECR | ACR | ArtifactRegistry | ✓ |
-| [Resource Discovery](/docs/services/resource-discovery) | Resource Explorer + Tagging | Resource Graph | Cloud Asset Inventory | ✓ |
-| [DNS](/docs/services/dns) | Route53 | DNS | CloudDNS | ✓ |
-| [Load Balancer](/docs/services/loadbalancer) | ELBv2 | LB | LB | ✓ |
-| [Notification](/docs/services/notification) | SNS | NotificationHubs | FCM | ✓ |
-| [Event Bus](/docs/services/eventbus) | EventBridge | EventGrid | Eventarc | ✓ |
-| [Cache](/docs/services/cache) | ElastiCache | Cache | Memorystore | ✓ |
-| [Secrets](/docs/services/secrets) | SecretsManager | KeyVault | SecretManager | ✓ |
-| [Logging](/docs/services/logging) | CloudWatchLogs | LogAnalytics | CloudLogging | ✓ |
+A dash in the OCI column means OCI doesn't emulate that service yet.
 
-Every core category above has a live SDK-compat wire handler on all three providers — real cloud SDKs talk to it with only an endpoint change.
+| Category | AWS | Azure | GCP | OCI | SDK-compat |
+|----------|-----|-------|-----|-----|:----------:|
+| [Compute](/docs/services/compute) | EC2 | VirtualMachines | GCE | Compute | ✓ |
+| [Storage](/docs/services/storage) | S3 | BlobStorage | GCS | ObjectStorage | ✓ |
+| [Database (NoSQL)](/docs/services/database) | DynamoDB | CosmosDB | Firestore | NoSQL | ✓ |
+| [Relational DB](/docs/services/relationaldb) | RDS + Redshift | SQL + Postgres/MySQL Flex | Cloud SQL + AlloyDB | — | ✓ |
+| [Serverless](/docs/services/serverless) | Lambda | Functions | CloudFunctions | — | ✓ |
+| [Kubernetes](/docs/services/kubernetes) | EKS | AKS | GKE | — | ✓ |
+| [Networking](/docs/services/networking) | VPC | VNet | VPC | VCN | ✓ |
+| [Monitoring](/docs/services/monitoring) | CloudWatch | Monitor | CloudMonitoring | Monitoring | ✓ |
+| [Message Queue](/docs/services/messagequeue) | SQS | ServiceBus | PubSub | — | ✓ |
+| [IAM](/docs/services/iam) | IAM | IAM | IAM | Identity | ✓ |
+| [Container Registry](/docs/services/containerregistry) | ECR | ACR | ArtifactRegistry | — | ✓ |
+| [Resource Discovery](/docs/services/resource-discovery) | Resource Explorer + Tagging | Resource Graph | Cloud Asset Inventory | — | ✓ |
+| [DNS](/docs/services/dns) | Route53 | DNS | CloudDNS | — | ✓ |
+| [Load Balancer](/docs/services/loadbalancer) | ELBv2 | LB | LB | — | ✓ |
+| [Notification](/docs/services/notification) | SNS | NotificationHubs | FCM | Notifications | ✓ |
+| [Event Bus](/docs/services/eventbus) | EventBridge | EventGrid | Eventarc | — | ✓ |
+| [Cache](/docs/services/cache) | ElastiCache | Cache | Memorystore | — | ✓ |
+| [Secrets](/docs/services/secrets) | SecretsManager | KeyVault | SecretManager | Vault | ✓ |
+| [Logging](/docs/services/logging) | CloudWatchLogs | LogAnalytics | CloudLogging | Logging | ✓ |
+
+Every core category above has a live SDK-compat wire handler on AWS, Azure, and GCP, and on OCI wherever it has a native name — real cloud SDKs talk to it with only an endpoint change. OCI also exposes work requests, so the SDK can poll its asynchronous mutations.
 
 ## Provider-specific services — with a dedicated guide
 
@@ -166,6 +168,17 @@ gcp.Bigtable          // Bigtable
 gcp.VertexAI          // Machine Learning
 gcp.Spanner           // Spanner
 gcp.Dataproc          // Analytics
+
+oci := cloudemu.NewOCI()
+oci.Compute           // Compute + Block Volume
+oci.ObjectStorage     // Storage
+oci.NoSQL             // Database (NoSQL)
+oci.VCN               // Networking
+oci.Identity          // IAM
+oci.Vault             // Secrets
+oci.Logging           // Logging
+oci.Monitoring        // Monitoring
+oci.Notifications     // Notification
 ```
 
-All providers implement the same driver interfaces, so operations and behaviors are consistent across clouds.
+All providers implement the same driver interfaces, so operations and behaviors are consistent across clouds. On OCI, a service it doesn't emulate yet (Functions, Queue, Load Balancer, DNS, Container Registry, Cache, Events, MySQL/PostgreSQL, OKE) is `nil`.
