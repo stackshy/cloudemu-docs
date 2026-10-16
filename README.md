@@ -37,3 +37,4 @@ npm run build    # static export → out/
 ## License
 
 MIT
+Second smoke test
