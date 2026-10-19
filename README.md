@@ -38,3 +38,4 @@ npm run build    # static export → out/
 
 MIT
 approval gate check
+approval gate check
