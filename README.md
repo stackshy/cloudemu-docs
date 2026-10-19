@@ -37,3 +37,8 @@ npm run build    # static export → out/
 ## License
 
 MIT
+approval gate check
+approval gate check
+approval gate check
+approval gate check
+approval gate check
