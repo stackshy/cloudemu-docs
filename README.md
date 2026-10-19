@@ -37,3 +37,5 @@ npm run build    # static export → out/
 ## License
 
 MIT
+
+Heartbeat verification run.
