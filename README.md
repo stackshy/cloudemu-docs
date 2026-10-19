@@ -37,3 +37,7 @@ npm run build    # static export → out/
 ## License
 
 MIT
+
+## Agent placement smoke
+
+This change was made by a ZopDev agent running on a customer VM.
