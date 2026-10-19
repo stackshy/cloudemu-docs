@@ -37,3 +37,7 @@ npm run build    # static export → out/
 ## License
 
 MIT
+
+## Agent placement smoke test
+
+This change was made by a ZopDay agent task running in a gVisor sandbox.
