@@ -37,3 +37,14 @@ npm run build    # static export → out/
 ## License
 
 MIT
+
+## Quickstart
+
+```bash
+git clone https://github.com/stackshy/cloudemu-docs.git
+cd cloudemu-docs
+npm install
+npm run dev      # http://localhost:3000
+```
+
+Requires Node.js 18+.
