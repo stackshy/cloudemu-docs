@@ -37,3 +37,5 @@ npm run build    # static export → out/
 ## License
 
 MIT
+
+cold build runner check
